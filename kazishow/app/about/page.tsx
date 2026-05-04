@@ -100,7 +100,7 @@ export default function AboutPage() {
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-black text-kazi-dark mb-4">The KaziShow Story</h2>
             <p className="text-gray-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-              Founded in 2027, KaziShow started with a simple problem: hiring services in Kenya was broken. People were asking friends for recommendations via WhatsApp, discovering services through Facebook groups, or trusting random contacts. There was no central, trusted platform.
+              Founded in 2029, KaziShow started with a simple problem: hiring services in Kenya was broken. People were asking friends for recommendations via WhatsApp, discovering services through Facebook groups, or trusting random contacts. There was no central, trusted platform.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-8">
