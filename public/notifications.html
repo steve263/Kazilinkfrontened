@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KaziShow Provider</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,700;9..144,900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0F0D0B;
+  --bg2:#161210;
+  --card:rgba(255,255,255,0.05);
+  --border:rgba(255,255,255,0.08);
+  --orange:#FF6B2B;
+  --orange-bg:rgba(255,107,43,0.12);
+  --green:#00C896;
+  --green-bg:rgba(0,200,150,0.12);
+  --red:#FF4444;
+  --red-bg:rgba(255,68,68,0.12);
+  --yellow:#FFB800;
+  --yellow-bg:rgba(255,184,0,0.12);
+  --blue:#4A9EFF;
+  --blue-bg:rgba(74,158,255,0.12);
+  --muted:rgba(255,255,255,0.5);
+  --dim:rgba(255,255,255,0.22);
+}
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:var(--bg);
+  color:#fff;
+  min-height:100vh;
+  max-width:430px;
+  margin:0 auto;
+  overflow-x:hidden;
+  position:relative;
+}
+.screen{display:none;min-height:calc(100vh - 72px);padding-bottom:88px;}
+.screen.active{display:block;}
+
+/* Bottom nav */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;
+  transform:translateX(-50%);
+  width:100%;max-width:430px;
+  background:rgba(12,10,8,0.97);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;z-index:100;height:72px;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;
+  cursor:pointer;border:none;background:none;
+  color:var(--muted);font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:11px;font-weight:600;padding:8px 0;
+  transition:color 0.2s;
+}
+.nav-item.active{color:var(--orange);}
+.nav-item svg{width:22px;height:22px;}
+.nav-badge{
+  position:relative;display:inline-block;
+}
+.nav-dot{
+  position:absolute;top:-2px;right:-6px;
+  width:8px;height:8px;
+  background:var(--orange);
+  border-radius:50%;
+  border:2px solid #0F0D0B;
+}
+
+/* Sections */
+.section{padding:16px 20px 0;}
+.section-title{
+  font-size:11px;font-weight:700;
+  color:var(--dim);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:12px;
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;padding:16px;
+}
+
+/* ============ BOOKING ALERT ============ */
+#booking-alert{
+  position:fixed;inset:0;z-index:200;
+  display:none;flex-direction:column;
+  align-items:center;justify-content:flex-end;padding:16px;
+}
+#booking-alert.show{display:flex;}
+.alert-backdrop{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0.8);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.alert-card{
+  position:relative;width:100%;max-width:398px;
+  background:#1B1410;
+  border:1px solid rgba(255,107,43,0.25);
+  border-radius:28px;padding:22px;
+  animation:slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:0 0 80px rgba(255,107,43,0.15);
+}
+@keyframes slideUp{
+  from{transform:translateY(120px);opacity:0;}
+  to{transform:translateY(0);opacity:1;}
+}
+.alert-top{
+  display:flex;align-items:center;
+  justify-content:space-between;margin-bottom:18px;
+}
+.alert-badge{
+  background:var(--orange-bg);
+  border:1px solid rgba(255,107,43,0.3);
+  color:var(--orange);font-size:11px;font-weight:800;
+  padding:5px 12px;border-radius:100px;
+  text-transform:uppercase;letter-spacing:0.6px;
+  display:flex;align-items:center;gap:6px;
+}
+.alert-badge-pulse{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--orange);
+  animation:blink 1s infinite;
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+.countdown-wrap{position:relative;width:54px;height:54px;}
+.countdown-wrap svg{transform:rotate(-90deg);}
+.countdown-num{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:800;color:var(--orange);
+}
+.alert-customer{
+  display:flex;align-items:center;gap:14px;margin-bottom:14px;
+}
+.avatar{
+  width:50px;height:50px;border-radius:15px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;font-weight:800;flex-shrink:0;
+}
+.customer-info h3{font-size:16px;font-weight:800;margin-bottom:2px;}
+.alert-stars{color:var(--yellow);font-size:13px;letter-spacing:1px;}
+.customer-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.alert-details{
+  background:rgba(255,255,255,0.04);border-radius:14px;
+  padding:12px;margin-bottom:14px;
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+.detail-item label{
+  font-size:9px;text-transform:uppercase;letter-spacing:0.8px;
+  color:var(--dim);font-weight:700;display:block;margin-bottom:2px;
+}
+.detail-item span{font-size:13px;font-weight:700;}
+.alert-price{text-align:center;margin-bottom:18px;}
+.price-label{
+  font-size:10px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.8px;font-weight:700;
+}
+.price-amount{
+  font-family:'Fraunces',serif;
+  font-size:38px;font-weight:900;color:var(--green);
+  line-height:1.1;
+}
+.price-sub{font-size:11px;color:var(--dim);margin-top:2px;}
+.alert-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{
+  padding:15px;border-radius:15px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:15px;font-weight:800;cursor:pointer;
+  border:none;transition:all 0.15s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn-decline{
+  background:var(--red-bg);color:var(--red);
+  border:1px solid rgba(255,68,68,0.2);
+}
+.btn-decline:active{background:rgba(255,68,68,0.25);}
+.btn-accept{background:var(--green);color:#000;font-weight:900;}
+.btn-accept:active{background:#00dba6;}
+
+/* ============ DASHBOARD ============ */
+.dash-header{
+  padding:20px 20px 16px;
+  display:flex;align-items:flex-start;justify-content:space-between;
+}
+.greeting-sub{font-size:13px;color:var(--muted);margin-bottom:3px;}
+.greeting-name{
+  font-family:'Fraunces',serif;
+  font-size:28px;font-weight:900;line-height:1;
+}
+.online-toggle{
+  display:flex;align-items:center;gap:9px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:100px;padding:9px 16px;cursor:pointer;
+  transition:all 0.2s;
+}
+.toggle-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:var(--red);transition:background 0.3s;
+}
+.toggle-dot.online{background:var(--green);box-shadow:0 0 6px var(--green);}
+.toggle-label{font-size:13px;font-weight:700;}
+.summary-card{
+  background:linear-gradient(135deg,rgba(255,107,43,0.13) 0%,rgba(255,107,43,0.04) 100%);
+  border:1px solid rgba(255,107,43,0.18);
+  border-radius:22px;padding:18px;
+}
+.summary-row{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:14px;
+}
+.summary-label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px;}
+.summary-earnings{
+  font-family:'Fraunces',serif;
+  font-size:36px;font-weight:900;color:var(--orange);line-height:1;
+}
+.summary-week{
+  font-family:'Fraunces',serif;
+  font-size:20px;font-weight:700;
+  text-align:right;
+}
+.stat-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.stat-pill{
+  background:rgba(255,255,255,0.07);
+  border-radius:100px;padding:5px 12px;
+  font-size:12px;font-weight:700;
+  display:flex;align-items:center;gap:5px;
+}
+.job-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:16px;margin-bottom:10px;
+}
+.job-header{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;margin-bottom:12px;
+}
+.job-service{font-size:15px;font-weight:800;}
+.job-customer{font-size:12px;color:var(--muted);margin-top:2px;}
+.status-badge{
+  font-size:10px;font-weight:800;padding:4px 10px;
+  border-radius:100px;text-transform:uppercase;
+  letter-spacing:0.5px;white-space:nowrap;
+}
+.status-active{background:var(--orange-bg);color:var(--orange);}
+.status-confirmed{background:var(--blue-bg);color:var(--blue);}
+.status-completed{background:var(--green-bg);color:var(--green);}
+.job-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:12px;padding-top:12px;border-top:1px solid var(--border);
+}
+.job-price{font-size:15px;font-weight:800;color:var(--green);}
+.job-location{font-size:12px;color:var(--muted);}
+.quick-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.quick-stat{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:14px 10px;text-align:center;
+}
+.qs-value{
+  font-family:'Fraunces',serif;font-size:22px;font-weight:700;margin-bottom:2px;
+}
+.qs-label{font-size:10px;color:var(--muted);font-weight:600;}
+
+/* ============ NOTIFICATIONS ============ */
+.screen-header{
+  padding:20px 20px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.header-title{
+  font-family:'Fraunces',serif;font-size:26px;font-weight:900;
+}
+.notif-filters{
+  display:flex;gap:8px;padding:0 20px;
+  overflow-x:auto;scrollbar-width:none;padding-bottom:4px;
+}
+.notif-filters::-webkit-scrollbar{display:none;}
+.filter-btn{
+  background:var(--card);border:1px solid var(--border);
+  color:var(--muted);font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:12px;font-weight:700;padding:7px 16px;
+  border-radius:100px;cursor:pointer;white-space:nowrap;transition:all 0.2s;
+}
+.filter-btn.active{
+  background:var(--orange-bg);
+  border-color:rgba(255,107,43,0.3);color:var(--orange);
+}
+.notif-list{padding:0 20px;margin-top:14px;}
+.notif-item{
+  display:flex;align-items:flex-start;gap:13px;
+  padding:14px 0;border-bottom:1px solid var(--border);
+}
+.notif-item:last-child{border-bottom:none;}
+.notif-icon{
+  width:42px;height:42px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.notif-content{flex:1;min-width:0;}
+.notif-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.notif-sub{font-size:12px;color:var(--muted);margin-bottom:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.notif-time{font-size:11px;color:var(--dim);}
+.notif-amount{font-size:14px;font-weight:800;text-align:right;white-space:nowrap;padding-top:2px;}
+
+/* ============ EARNINGS ============ */
+.earnings-hero{
+  margin:0 20px 0;
+  background:linear-gradient(135deg,#1F1208 0%,#140D05 100%);
+  border:1px solid rgba(255,107,43,0.15);
+  border-radius:24px;padding:22px;text-align:center;
+}
+.earnings-period{
+  font-size:11px;color:var(--muted);font-weight:700;
+  text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;
+}
+.earnings-total{
+  font-family:'Fraunces',serif;font-size:46px;font-weight:900;
+  color:var(--orange);line-height:1;margin-bottom:6px;
+}
+.earnings-change{font-size:13px;font-weight:700;}
+.bar-chart{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  height:90px;padding:0 4px 0;margin-bottom:0;
+}
+.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;gap:6px;}
+.bar{
+  width:100%;max-width:30px;border-radius:7px 7px 0 0;
+  background:rgba(255,107,43,0.22);cursor:pointer;
+  position:relative;transition:background 0.2s;
+}
+.bar.today{background:var(--orange);}
+.bar:hover{background:rgba(255,107,43,0.5);}
+.bar.today:hover{background:#ff8450;}
+.bar-day{font-size:10px;color:var(--dim);font-weight:700;}
+.rating-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.rating-row:last-child{margin-bottom:0;}
+.r-stars{font-size:12px;color:var(--yellow);width:56px;flex-shrink:0;}
+.r-bar-bg{flex:1;height:7px;background:rgba(255,255,255,0.08);border-radius:100px;overflow:hidden;}
+.r-bar-fill{height:100%;background:var(--yellow);border-radius:100px;}
+.r-pct{font-size:11px;font-weight:700;color:var(--muted);width:30px;text-align:right;flex-shrink:0;}
+.payout-item{
+  display:flex;align-items:center;gap:13px;
+  padding:13px 0;border-bottom:1px solid var(--border);
+}
+.payout-item:last-child{border-bottom:none;}
+.payout-icon{
+  width:40px;height:40px;background:var(--green-bg);
+  border-radius:13px;display:flex;align-items:center;
+  justify-content:center;font-size:18px;flex-shrink:0;
+}
+.payout-info{flex:1;}
+.payout-amount{font-size:15px;font-weight:800;color:var(--green);}
+.payout-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.payout-status{font-size:12px;font-weight:800;color:var(--green);}
+.period-btns{
+  display:flex;gap:3px;background:var(--card);
+  border:1px solid var(--border);border-radius:12px;padding:4px;
+}
+.period-btn{
+  background:none;color:var(--muted);
+  border:none;font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:11px;font-weight:700;
+  padding:6px 14px;border-radius:9px;cursor:pointer;transition:all 0.2s;
+}
+.period-btn.active{background:var(--orange);color:#fff;}
+
+/* Toast */
+#toast{
+  position:fixed;top:20px;left:50%;
+  transform:translateX(-50%) translateY(-120px);
+  background:rgba(28,22,16,0.97);
+  border:1px solid var(--border);border-radius:14px;
+  padding:11px 18px;font-size:13px;font-weight:700;
+  z-index:500;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  white-space:nowrap;backdrop-filter:blur(20px);
+  pointer-events:none;max-width:360px;
+  white-space:normal;text-align:center;
+}
+#toast.show{transform:translateX(-50%) translateY(0);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ============ BOOKING ALERT OVERLAY ============ -->
+<div id="booking-alert">
+  <div class="alert-backdrop" onclick="declineBooking()"></div>
+  <div class="alert-card">
+    <div class="alert-top">
+      <div class="alert-badge">
+        <div class="alert-badge-pulse"></div>
+        New Booking
+      </div>
+      <div class="countdown-wrap">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>
+          <circle id="countdown-circle" cx="27" cy="27" r="22" fill="none"
+            stroke="#FF6B2B" stroke-width="4" stroke-linecap="round"
+            stroke-dasharray="138.2" stroke-dashoffset="0"/>
+        </svg>
+        <div class="countdown-num" id="countdown-num">30</div>
+      </div>
+    </div>
+
+    <div class="alert-customer">
+      <div class="avatar" id="alert-avatar">JK</div>
+      <div class="customer-info">
+        <h3 id="alert-name">John Kamau</h3>
+        <div class="alert-stars" id="alert-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="customer-meta" id="alert-meta">12 jobs &bull; Verified Customer</div>
+      </div>
+    </div>
+
+    <div class="alert-details">
+      <div class="detail-item">
+        <label>Service</label>
+        <span id="alert-service">Plumbing</span>
+      </div>
+      <div class="detail-item">
+        <label>Distance</label>
+        <span id="alert-distance">2.3 km</span>
+      </div>
+      <div class="detail-item">
+        <label>Scheduled</label>
+        <span id="alert-time">Today 2:30 PM</span>
+      </div>
+      <div class="detail-item">
+        <label>Est. Duration</label>
+        <span id="alert-duration">~2 hrs</span>
+      </div>
+    </div>
+
+    <div class="alert-price">
+      <div class="price-label">Estimated Earning</div>
+      <div class="price-amount" id="alert-price">KSh 2,500</div>
+      <div class="price-sub">&#128274; Protected by KaziShow Escrow</div>
+    </div>
+
+    <div class="alert-actions">
+      <button class="btn btn-decline" onclick="declineBooking()">&#10005;&nbsp; Decline</button>
+      <button class="btn btn-accept" onclick="acceptBooking()">&#10003;&nbsp; Accept</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN: DASHBOARD ============ -->
+<div id="screen-dashboard" class="screen active">
+  <div class="dash-header">
+    <div>
+      <div class="greeting-sub">Good morning,</div>
+      <div class="greeting-name">James Mwangi</div>
+    </div>
+    <div class="online-toggle" id="online-toggle" onclick="toggleOnline()">
+      <div class="toggle-dot online" id="toggle-dot"></div>
+      <span class="toggle-label" id="toggle-label">Online</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Today's Performance</div>
+    <div class="summary-card">
+      <div class="summary-row">
+        <div>
+          <div class="summary-label">Earned Today</div>
+          <div class="summary-earnings">KSh 4,800</div>
+        </div>
+        <div>
+          <div class="summary-label" style="text-align:right;">This Week</div>
+          <div class="summary-week">KSh 18,400</div>
+        </div>
+      </div>
+      <div class="stat-pills">
+        <div class="stat-pill"><span style="color:var(--green);">&#9679;</span><span id="jobs-count">3 jobs done</span></div>
+        <div class="stat-pill"><span style="color:var(--yellow);">&#9733;</span><span>4.9 rating</span></div>
+        <div class="stat-pill"><span style="color:var(--blue);">&#9993;</span><span>94% response</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Active Jobs</div>
+    <div id="jobs-list"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Quick Stats</div>
+    <div class="quick-stats">
+      <div class="quick-stat">
+        <div class="qs-value" style="color:var(--orange);">4.9</div>
+        <div class="qs-label">Avg Rating</div>
+      </div>
+      <div class="quick-stat">
+        <div class="qs-value" style="color:var(--green);">127</div>
+        <div class="qs-label">Total Jobs</div>
+      </div>
+      <div class="quick-stat">
+        <div class="qs-value" style="color:var(--blue);">94%</div>
+        <div class="qs-label">Accept Rate</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN: NOTIFICATIONS ============ -->
+<div id="screen-history" class="screen">
+  <div class="screen-header">
+    <div class="header-title">Notifications</div>
+    <div style="background:var(--orange-bg);border:1px solid rgba(255,107,43,0.3);color:var(--orange);font-size:12px;font-weight:800;padding:5px 12px;border-radius:100px;">8 new</div>
+  </div>
+
+  <div class="notif-filters">
+    <button class="filter-btn active" onclick="filterNotifs(this,'all')">All</button>
+    <button class="filter-btn" onclick="filterNotifs(this,'booking')">Bookings</button>
+    <button class="filter-btn" onclick="filterNotifs(this,'payment')">Payments</button>
+    <button class="filter-btn" onclick="filterNotifs(this,'review')">Reviews</button>
+    <button class="filter-btn" onclick="filterNotifs(this,'alert')">Alerts</button>
+  </div>
+
+  <div class="notif-list" id="notif-list"></div>
+</div>
+
+<!-- ============ SCREEN: EARNINGS ============ -->
+<div id="screen-earnings" class="screen">
+  <div class="screen-header">
+    <div class="header-title">Earnings</div>
+    <div class="period-btns">
+      <button class="period-btn active" id="btn-week" onclick="setPeriod('week')">Week</button>
+      <button class="period-btn" id="btn-month" onclick="setPeriod('month')">Month</button>
+    </div>
+  </div>
+
+  <div style="padding:0 20px 0;">
+    <div class="earnings-hero">
+      <div class="earnings-period" id="earnings-period-label">This Week</div>
+      <div class="earnings-total" id="earnings-total">KSh 18,400</div>
+      <div class="earnings-change" id="earnings-change" style="color:var(--green);">+22% vs last week</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Daily Breakdown</div>
+    <div class="card">
+      <div class="bar-chart" id="bar-chart"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Rating Breakdown</div>
+    <div class="card" id="rating-breakdown"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">M-Pesa Payout History</div>
+    <div class="card" id="payout-history"></div>
+  </div>
+</div>
+
+<!-- ============ BOTTOM NAV ============ -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-dashboard" onclick="showScreen('dashboard')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    Dashboard
+  </button>
+  <button class="nav-item" id="nav-history" onclick="showScreen('history')">
+    <div class="nav-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <div class="nav-dot"></div>
+    </div>
+    Alerts
+  </button>
+  <button class="nav-item" id="nav-earnings" onclick="showScreen('earnings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/>
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    </svg>
+    Earnings
+  </button>
+</nav>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+var JOBS = [
+  {
+    id: 1,
+    service: "Plumbing Repair",
+    customer: "Mary Wanjiku",
+    location: "Westlands, Nairobi",
+    price: 2500,
+    status: "active",
+    pipeline: 2
+  },
+  {
+    id: 2,
+    service: "Electrical Wiring",
+    customer: "Peter Otieno",
+    location: "Kilimani, Nairobi",
+    price: 3800,
+    status: "confirmed",
+    pipeline: 1
+  }
+];
+
+var PIPELINE_STEPS = ["Booked", "On Way", "In Progress", "Done"];
+
+var BOOKINGS_POOL = [
+  {
+    name: "John Kamau",
+    service: "Pipe Fixing",
+    distance: "1.8 km",
+    time: "Today 3:00 PM",
+    duration: "~1.5 hrs",
+    priceText: "KSh 1,800",
+    priceNum: 1800,
+    meta: "8 jobs",
+    rating: 4.7,
+    initials: "JK",
+    color: "#4A9EFF",
+    bg: "rgba(74,158,255,0.15)"
+  },
+  {
+    name: "Grace Nyambura",
+    service: "Drain Cleaning",
+    distance: "3.2 km",
+    time: "Today 5:00 PM",
+    duration: "~1 hr",
+    priceText: "KSh 2,200",
+    priceNum: 2200,
+    meta: "5 jobs",
+    rating: 4.9,
+    initials: "GN",
+    color: "#FF6B2B",
+    bg: "rgba(255,107,43,0.15)"
+  },
+  {
+    name: "David Njoroge",
+    service: "Geyser Install",
+    distance: "0.9 km",
+    time: "Tomorrow 9:00 AM",
+    duration: "~3 hrs",
+    priceText: "KSh 5,500",
+    priceNum: 5500,
+    meta: "21 jobs",
+    rating: 5.0,
+    initials: "DN",
+    color: "#00C896",
+    bg: "rgba(0,200,150,0.15)"
+  },
+  {
+    name: "Aisha Mohammed",
+    service: "Tap Replacement",
+    distance: "4.1 km",
+    time: "Tomorrow 2:00 PM",
+    duration: "~1 hr",
+    priceText: "KSh 1,200",
+    priceNum: 1200,
+    meta: "3 jobs",
+    rating: 4.5,
+    initials: "AM",
+    color: "#FFB800",
+    bg: "rgba(255,184,0,0.15)"
+  },
+  {
+    name: "Samuel Kipchoge",
+    service: "Ceiling Fan Install",
+    distance: "2.6 km",
+    time: "Today 6:00 PM",
+    duration: "~2 hrs",
+    priceText: "KSh 3,000",
+    priceNum: 3000,
+    meta: "14 jobs",
+    rating: 4.8,
+    initials: "SK",
+    color: "#FF6B2B",
+    bg: "rgba(255,107,43,0.15)"
+  }
+];
+
+var NOTIFICATIONS_DATA = [
+  {
+    type: "booking",
+    icon: "&#128203;",
+    iconBg: "rgba(255,107,43,0.15)",
+    iconColor: "#FF6B2B",
+    title: "Booking Accepted",
+    sub: "Plumbing repair - Mary Wanjiku",
+    time: "2 min ago",
+    amount: "+KSh 2,500",
+    amountColor: "#00C896"
+  },
+  {
+    type: "payment",
+    icon: "&#128176;",
+    iconBg: "rgba(0,200,150,0.15)",
+    iconColor: "#00C896",
+    title: "Payment Released",
+    sub: "Electrical job - Peter Otieno",
+    time: "1 hr ago",
+    amount: "+KSh 3,800",
+    amountColor: "#00C896"
+  },
+  {
+    type: "review",
+    icon: "&#11088;",
+    iconBg: "rgba(255,184,0,0.15)",
+    iconColor: "#FFB800",
+    title: "New 5-Star Review",
+    sub: "\"Very professional and fast!\" - Grace N.",
+    time: "2 hrs ago",
+    amount: "5.0 stars",
+    amountColor: "#FFB800"
+  },
+  {
+    type: "alert",
+    icon: "&#10060;",
+    iconBg: "rgba(255,68,68,0.15)",
+    iconColor: "#FF4444",
+    title: "MISSED BOOKING",
+    sub: "John Kamau - Pipe fixing expired",
+    time: "3 hrs ago",
+    amount: "-KSh 1,800",
+    amountColor: "#FF4444"
+  },
+  {
+    type: "booking",
+    icon: "&#128203;",
+    iconBg: "rgba(255,107,43,0.15)",
+    iconColor: "#FF6B2B",
+    title: "Booking Confirmed",
+    sub: "Geyser installation - David Njoroge",
+    time: "4 hrs ago",
+    amount: "+KSh 5,500",
+    amountColor: "#00C896"
+  },
+  {
+    type: "alert",
+    icon: "&#10060;",
+    iconBg: "rgba(255,68,68,0.15)",
+    iconColor: "#FF4444",
+    title: "MISSED BOOKING",
+    sub: "Sarah Waweru - Sink repair expired",
+    time: "Yesterday",
+    amount: "-KSh 2,000",
+    amountColor: "#FF4444"
+  },
+  {
+    type: "payment",
+    icon: "&#128176;",
+    iconBg: "rgba(0,200,150,0.15)",
+    iconColor: "#00C896",
+    title: "M-Pesa Payout Sent",
+    sub: "Weekly earnings to your M-Pesa ending 456",
+    time: "2 days ago",
+    amount: "KSh 12,400",
+    amountColor: "#00C896"
+  },
+  {
+    type: "review",
+    icon: "&#11088;",
+    iconBg: "rgba(255,184,0,0.15)",
+    iconColor: "#FFB800",
+    title: "Review Received",
+    sub: "\"Came on time, fixed everything.\" - Peter O.",
+    time: "2 days ago",
+    amount: "5.0 stars",
+    amountColor: "#FFB800"
+  },
+  {
+    type: "alert",
+    icon: "&#9888;",
+    iconBg: "rgba(255,184,0,0.15)",
+    iconColor: "#FFB800",
+    title: "Response Rate Alert",
+    sub: "Your response rate dropped to 82%",
+    time: "3 days ago",
+    amount: "82%",
+    amountColor: "#FFB800"
+  },
+  {
+    type: "payment",
+    icon: "&#128176;",
+    iconBg: "rgba(0,200,150,0.15)",
+    iconColor: "#00C896",
+    title: "Payment Released",
+    sub: "Blocked drain repair - Alice Kamau",
+    time: "3 days ago",
+    amount: "+KSh 1,600",
+    amountColor: "#00C896"
+  }
+];
+
+var WEEK_DATA = {
+  labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  values: [2400, 1800, 3600, 2800, 4800, 1600, 1400],
+  todayIndex: 4
+};
+
+var MONTH_DATA = {
+  labels: ["Wk 1", "Wk 2", "Wk 3", "Wk 4"],
+  values: [18400, 22000, 15600, 19800],
+  todayIndex: 2
+};
+
+var PAYOUTS = [
+  { amount: "KSh 12,400", date: "Tue 22 Apr 2025", ref: "MP250422001" },
+  { amount: "KSh 18,200", date: "Tue 15 Apr 2025", ref: "MP250415003" },
+  { amount: "KSh 9,600",  date: "Tue 8 Apr 2025",  ref: "MP250408007" },
+  { amount: "KSh 21,400", date: "Tue 1 Apr 2025",  ref: "MP250401002" }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+
+var isOnline = true;
+var countdownTimer = null;
+var countdownValue = 30;
+var autoBookingTimer = null;
+var bookingPoolIndex = 0;
+var currentFilter = "all";
+var currentPeriod = "week";
+var toastTimer = null;
+var acceptedCount = 0;
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+function showScreen(name) {
+  var screens = ["dashboard", "history", "earnings"];
+  for (var i = 0; i < screens.length; i++) {
+    document.getElementById("screen-" + screens[i]).classList.remove("active");
+    document.getElementById("nav-" + screens[i]).classList.remove("active");
+  }
+  document.getElementById("screen-" + name).classList.add("active");
+  document.getElementById("nav-" + name).classList.add("active");
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+
+function showToast(msg, color) {
+  var el = document.getElementById("toast");
+  el.textContent = msg;
+  el.style.color = color || "#fff";
+  el.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() {
+    el.classList.remove("show");
+  }, 2800);
+}
+
+// ============================================================
+// ONLINE TOGGLE
+// ============================================================
+
+function toggleOnline() {
+  isOnline = !isOnline;
+  var dot = document.getElementById("toggle-dot");
+  var label = document.getElementById("toggle-label");
+  if (isOnline) {
+    dot.className = "toggle-dot online";
+    label.textContent = "Online";
+    showToast("You are online. Booking requests incoming!", "#00C896");
+    scheduleNextBooking();
+  } else {
+    dot.className = "toggle-dot";
+    label.textContent = "Offline";
+    showToast("You are offline. No new bookings.", "#FF4444");
+    if (autoBookingTimer) {
+      clearTimeout(autoBookingTimer);
+      autoBookingTimer = null;
+    }
+  }
+}
+
+// ============================================================
+// JOBS LIST
+// ============================================================
+
+function buildStarsHtml(rating) {
+  var full = Math.floor(rating);
+  var html = "";
+  for (var s = 0; s < full; s++) { html += "&#9733;"; }
+  return html + " " + rating;
+}
+
+function renderJobs() {
+  var list = document.getElementById("jobs-list");
+  var html = "";
+  for (var i = 0; i < JOBS.length; i++) {
+    var job = JOBS[i];
+    var statusClass = "status-" + job.status;
+    var statusLabel = job.status === "active" ? "In Progress" : "Confirmed";
+
+    html += '<div class="job-card">';
+    html += '<div class="job-header">';
+    html += '<div><div class="job-service">' + job.service + '</div>';
+    html += '<div class="job-customer">' + job.customer + '</div></div>';
+    html += '<span class="status-badge ' + statusClass + '">' + statusLabel + '</span>';
+    html += '</div>';
+
+    // Pipeline - dots row
+    html += '<div style="display:flex;align-items:center;margin-top:4px;">';
+    for (var s = 0; s < PIPELINE_STEPS.length; s++) {
+      var dotStyle = "width:9px;height:9px;border-radius:50%;flex-shrink:0;";
+      if (s < job.pipeline) {
+        dotStyle += "background:#00C896;";
+      } else if (s === job.pipeline) {
+        dotStyle += "background:#FF6B2B;box-shadow:0 0 7px rgba(255,107,43,0.8);";
+      } else {
+        dotStyle += "background:rgba(255,255,255,0.12);";
+      }
+      html += '<div style="' + dotStyle + '"></div>';
+      if (s < PIPELINE_STEPS.length - 1) {
+        var lineColor = s < job.pipeline ? "#00C896" : "rgba(255,255,255,0.1)";
+        html += '<div style="flex:1;height:2px;background:' + lineColor + ';"></div>';
+      }
+    }
+    html += '</div>';
+
+    // Pipeline - labels row
+    html += '<div style="display:flex;justify-content:space-between;margin-top:5px;">';
+    for (var t = 0; t < PIPELINE_STEPS.length; t++) {
+      var lColor = t <= job.pipeline ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.2)";
+      if (t === job.pipeline) lColor = "#FF6B2B";
+      html += '<div style="font-size:9px;font-weight:700;color:' + lColor + ';text-align:center;flex:1;">' + PIPELINE_STEPS[t] + '</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="job-footer">';
+    html += '<div class="job-price">KSh ' + job.price.toLocaleString() + '</div>';
+    html += '<div class="job-location">&#128205; ' + job.location + '</div>';
+    html += '</div>';
+    html += '</div>';
+  }
+  if (list) list.innerHTML = html || '<div style="text-align:center;padding:30px;color:var(--dim);font-size:14px;">No active jobs right now</div>';
+}
+
+function updateJobsCount() {
+  var el = document.getElementById("jobs-count");
+  if (el) el.textContent = (3 + acceptedCount) + " jobs done";
+}
+
+// ============================================================
+// BOOKING ALERT
+// ============================================================
+
+function showBookingAlert() {
+  if (!isOnline) return;
+  var booking = BOOKINGS_POOL[bookingPoolIndex % BOOKINGS_POOL.length];
+  bookingPoolIndex++;
+
+  document.getElementById("alert-name").textContent = booking.name;
+  var av = document.getElementById("alert-avatar");
+  av.textContent = booking.initials;
+  av.style.background = booking.bg;
+  av.style.color = booking.color;
+  document.getElementById("alert-stars").innerHTML = buildStarsHtml(booking.rating);
+  document.getElementById("alert-meta").textContent = booking.meta + " total &bull; Verified";
+  document.getElementById("alert-service").textContent = booking.service;
+  document.getElementById("alert-distance").textContent = booking.distance;
+  document.getElementById("alert-time").textContent = booking.time;
+  document.getElementById("alert-duration").textContent = booking.duration;
+  document.getElementById("alert-price").textContent = booking.priceText;
+
+  document.getElementById("booking-alert").classList.add("show");
+  startCountdown();
+}
+
+function hideBookingAlert() {
+  document.getElementById("booking-alert").classList.remove("show");
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+}
+
+function startCountdown() {
+  countdownValue = 30;
+  updateCountdownDisplay();
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(function() {
+    countdownValue--;
+    updateCountdownDisplay();
+    if (countdownValue <= 0) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+      var missed = BOOKINGS_POOL[(bookingPoolIndex - 1) % BOOKINGS_POOL.length];
+      hideBookingAlert();
+      showToast("Booking expired. You missed " + missed.priceText, "#FF4444");
+      scheduleNextBooking();
+    }
+  }, 1000);
+}
+
+function updateCountdownDisplay() {
+  var numEl = document.getElementById("countdown-num");
+  var circle = document.getElementById("countdown-circle");
+  if (numEl) numEl.textContent = countdownValue;
+  if (circle) {
+    var circumference = 138.2;
+    var offset = (1 - countdownValue / 30) * circumference;
+    circle.setAttribute("stroke-dashoffset", offset.toFixed(1));
+    circle.setAttribute("stroke", countdownValue <= 8 ? "#FF4444" : "#FF6B2B");
+  }
+}
+
+function acceptBooking() {
+  var booking = BOOKINGS_POOL[(bookingPoolIndex - 1) % BOOKINGS_POOL.length];
+  hideBookingAlert();
+  showToast("Accepted! Head to job - " + booking.distance + " away", "#00C896");
+  acceptedCount++;
+  JOBS.unshift({
+    id: JOBS.length + 10,
+    service: booking.service,
+    customer: booking.name,
+    location: booking.distance + " away",
+    price: booking.priceNum,
+    status: "confirmed",
+    pipeline: 1
+  });
+  renderJobs();
+  updateJobsCount();
+  scheduleNextBooking();
+}
+
+function declineBooking() {
+  hideBookingAlert();
+  showToast("Booking declined.", "rgba(255,255,255,0.7)");
+  scheduleNextBooking();
+}
+
+function scheduleNextBooking() {
+  if (autoBookingTimer) clearTimeout(autoBookingTimer);
+  if (!isOnline) return;
+  autoBookingTimer = setTimeout(showBookingAlert, 15000);
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+function renderNotifications() {
+  var list = document.getElementById("notif-list");
+  var html = "";
+  for (var i = 0; i < NOTIFICATIONS_DATA.length; i++) {
+    var n = NOTIFICATIONS_DATA[i];
+    if (currentFilter !== "all" && n.type !== currentFilter) continue;
+    var isMissed = n.type === "alert" && n.title.indexOf("MISSED") !== -1;
+    var rowBg = isMissed ? "background:rgba(255,68,68,0.04);margin:0 -4px;padding:14px 4px;border-radius:12px;" : "";
+    html += '<div class="notif-item" style="' + rowBg + '">';
+    html += '<div class="notif-icon" style="background:' + n.iconBg + ';color:' + n.iconColor + ';">' + n.icon + '</div>';
+    html += '<div class="notif-content">';
+    html += '<div class="notif-title"' + (isMissed ? ' style="color:#FF4444;"' : '') + '>' + n.title + '</div>';
+    html += '<div class="notif-sub">' + n.sub + '</div>';
+    html += '<div class="notif-time">' + n.time + '</div>';
+    html += '</div>';
+    html += '<div class="notif-amount" style="color:' + n.amountColor + ';">' + n.amount + '</div>';
+    html += '</div>';
+  }
+  if (!html) {
+    html = '<div style="text-align:center;padding:50px 0;color:var(--dim);font-size:14px;">No notifications here</div>';
+  }
+  if (list) list.innerHTML = html;
+}
+
+function filterNotifs(btn, filter) {
+  currentFilter = filter;
+  var buttons = document.querySelectorAll(".filter-btn");
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].classList.remove("active");
+  }
+  btn.classList.add("active");
+  renderNotifications();
+}
+
+// ============================================================
+// EARNINGS
+// ============================================================
+
+function renderBarChart() {
+  var data = currentPeriod === "week" ? WEEK_DATA : MONTH_DATA;
+  var max = 0;
+  for (var i = 0; i < data.values.length; i++) {
+    if (data.values[i] > max) max = data.values[i];
+  }
+  var chart = document.getElementById("bar-chart");
+  var html = "";
+  for (var j = 0; j < data.labels.length; j++) {
+    var pct = max > 0 ? Math.round((data.values[j] / max) * 82) : 0;
+    var isToday = j === data.todayIndex;
+    html += '<div class="bar-col">';
+    html += '<div class="bar' + (isToday ? ' today' : '') + '" style="height:' + pct + 'px;" title="KSh ' + data.values[j].toLocaleString() + '"></div>';
+    html += '<div class="bar-day">' + data.labels[j] + '</div>';
+    html += '</div>';
+  }
+  if (chart) chart.innerHTML = html;
+}
+
+function renderRatingBreakdown() {
+  var container = document.getElementById("rating-breakdown");
+  var ratings = [
+    { stars: 5, pct: 68 },
+    { stars: 4, pct: 22 },
+    { stars: 3, pct: 7 },
+    { stars: 2, pct: 2 },
+    { stars: 1, pct: 1 }
+  ];
+  var html = "";
+  for (var i = 0; i < ratings.length; i++) {
+    var r = ratings[i];
+    var starsHtml = "";
+    for (var s = 0; s < 5; s++) {
+      starsHtml += s < r.stars ? "&#9733;" : "&#9734;";
+    }
+    html += '<div class="rating-row">';
+    html += '<div class="r-stars">' + starsHtml + '</div>';
+    html += '<div class="r-bar-bg"><div class="r-bar-fill" style="width:' + r.pct + '%;"></div></div>';
+    html += '<div class="r-pct">' + r.pct + '%</div>';
+    html += '</div>';
+  }
+  if (container) container.innerHTML = html;
+}
+
+function renderPayouts() {
+  var container = document.getElementById("payout-history");
+  var html = "";
+  for (var i = 0; i < PAYOUTS.length; i++) {
+    var p = PAYOUTS[i];
+    html += '<div class="payout-item">';
+    html += '<div class="payout-icon">&#128176;</div>';
+    html += '<div class="payout-info">';
+    html += '<div class="payout-amount">' + p.amount + '</div>';
+    html += '<div class="payout-meta">' + p.date + ' &nbsp;&bull;&nbsp; ' + p.ref + '</div>';
+    html += '</div>';
+    html += '<div class="payout-status">&#10003; Received</div>';
+    html += '</div>';
+  }
+  if (container) container.innerHTML = html;
+}
+
+function setPeriod(period) {
+  currentPeriod = period;
+  var btnWeek = document.getElementById("btn-week");
+  var btnMonth = document.getElementById("btn-month");
+  btnWeek.classList.remove("active");
+  btnMonth.classList.remove("active");
+  document.getElementById("btn-" + period).classList.add("active");
+
+  var periodLabel = document.getElementById("earnings-period-label");
+  var totalEl = document.getElementById("earnings-total");
+  var changeEl = document.getElementById("earnings-change");
+
+  if (period === "week") {
+    if (periodLabel) periodLabel.textContent = "This Week";
+    if (totalEl) totalEl.textContent = "KSh 18,400";
+    if (changeEl) { changeEl.textContent = "+22% vs last week"; changeEl.style.color = "#00C896"; }
+  } else {
+    if (periodLabel) periodLabel.textContent = "This Month";
+    if (totalEl) totalEl.textContent = "KSh 75,800";
+    if (changeEl) { changeEl.textContent = "+8% vs last month"; changeEl.style.color = "#00C896"; }
+  }
+  renderBarChart();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+function initAll() {
+  renderJobs();
+  renderNotifications();
+  renderBarChart();
+  renderRatingBreakdown();
+  renderPayouts();
+  setTimeout(showBookingAlert, 3000);
+}
+
+document.addEventListener("DOMContentLoaded", initAll);
+</script>
+</body>
+</html>
