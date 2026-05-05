@@ -10,6 +10,8 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import { formatCurrency } from "@/lib/utils";
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface BookingRequest {
@@ -79,7 +81,7 @@ function BookingCard({
     setLoading(action);
     try {
       const endpoint = action === "accept" ? "accept" : "decline";
-      const res = await fetch(`http://localhost:5000/api/bookings/${booking.id}/${endpoint}`, {
+      const res = await fetch(`${API}/api/bookings/${booking.id}/${endpoint}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -295,7 +297,7 @@ export default function ProviderNotificationsPage() {
 
     const fetchPending = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/bookings?status=PENDING", {
+        const res = await fetch(`${API}/api/bookings?status=PENDING`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

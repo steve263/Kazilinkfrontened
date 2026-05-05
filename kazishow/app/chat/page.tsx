@@ -13,6 +13,8 @@ interface Conversation {
   unreadCount: number;
 }
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function ChatListPage() {
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -53,7 +55,7 @@ export default function ChatListPage() {
 
   const fetchConversations = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/messages/conversations", {
+      const res = await fetch(`${API}/api/messages/conversations`, {
         headers: { Authorization: `Bearer ${tokenRef.current}` },
       });
       const data = await res.json();

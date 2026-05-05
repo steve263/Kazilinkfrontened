@@ -7,6 +7,8 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import toast from "react-hot-toast";
 
+const API = process.env.NEXT_PUBLIC_API_URL || "${API}";
+
 interface MyReview {
   id: string;
   rating: number;
@@ -61,7 +63,7 @@ export default function MyReviewsPage() {
     if (!t) return;
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/customers/reviews/my", {
+      const res = await fetch(`${API}/api/customers/reviews/my`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       const data = await res.json();
@@ -95,7 +97,7 @@ export default function MyReviewsPage() {
     setEditSaving(true);
     try {
       const token = localStorage.getItem("kazishow_token");
-      const res = await fetch(`http://localhost:5000/api/reviews/${editingId}`, {
+      const res = await fetch(`${API}/api/reviews/${editingId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -125,7 +127,7 @@ export default function MyReviewsPage() {
     setDeletingId(id);
     try {
       const token = localStorage.getItem("kazishow_token");
-      const res = await fetch(`http://localhost:5000/api/reviews/${id}`, {
+      const res = await fetch(`${API}/api/reviews/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

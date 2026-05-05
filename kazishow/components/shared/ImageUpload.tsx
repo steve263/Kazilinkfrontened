@@ -2,6 +2,8 @@
 import { useState, useRef } from "react";
 import { Camera, Loader2, Upload } from "lucide-react";
 
+const API = process.env.NEXT_PUBLIC_API_URL || "${API}";
+
 interface Props {
   folder: string;
   onUpload: (url: string, publicId: string) => void;
@@ -45,8 +47,8 @@ export default function ImageUpload({
     try {
       const token = localStorage.getItem("kazishow_token");
       const uploadUrl = token
-        ? `http://localhost:5000/api/upload/image?folder=${folder}`
-        : `http://localhost:5000/api/upload/public?folder=${folder}`;
+        ? `${API}/api/upload/image?folder=${folder}`
+        : `${API}/api/upload/public?folder=${folder}`;
       const headers: Record<string, string> = {};
       if (token) headers["Authorization"] = `Bearer ${token}`;
 

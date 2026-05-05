@@ -53,7 +53,8 @@ export default function ReviewModal({
           ? `${trimmed} [${tags.join(", ")}]`
           : trimmed;
 
-      const res = await fetch("http://localhost:5000/api/reviews", {
+      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API}/api/reviews`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
