@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import ScrollProgress from "@/components/ui/ScrollProgress";
 import AuthGuard from "@/components/layout/AuthGuard";
+import IncomingCallHandler from "@/components/call/IncomingCallHandler";
 
 export const metadata: Metadata = {
   title: "KaziShow — Discover Local Businesses in Kenya",
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-kazi-cream min-h-screen">
         <AuthGuard />
+        <IncomingCallHandler />
         <ScrollProgress />
         {children}
         <Toaster
