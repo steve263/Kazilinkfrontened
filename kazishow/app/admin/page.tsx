@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Users, ShoppingBag, DollarSign, Clock, Activity, Star,
-  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck,
+  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import StatCard from "@/components/admin/StatCard";
@@ -28,6 +28,7 @@ const NAV = [
   { label: "Users",      href: "/admin/users",       icon: Users },
   { label: "Bookings",   href: "/admin/bookings",    icon: ShoppingBag },
   { label: "Analytics",  href: "/admin/analytics",   icon: Activity },
+  { label: "Withdrawals", href: "/admin/withdrawals", icon: Wallet },
 ];
 
 const BOOKING_STATUS_COLOR: Record<string, string> = {
