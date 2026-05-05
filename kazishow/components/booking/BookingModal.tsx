@@ -64,14 +64,20 @@ export default function BookingModal({ business, service, onClose }: BookingModa
   const [countdown, setCountdown] = useState(countdownMax);
   const [bookingId, setBookingId] = useState("");
   const [waitingForProvider, setWaitingForProvider] = useState(false);
+  const [waitingForPayment, setWaitingForPayment] = useState(false);
+  const [checkoutRequestId, setCheckoutRequestId] = useState("");
 
   const timerRef = useRef<any>(null);
   const socketRef = useRef<any>(null);
+  const pollRef = useRef<any>(null);
+  const pollTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (socketRef.current) socketRef.current.disconnect();
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
     };
   }, []);
 
@@ -120,6 +126,65 @@ export default function BookingModal({ business, service, onClose }: BookingModa
       },
       { timeout: 10000 }
     );
+  };
+
+  const triggerMpesaPayment = async (bkgId: string, phone: string) => {
+    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    try {
+      const token = localStorage.getItem("kazishow_token");
+      const res = await fetch(`${API}/api/payments/stk-push`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bookingId: bkgId, phone: phone.replace(/\s/g, "") }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("M-Pesa prompt sent! Enter your PIN to pay.");
+        setCheckoutRequestId(data.data.checkoutRequestId);
+      } else {
+        toast.error(data.message || "Failed to send M-Pesa prompt");
+        setWaitingForPayment(false);
+        setStep("success");
+      }
+    } catch {
+      toast.error("Payment trigger failed. Booking is confirmed.");
+      setWaitingForPayment(false);
+      setStep("success");
+    }
+  };
+
+  const pollPaymentStatus = (bkgId: string) => {
+    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    pollRef.current = setInterval(async () => {
+      try {
+        const token = localStorage.getItem("kazishow_token");
+        const res = await fetch(`${API}/api/payments/${bkgId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        const status = data.data?.payment?.status;
+        if (status === "SUCCESS") {
+          clearInterval(pollRef.current);
+          if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
+          setWaitingForPayment(false);
+          setStep("success");
+          toast.success("Payment confirmed! Booking complete! 🎉");
+        } else if (status === "FAILED") {
+          clearInterval(pollRef.current);
+          if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
+          setWaitingForPayment(false);
+          toast.error("Payment failed. Please try again.");
+          setStep("payment");
+        }
+      } catch {}
+    }, 5000);
+
+    pollTimeoutRef.current = setTimeout(() => {
+      clearInterval(pollRef.current);
+      setWaitingForPayment(false);
+      setStep("success");
+      toast("Booking confirmed. Pay on arrival if needed.", { icon: "⚠️" });
+    }, 120000);
   };
 
   const handleConfirm = async () => {
@@ -177,9 +242,15 @@ export default function BookingModal({ business, service, onClose }: BookingModa
 
       console.log("[BookingModal] booking.status =", booking.status, "| provider category =", business.category);
 
-      // Business provider (auto-accepted by backend): brief animation then success
+      // Business provider (auto-accepted by backend)
       if (booking.status !== "PENDING") {
-        setTimeout(() => setStep("success"), 1500);
+        if (selectedPayment === "mpesa_before") {
+          setWaitingForPayment(true);
+          await triggerMpesaPayment(booking.id, mpesaPhone);
+          pollPaymentStatus(booking.id);
+        } else {
+          setTimeout(() => setStep("success"), 1500);
+        }
         return;
       }
 
@@ -209,12 +280,19 @@ export default function BookingModal({ business, service, onClose }: BookingModa
         console.log("[BookingModal] Socket joined room:", user.id);
       });
 
-      socket.on("booking_accepted", () => {
+      const acceptedBookingId = booking.id;
+      socket.on("booking_accepted", async () => {
         console.log("[BookingModal] booking_accepted received");
         clearInterval(timerRef.current);
         socket.disconnect();
         socketRef.current = null;
-        setStep("success");
+        if (selectedPayment === "mpesa_before") {
+          setWaitingForPayment(true);
+          await triggerMpesaPayment(acceptedBookingId, mpesaPhone);
+          pollPaymentStatus(acceptedBookingId);
+        } else {
+          setStep("success");
+        }
       });
 
       socket.on("booking_declined", () => {
@@ -662,78 +740,96 @@ export default function BookingModal({ business, service, onClose }: BookingModa
           )}
 
           {/* ─────────────────────────────────────────
-              STEP 5: Searching (countdown)
+              STEP 5: Searching / Payment
           ───────────────────────────────────────── */}
           {step === "searching" && (
-            <div className="flex flex-col items-center justify-center py-10 space-y-6">
-              {/* Pulsing ring + spinner */}
-              <div className="relative flex items-center justify-center">
-                <span className="absolute inline-flex h-24 w-24 rounded-full bg-kazi-orange opacity-20 animate-ping" />
-                <span className="absolute inline-flex h-20 w-20 rounded-full bg-kazi-orange opacity-10 animate-ping animation-delay-150" />
-                <div className="relative w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center z-10">
-                  <Loader2 className="w-8 h-8 text-kazi-orange animate-spin" />
+            waitingForPayment ? (
+              /* M-Pesa payment waiting screen */
+              <div className="flex flex-col items-center py-8 space-y-5">
+                <div className="text-6xl animate-bounce">📱</div>
+                <div className="text-center">
+                  <h3 className="font-black text-kazi-dark text-xl mb-2">Check Your Phone!</h3>
+                  <p className="text-gray-500 text-sm mb-2">
+                    An M-Pesa prompt has been sent to
+                  </p>
+                  <p className="font-bold text-kazi-orange text-lg">
+                    {mpesaPhone.replace(/\s/g, "")}
+                  </p>
                 </div>
-              </div>
-
-              {/* Title */}
-              <div className="text-center">
-                <h3 className="font-bold text-kazi-dark text-xl mb-1">
-                  {waitingForProvider ? "Waiting for Provider..." : "Confirming Booking..."}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {waitingForProvider
-                    ? `${business.businessName || business.name} has ${countdownMax} seconds to respond`
-                    : `Notifying ${business.businessName || business.name}`}
-                </p>
-              </div>
-
-              {/* Countdown ring — only for FUNDI (waitingForProvider) */}
-              {waitingForProvider && (
-                <div className="relative w-24 h-24">
-                  <svg
-                    className="w-24 h-24 -rotate-90"
-                    viewBox="0 0 96 96"
-                  >
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="42"
-                      fill="none"
-                      stroke="#f3f4f6"
-                      strokeWidth="6"
-                    />
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="42"
-                      fill="none"
-                      stroke="#f97316"
-                      strokeWidth="6"
-                      strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 42}`}
-                      strokeDashoffset={`${2 * Math.PI * 42 * (1 - countdown / countdownMax)}`}
-                      className="transition-all duration-1000"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-black text-kazi-orange leading-none">
-                      {countdown}
-                    </span>
+                <div className="w-full bg-green-50 border border-green-200 rounded-2xl p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">💚</span>
+                    <div>
+                      <p className="font-bold text-sm text-kazi-dark">Enter your M-Pesa PIN</p>
+                      <p className="text-xs text-gray-500">The prompt will expire in 2 minutes</p>
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {/* Animated dots */}
-              <div className="flex gap-1.5">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="w-2 h-2 bg-kazi-orange rounded-full animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }}
-                  />
-                ))}
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-kazi-orange border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-gray-500">Waiting for payment confirmation...</p>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Amount:{" "}
+                  <strong className="text-kazi-orange">
+                    KSh {selectedService?.price?.toLocaleString()}
+                  </strong>
+                </p>
               </div>
-            </div>
+            ) : (
+              /* Provider search / countdown screen */
+              <div className="flex flex-col items-center justify-center py-10 space-y-6">
+                {/* Pulsing ring + spinner */}
+                <div className="relative flex items-center justify-center">
+                  <span className="absolute inline-flex h-24 w-24 rounded-full bg-kazi-orange opacity-20 animate-ping" />
+                  <span className="absolute inline-flex h-20 w-20 rounded-full bg-kazi-orange opacity-10 animate-ping animation-delay-150" />
+                  <div className="relative w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center z-10">
+                    <Loader2 className="w-8 h-8 text-kazi-orange animate-spin" />
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <h3 className="font-bold text-kazi-dark text-xl mb-1">
+                    {waitingForProvider ? "Waiting for Provider..." : "Confirming Booking..."}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {waitingForProvider
+                      ? `${business.businessName || business.name} has ${countdownMax} seconds to respond`
+                      : `Notifying ${business.businessName || business.name}`}
+                  </p>
+                </div>
+
+                {waitingForProvider && (
+                  <div className="relative w-24 h-24">
+                    <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
+                      <circle cx="48" cy="48" r="42" fill="none" stroke="#f3f4f6" strokeWidth="6" />
+                      <circle
+                        cx="48" cy="48" r="42" fill="none" stroke="#f97316" strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 42}`}
+                        strokeDashoffset={`${2 * Math.PI * 42 * (1 - countdown / countdownMax)}`}
+                        className="transition-all duration-1000"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-3xl font-black text-kazi-orange leading-none">
+                        {countdown}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-1.5">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="w-2 h-2 bg-kazi-orange rounded-full animate-bounce"
+                      style={{ animationDelay: `${i * 0.15}s` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
           )}
 
           {/* ─────────────────────────────────────────
