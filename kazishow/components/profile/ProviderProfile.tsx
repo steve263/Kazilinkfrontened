@@ -405,9 +405,9 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     if (!file) return;
     setCoverUploading(true);
     const form = new FormData();
-    form.append("file", file);
+    form.append("image", file);
     try {
-      const res = await fetch(`${API}/api/upload/image`, {
+      const res = await fetch(`${API}/api/upload/image?folder=covers`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: form,
@@ -423,10 +423,10 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
           setProvider((prev: any) => ({ ...prev, coverImage: data.data.url }));
         }
       } else {
-        toast.error("Upload failed");
+        toast.error(data.message || "Upload failed");
       }
     } catch {
-      toast.error("Upload error");
+      toast.error("Upload error — check your connection");
     }
     setCoverUploading(false);
   };
@@ -436,9 +436,9 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     if (!file) return;
     setPhotoUploading(true);
     const form = new FormData();
-    form.append("file", file);
+    form.append("image", file);
     try {
-      const res = await fetch(`${API}/api/upload/image`, {
+      const res = await fetch(`${API}/api/upload/image?folder=portfolio`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: form,
@@ -454,10 +454,10 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
           setProvider((prev: any) => ({ ...prev, profileImage: data.data.url }));
         }
       } else {
-        toast.error("Upload failed");
+        toast.error(data.message || "Upload failed");
       }
     } catch {
-      toast.error("Upload error");
+      toast.error("Upload error — check your connection");
     }
     setPhotoUploading(false);
   };

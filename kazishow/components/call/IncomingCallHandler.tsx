@@ -29,6 +29,7 @@ export default function IncomingCallHandler() {
   const callTimerRef = useRef<any>(null);
   const callSecondsRef = useRef(0);
   const ringtoneCtxRef = useRef<AudioContext | null>(null);
+  const ringtoneOscsRef = useRef<OscillatorNode[]>([]);
   const callerIdRef = useRef<string>("");
 
   useEffect(() => {
@@ -44,6 +45,10 @@ export default function IncomingCallHandler() {
       callerIdRef.current = data.from;
       setIncomingCall(data);
       startRingtone();
+    });
+
+    socket.on("ice_candidate", (data: any) => {
+      if (peerRef.current) peerRef.current.signal(data.candidate);
     });
 
     socket.on("call_ended", () => {
@@ -79,6 +84,7 @@ export default function IncomingCallHandler() {
     try {
       const ctx = new AudioContext();
       ringtoneCtxRef.current = ctx;
+      ringtoneOscsRef.current = [];
       for (let i = 0; i < 40; i++) {
         const t = ctx.currentTime + i * 0.7;
         const osc = ctx.createOscillator();
@@ -90,11 +96,14 @@ export default function IncomingCallHandler() {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
         osc.start(t);
         osc.stop(t + 0.5);
+        ringtoneOscsRef.current.push(osc);
       }
     } catch {}
   };
 
   const stopRingtone = () => {
+    ringtoneOscsRef.current.forEach(osc => { try { osc.stop(0); } catch {} });
+    ringtoneOscsRef.current = [];
     if (ringtoneCtxRef.current) {
       try { ringtoneCtxRef.current.close(); } catch {}
       ringtoneCtxRef.current = null;
@@ -124,16 +133,35 @@ export default function IncomingCallHandler() {
   const acceptCall = async () => {
     if (!incomingCall) return;
     stopRingtone();
+    const callFrom = incomingCall.from;
+    const callSignal = incomingCall.signal;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
       streamRef.current = stream;
       setConnectedCaller({ name: incomingCall.callerName, avatar: incomingCall.callerAvatar });
 
       const { default: SimplePeer } = await import("simple-peer");
-      const peer = new SimplePeer({ initiator: false, trickle: false, stream });
+      const peer = new SimplePeer({
+        initiator: false,
+        trickle: true,
+        stream,
+        config: {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+            { urls: "stun:stun2.l.google.com:19302" },
+          ],
+        },
+      });
 
       peer.on("signal", (signal: any) => {
-        socketRef.current?.emit("accept_call", { to: incomingCall.from, signal });
+        if (signal.type === "answer") {
+          socketRef.current?.emit("accept_call", { to: callFrom, signal });
+        } else {
+          socketRef.current?.emit("ice_candidate", { to: callFrom, candidate: signal });
+        }
       });
 
       peer.on("stream", (remoteStream: MediaStream) => {
@@ -149,13 +177,12 @@ export default function IncomingCallHandler() {
         cleanupCall(false);
       });
 
-      peer.signal(incomingCall.signal);
+      peer.signal(callSignal);
       peerRef.current = peer;
       setIncomingCall(null);
     } catch {
       toast.error("Could not access microphone. Please allow permission.");
-      stopRingtone();
-      socketRef.current?.emit("decline_call", { to: incomingCall.from });
+      socketRef.current?.emit("decline_call", { to: callFrom });
       setIncomingCall(null);
     }
   };

@@ -253,9 +253,13 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
     if (!file) return;
     setPhotoUploading(true);
     const form = new FormData();
-    form.append("file", file);
+    form.append("image", file);
     try {
-      const res = await fetch(`${API}/api/upload/public`, { method: "POST", body: form });
+      const res = await fetch(`${API}/api/upload/image?folder=customers`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
       const data = await res.json();
       if (data.success && data.data?.url) {
         const d = await authFetch(`${API}/api/customers/profile`, {
@@ -267,10 +271,10 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
           setProfile((prev: any) => ({ ...prev, profilePhoto: data.data.url }));
         }
       } else {
-        toast.error("Upload failed");
+        toast.error(data.message || "Upload failed");
       }
     } catch {
-      toast.error("Upload error");
+      toast.error("Upload error — check your connection");
     }
     setPhotoUploading(false);
   };

@@ -137,6 +137,10 @@ export default function ChatRoomPage() {
       if (peerRef.current) peerRef.current.signal(data.signal);
     });
 
+    socket.on("ice_candidate", (data: any) => {
+      if (peerRef.current) peerRef.current.signal(data.candidate);
+    });
+
     socket.on("call_declined", () => {
       cleanupCall(false);
       toast.error("Call was declined");
@@ -329,21 +333,38 @@ export default function ChatRoomPage() {
   const startCall = async () => {
     if (callState !== "idle") return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
       streamRef.current = stream;
 
       const { default: SimplePeer } = await import("simple-peer");
-      const peer = new SimplePeer({ initiator: true, trickle: false, stream });
+      const peer = new SimplePeer({
+        initiator: true,
+        trickle: true,
+        stream,
+        config: {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+            { urls: "stun:stun2.l.google.com:19302" },
+          ],
+        },
+      });
 
       peer.on("signal", (signal: any) => {
-        socketRef.current?.emit("call_user", {
-          to: otherId,
-          from: currentUserId,
-          callerName: currentUserName,
-          callerRole: currentUserRole,
-          callerAvatar: currentUserName?.charAt(0)?.toUpperCase() || "?",
-          signal,
-        });
+        if (signal.type === "offer") {
+          socketRef.current?.emit("call_user", {
+            to: otherId,
+            from: currentUserId,
+            callerName: currentUserName,
+            callerRole: currentUserRole,
+            callerAvatar: currentUserName?.charAt(0)?.toUpperCase() || "?",
+            signal,
+          });
+        } else {
+          socketRef.current?.emit("ice_candidate", { to: otherId, candidate: signal });
+        }
       });
 
       peer.on("stream", (remoteStream: MediaStream) => {

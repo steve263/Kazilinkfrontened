@@ -44,16 +44,15 @@ export default function EarningsPage() {
     if (!token || !user) return;
     setLoading(true);
     try {
-      // Need provider ID — get it from profile
-      const meRes = await fetch(`${API}/api/providers`, {
+      const meRes = await fetch(`${API}/api/providers/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const meData = await meRes.json();
-      const myProvider = meData.data?.find((p: any) => p.userId === user.id);
-      if (!myProvider) { toast.error("Provider profile not found"); return; }
+      if (!meData.success) { toast.error("Provider profile not found"); return; }
+      const providerId = meData.data.id;
 
       const [earRes, wdRes] = await Promise.all([
-        fetch(`${API}/api/providers/${myProvider.id}/earnings`, {
+        fetch(`${API}/api/providers/${providerId}/earnings`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`${API}/api/providers/withdrawals/my`, {
