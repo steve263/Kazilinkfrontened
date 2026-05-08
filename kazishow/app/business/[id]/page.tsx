@@ -366,11 +366,12 @@ export default function ProviderProfilePage() {
 
         {/* Active Promotion Banner */}
         {(provider.promotions || []).filter((p: any) => new Date(p.endDate) > new Date()).slice(0, 1).map((promo: any) => (
-          <div key={promo.id} className="flex items-center gap-3 p-4 rounded-2xl mb-4" style={{ background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)" }}>
+          <Link key={promo.id} href="/deals" className="flex items-center gap-3 p-4 rounded-2xl mb-4 hover:opacity-90 active:scale-[0.99] transition-all" style={{ background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)" }}>
             <span className="text-2xl">🔥</span>
             <div className="flex-1 min-w-0">
               <p className="font-black text-white text-sm">{promo.title}</p>
               {promo.description && <p className="text-white/80 text-xs mt-0.5 line-clamp-1">{promo.description}</p>}
+              <p className="text-white/60 text-[10px] mt-0.5">Tap to see all deals</p>
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-white font-black text-lg leading-none">
@@ -378,7 +379,7 @@ export default function ProviderProfilePage() {
               </p>
               <p className="text-white/70 text-[10px]">OFF · ends {new Date(promo.endDate).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</p>
             </div>
-          </div>
+          </Link>
         ))}
 
         {/* Tabs */}
