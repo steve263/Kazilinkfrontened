@@ -126,6 +126,7 @@ export default function Navbar() {
     { href: "/about", label: "About" },
     { href: "/testimonials", label: "Testimonials" },
     { href: "/tips", label: "Tips & Guides" },
+    { href: "/deals", label: "🔥 Deals" },
   ];
 
   return (

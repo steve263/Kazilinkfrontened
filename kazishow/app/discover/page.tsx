@@ -55,6 +55,7 @@ function meta(cat: string) {
 }
 
 function mapProvider(p: any) {
+  const activePromo = (p.promotions || [])[0] || null;
   return {
     id: p.id,
     name: p.businessName,
@@ -74,6 +75,7 @@ function mapProvider(p: any) {
     services: (p.services || []).slice(0, 3) as { name: string; price: number; priceType: string }[],
     workingHoursStart: p.workingHoursStart || "08:00",
     workingHoursEnd: p.workingHoursEnd || "18:00",
+    activePromo,
   };
 }
 
@@ -136,6 +138,13 @@ function ProviderCard({
           {provider.isVerified && (
             <span className="px-2 py-0.5 bg-kazi-green text-white text-[10px] font-black rounded-full shadow">
               ✓ {provider.badge || "Verified"}
+            </span>
+          )}
+          {provider.activePromo && (
+            <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded-full shadow">
+              🔥 {provider.activePromo.discountType === "PERCENTAGE"
+                ? `${provider.activePromo.discountValue}% OFF`
+                : `KSh ${provider.activePromo.discountValue} OFF`}
             </span>
           )}
         </div>

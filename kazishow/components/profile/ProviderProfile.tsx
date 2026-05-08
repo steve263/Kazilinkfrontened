@@ -6,14 +6,14 @@ import {
   Star, Trash2, Edit3, Camera, MessageSquare, Calendar, CheckCircle,
   XCircle, Clock, Loader2, Settings, CreditCard, BarChart2, Image,
   FileText, Plus, Bell, AlertTriangle, Lock, MapPin, Phone,
-  TrendingUp, Users, Zap, ToggleLeft, ToggleRight, ChevronRight,
+  TrendingUp, Users, Zap, ToggleLeft, ToggleRight, ChevronRight, Tag, X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-type Tab = "bookings" | "services" | "earnings" | "reviews" | "analytics" | "portfolio" | "posts" | "settings";
+type Tab = "bookings" | "services" | "earnings" | "reviews" | "analytics" | "portfolio" | "posts" | "promotions" | "settings";
 
 const CATEGORY_EMOJI: Record<string, string> = {
   FUNDI: "🔧", SHOP: "🏪", HOTEL: "🏨", RESTAURANT: "🍽️",
@@ -113,6 +113,17 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
   const [svcDuration, setSvcDuration] = useState("");
   const [savingService, setSavingService] = useState(false);
 
+  // Promotions
+  const [promotions, setPromotions] = useState<any[]>([]);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [showPromoForm, setShowPromoForm] = useState(false);
+  const [promoTitle, setPromoTitle] = useState("");
+  const [promoDesc, setPromoDesc] = useState("");
+  const [promoType, setPromoType] = useState("PERCENTAGE");
+  const [promoValue, setPromoValue] = useState("");
+  const [promoEnd, setPromoEnd] = useState("");
+  const [savingPromo, setSavingPromo] = useState(false);
+
   // Countdown timers for pending bookings
   const [pendingTimers, setPendingTimers] = useState<Record<string, number>>({});
   const timerIntervals = useRef<Record<string, any>>({});
@@ -208,6 +219,11 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
         const d = await authFetch(`${API}/api/posts/my`);
         if (d.success) setPosts(d.data.posts);
         setPostsLoading(false);
+      } else if (tab === "promotions") {
+        setPromoLoading(true);
+        const d = await authFetch(`${API}/api/promotions/my`);
+        if (d.success) setPromotions(d.data);
+        setPromoLoading(false);
       }
     },
     [authFetch, providerId]
@@ -474,6 +490,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     { id: "analytics", label: "Analytics" },
     { id: "portfolio", label: "Portfolio" },
     { id: "posts", label: "Posts" },
+    { id: "promotions", label: "Deals" },
     { id: "settings", label: "Settings" },
   ];
 
@@ -1099,6 +1116,135 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* ── PROMOTIONS / DEALS ── */}
+        {activeTab === "promotions" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2">
+                <Tag className="w-4 h-4 text-red-500" /> My Deals ({promotions.length})
+              </h3>
+              <button
+                onClick={() => setShowPromoForm(true)}
+                className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-xl flex items-center gap-1 hover:bg-red-600"
+              >
+                <Plus className="w-3.5 h-3.5" /> New Deal
+              </button>
+            </div>
+
+            {/* Create form */}
+            {showPromoForm && (
+              <div className="bg-white rounded-2xl shadow-sm p-4 border-2 border-red-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-kazi-dark text-sm">Create New Deal</h4>
+                  <button onClick={() => setShowPromoForm(false)}><X className="w-4 h-4 text-gray-400" /></button>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Deal Title *</label>
+                  <input value={promoTitle} onChange={(e) => setPromoTitle(e.target.value)} placeholder="e.g. Weekend Special" className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Description (optional)</label>
+                  <input value={promoDesc} onChange={(e) => setPromoDesc(e.target.value)} placeholder="e.g. Book any service this weekend and save" className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Discount Type</label>
+                    <select value={promoType} onChange={(e) => setPromoType(e.target.value)} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400">
+                      <option value="PERCENTAGE">Percentage (%)</option>
+                      <option value="FIXED">Fixed (KSh)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">
+                      {promoType === "PERCENTAGE" ? "Discount %" : "Amount (KSh)"} *
+                    </label>
+                    <input type="number" value={promoValue} onChange={(e) => setPromoValue(e.target.value)} placeholder={promoType === "PERCENTAGE" ? "e.g. 20" : "e.g. 500"} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Expires On *</label>
+                  <input type="datetime-local" value={promoEnd} onChange={(e) => setPromoEnd(e.target.value)} min={new Date().toISOString().slice(0, 16)} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!promoTitle || !promoValue || !promoEnd) { toast.error("Fill all required fields"); return; }
+                    setSavingPromo(true);
+                    const token = localStorage.getItem("kazishow_token");
+                    try {
+                      const res = await fetch(`${API}/api/promotions`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ title: promoTitle, description: promoDesc, discountType: promoType, discountValue: parseFloat(promoValue), endDate: promoEnd }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast.success("Deal created!");
+                        setPromotions((prev) => [data.data, ...prev]);
+                        setShowPromoForm(false);
+                        setPromoTitle(""); setPromoDesc(""); setPromoValue(""); setPromoEnd("");
+                      } else { toast.error(data.message || "Failed"); }
+                    } catch { toast.error("Network error"); }
+                    setSavingPromo(false);
+                  }}
+                  disabled={savingPromo}
+                  className="w-full py-3 bg-red-500 text-white font-bold text-sm rounded-xl hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {savingPromo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tag className="w-4 h-4" />}
+                  Publish Deal
+                </button>
+              </div>
+            )}
+
+            {promoLoading ? (
+              [0, 1].map((i) => <div key={i} className="bg-white rounded-2xl h-24 animate-pulse" />)
+            ) : promotions.length === 0 ? (
+              <div className="bg-white rounded-2xl p-8 text-center">
+                <Tag className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm text-gray-400 font-medium">No deals yet</p>
+                <p className="text-xs text-gray-300 mt-1">Create a deal to attract more customers</p>
+              </div>
+            ) : (
+              promotions.map((promo) => {
+                const expired = new Date(promo.endDate) < new Date();
+                return (
+                  <div key={promo.id} className={`bg-white rounded-2xl shadow-sm p-4 border-l-4 ${expired ? "border-gray-300 opacity-60" : "border-red-500"}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-black text-red-500">
+                            {promo.discountType === "PERCENTAGE" ? `${promo.discountValue}% OFF` : `KSh ${promo.discountValue} OFF`}
+                          </span>
+                          {expired && <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold">EXPIRED</span>}
+                          {!expired && <span className="text-[10px] bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-bold">ACTIVE</span>}
+                        </div>
+                        <p className="font-bold text-kazi-dark text-sm">{promo.title}</p>
+                        {promo.description && <p className="text-xs text-gray-500 mt-0.5">{promo.description}</p>}
+                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Expires {new Date(promo.endDate).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Delete this deal?")) return;
+                          const token = localStorage.getItem("kazishow_token");
+                          const res = await fetch(`${API}/api/promotions/${promo.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+                          const data = await res.json();
+                          if (data.success) { toast.success("Deal deleted"); setPromotions((prev) => prev.filter((p) => p.id !== promo.id)); }
+                          else toast.error(data.message || "Failed");
+                        }}
+                        className="ml-2 p-1.5 text-gray-400 hover:text-red-500"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         )}
