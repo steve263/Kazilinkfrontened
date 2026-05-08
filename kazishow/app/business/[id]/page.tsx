@@ -26,6 +26,8 @@ export default function ProviderProfilePage() {
   const [selectedService, setSelectedService] = useState<any>(undefined);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
+  const [waitlistCount, setWaitlistCount] = useState(0);
 
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
@@ -86,6 +88,19 @@ export default function ProviderProfilePage() {
       }
     };
     fetchProvider();
+  }, [params.id]);
+
+  useEffect(() => {
+    if (!params.id) return;
+    fetch(`${API_URL}/api/providers/${params.id}/availability`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          setIsBusy(data.data.isBusy);
+          setWaitlistCount(data.data.waitlistCount || 0);
+        }
+      })
+      .catch(() => {});
   }, [params.id]);
 
   const fetchReviews = useCallback(async (sort = "recent") => {
@@ -293,6 +308,24 @@ export default function ProviderProfilePage() {
               <p className="font-black text-kazi-orange">{provider.isVerified ? "✓" : "⏳"}</p>
               <p className="text-xs text-gray-500">Verified</p>
             </div>
+          </div>
+
+          {/* Availability badge */}
+          <div className="flex items-center gap-2 mt-3">
+            {isBusy ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-xs font-bold text-red-600">Currently Busy</span>
+                {waitlistCount > 0 && (
+                  <span className="text-xs text-red-400">· {waitlistCount} waiting</span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span className="text-xs font-bold text-green-600">Available Now</span>
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}

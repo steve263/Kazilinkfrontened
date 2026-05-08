@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
+import ProviderBusyModal from "./ProviderBusyModal";
 
 interface BookingModalProps {
   business: any; // provider object with .id, .businessName, .services[], .user?.location, .user?.phone, .category
@@ -66,6 +67,8 @@ export default function BookingModal({ business, service, onClose }: BookingModa
   const [waitingForProvider, setWaitingForProvider] = useState(false);
   const [waitingForPayment, setWaitingForPayment] = useState(false);
   const [checkoutRequestId, setCheckoutRequestId] = useState("");
+  const [providerBusy, setProviderBusy] = useState(false);
+  const [busyProviderData, setBusyProviderData] = useState<any>(null);
 
   const timerRef = useRef<any>(null);
   const socketRef = useRef<any>(null);
@@ -232,6 +235,12 @@ export default function BookingModal({ business, service, onClose }: BookingModa
       });
       const data = await res.json();
       if (!data.success) {
+        if (data.message === "PROVIDER_BUSY") {
+          setBusyProviderData(data.data);
+          setProviderBusy(true);
+          setStep("confirm");
+          return;
+        }
         toast.error(data.message || "Booking failed");
         setStep("confirm");
         return;
@@ -952,6 +961,13 @@ export default function BookingModal({ business, service, onClose }: BookingModa
           )}
         </div>
       </div>
+
+      {providerBusy && busyProviderData && (
+        <ProviderBusyModal
+          provider={busyProviderData}
+          onClose={() => { setProviderBusy(false); onClose(); }}
+        />
+      )}
     </div>
   );
 }

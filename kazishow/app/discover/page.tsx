@@ -76,6 +76,7 @@ function mapProvider(p: any) {
     workingHoursStart: p.workingHoursStart || "08:00",
     workingHoursEnd: p.workingHoursEnd || "18:00",
     activePromo,
+    isBusy: p.isBusy || false,
   };
 }
 
@@ -145,6 +146,15 @@ function ProviderCard({
               🔥 {provider.activePromo.discountType === "PERCENTAGE"
                 ? `${provider.activePromo.discountValue}% OFF`
                 : `KSh ${provider.activePromo.discountValue} OFF`}
+            </span>
+          )}
+          {provider.isBusy ? (
+            <span className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded-full shadow flex items-center gap-0.5">
+              🔴 Busy
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-black rounded-full shadow flex items-center gap-0.5">
+              🟢 Available
             </span>
           )}
         </div>

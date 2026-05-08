@@ -89,6 +89,8 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
   const [earningsLoading, setEarningsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
+  const [togglingBusy, setTogglingBusy] = useState(false);
   const loadedTabs = useRef(new Set<Tab>());
 
   // Per-tab data
@@ -173,6 +175,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
       if (pd.success) {
         setProvider(pd.data);
         setIsOnline(pd.data.user?.isOnline || false);
+        setIsBusy(pd.data.isBusy || false);
         setPortfolioPhotos(pd.data.portfolioPhotos || []);
         setEditBizName(pd.data.businessName || "");
         setEditDesc(pd.data.description || "");
@@ -271,6 +274,22 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
       toast.error("Failed to update status");
     }
     setTogglingOnline(false);
+  };
+
+  const handleMarkAvailable = async () => {
+    if (!confirm("Mark yourself as available? Customers on your waitlist will be notified.")) return;
+    setTogglingBusy(true);
+    const d = await authFetch(`${API}/api/providers/${providerId}/busy`, {
+      method: "PUT",
+      body: JSON.stringify({ isBusy: false }),
+    });
+    if (d.success) {
+      setIsBusy(false);
+      toast.success("You are now available! Waitlist customers notified.");
+    } else {
+      toast.error(d.message || "Failed to update status");
+    }
+    setTogglingBusy(false);
   };
 
   const handleAcceptBooking = async (bookingId: string) => {
@@ -542,8 +561,8 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
           </div>
         </div>
 
-        {/* Online toggle */}
-        <div className="absolute right-4 top-44">
+        {/* Online + Busy toggles */}
+        <div className="absolute right-4 top-44 flex flex-col items-end gap-2">
           <button
             onClick={handleToggleOnline}
             disabled={togglingOnline}
@@ -560,6 +579,16 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
             )}
             {isOnline ? "Online" : "Offline"}
           </button>
+          {isBusy && (
+            <button
+              onClick={handleMarkAvailable}
+              disabled={togglingBusy}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold shadow transition-all bg-amber-500 text-white hover:bg-amber-600"
+            >
+              {togglingBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>🔴</span>}
+              Busy · Mark Free
+            </button>
+          )}
         </div>
       </div>
 
