@@ -14,15 +14,12 @@ import ScrollProgress from "@/components/ui/ScrollProgress";
 import WhatsAppBubble from "@/components/ui/WhatsAppBubble";
 import LiveBookingToast from "@/components/ui/LiveBookingToast";
 import TrustBar from "@/components/home/TrustBar";
-import PartnerLogos from "@/components/home/PartnerLogos";
 import SocialProofSection from "@/components/home/SocialProofSection";
 import VideoTestimonials from "@/components/home/VideoTestimonials";
 import BookingDemo from "@/components/home/BookingDemo";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import KaziPromise from "@/components/home/KaziPromise";
-import AwardShelf from "@/components/home/AwardShelf";
 import CostCalculator from "@/components/home/CostCalculator";
-import TeamSection from "@/components/home/TeamSection";
 import BlogPreview from "@/components/home/BlogPreview";
 import NewsletterSignup from "@/components/home/NewsletterSignup";
 import ReferralBanner from "@/components/home/ReferralBanner";
@@ -89,8 +86,6 @@ const VERIFICATION_STEPS = [
   { icon: "📞", title: "Phone Verification", desc: "M-Pesa registered number confirms identity and local presence." },
   { icon: "⭐", title: "First Review Gate", desc: "After 3 bookings, ratings must stay above 4.0 to keep the verified badge." },
 ];
-
-const MEDIA_LOGOS = ["NATION", "Standard", "NTV", "CitizenTV", "Business Daily", "Techweez"];
 
 const PLACEHOLDER_REVIEWS = [
   { id: "p1", customer: { name: "Awaiting Reviews" }, provider: { businessName: "—" }, rating: 5, comment: "Be the first to review!" },
@@ -331,20 +326,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Media logos */}
-      <section className="bg-white border-b border-gray-100 py-5">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="text-center text-xs text-gray-400 font-semibold uppercase tracking-widest mb-4">As seen in</p>
-          <div className="flex items-center justify-center gap-8 flex-wrap">
-            {MEDIA_LOGOS.map((logo) => (
-              <span key={logo} className="text-gray-300 font-black text-lg tracking-tight select-none hover:text-gray-400 transition-colors cursor-default">{logo}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <PartnerLogos />
-      <AwardShelf />
       <SocialProofSection />
 
       {/* Who do you need? */}
@@ -456,47 +437,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Comparison Table */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-black text-kazi-dark mb-2">
-            Why KaziShow beats{" "}
-            <span className="bg-gradient-to-r from-kazi-orange to-kazi-amber bg-clip-text text-transparent">the alternatives</span>
-          </h2>
-          <p className="text-gray-500 text-sm">Compared to how most people hire services in Nairobi</p>
-        </div>
-        <div className="bg-white rounded-3xl overflow-hidden card-shadow">
-          <div className="grid grid-cols-4 text-center text-xs font-black uppercase tracking-wide bg-gray-50 border-b border-gray-100">
-            <div className="p-4 text-left text-gray-400">Feature</div>
-            <div className="p-4 text-kazi-orange bg-orange-50">KaziShow ⚡</div>
-            <div className="p-4 text-gray-500">Random Fundi</div>
-            <div className="p-4 text-gray-500">Facebook Groups</div>
-          </div>
-          {[
-            ["ID-verified provider", true, false, false],
-            ["Upfront pricing", true, false, false],
-            ["M-Pesa payments", true, false, false],
-            ["No-show protection", true, false, false],
-            ["Ratings & reviews", true, false, true],
-            ["Instant booking", true, false, false],
-            ["Money-back guarantee", true, false, false],
-          ].map(([feature, kazi, random, fb], i) => (
-            <div key={i} className={`grid grid-cols-4 text-center text-sm border-b border-gray-50 last:border-0 ${i % 2 === 0 ? "" : "bg-gray-50/50"}`}>
-              <div className="p-4 text-left text-gray-700 font-medium text-xs">{feature as string}</div>
-              <div className="p-4 bg-orange-50/50">
-                {kazi ? <CheckCircle className="w-5 h-5 text-kazi-green mx-auto" fill="#00C896" /> : <X className="w-5 h-5 text-gray-300 mx-auto" />}
-              </div>
-              <div className="p-4">
-                {random ? <CheckCircle className="w-5 h-5 text-kazi-green mx-auto" fill="#00C896" /> : <X className="w-5 h-5 text-red-300 mx-auto" />}
-              </div>
-              <div className="p-4">
-                {fb ? <CheckCircle className="w-5 h-5 text-kazi-green mx-auto" fill="#00C896" /> : <X className="w-5 h-5 text-red-300 mx-auto" />}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       <VideoTestimonials />
 
       {/* Trending Feed */}
@@ -586,7 +526,6 @@ export default function HomePage() {
       </section>
 
       <CostCalculator />
-      <TeamSection />
 
       {/* FAQ */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-14">
