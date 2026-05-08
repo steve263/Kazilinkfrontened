@@ -142,11 +142,15 @@ function ProviderCard({
             </span>
           )}
           {provider.activePromo && (
-            <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded-full shadow">
+            <Link
+              href="/deals"
+              onClick={(e) => e.stopPropagation()}
+              className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded-full shadow hover:bg-red-600 transition-colors"
+            >
               🔥 {provider.activePromo.discountType === "PERCENTAGE"
                 ? `${provider.activePromo.discountValue}% OFF`
                 : `KSh ${provider.activePromo.discountValue} OFF`}
-            </span>
+            </Link>
           )}
           {provider.isBusy ? (
             <span className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded-full shadow flex items-center gap-0.5">
@@ -294,6 +298,17 @@ function ProviderCardHorizontal({
                   <span className="px-1.5 py-0.5 bg-orange-100 text-kazi-orange text-[10px] font-bold rounded-full">
                     ⚡ Featured
                   </span>
+                )}
+                {provider.activePromo && (
+                  <Link
+                    href="/deals"
+                    onClick={(e) => e.stopPropagation()}
+                    className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    🔥 {provider.activePromo.discountType === "PERCENTAGE"
+                      ? `${provider.activePromo.discountValue}% OFF`
+                      : `KSh ${provider.activePromo.discountValue} OFF`}
+                  </Link>
                 )}
               </div>
             </div>
