@@ -386,6 +386,20 @@ export default function DiscoverPage() {
   // Saved/bookmarked
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
+  // ── Load saved providers ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const token = localStorage.getItem("kazishow_token");
+    if (!token) return;
+    fetch(`${API}/api/customers/saved`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setSaved(new Set((data.data || []).map((p: any) => p.id)));
+      })
+      .catch(() => {});
+  }, []);
+
   // ── Fetch providers ──────────────────────────────────────────────────────────
   const fetchProviders = useCallback(async () => {
     try {
@@ -493,13 +507,31 @@ export default function DiscoverPage() {
     return haversineKm(userLocation.lat, userLocation.lng, p.lat, p.lng);
   }, [userLocation]);
 
-  const toggleSave = (id: string) => {
+  const toggleSave = async (id: string) => {
+    const token = localStorage.getItem("kazishow_token");
+    if (!token) { toast.error("Login to save providers"); return; }
+    const isSaved = saved.has(id);
     setSaved((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); toast("Removed from saved"); }
-      else { next.add(id); toast.success("Provider saved!"); }
+      if (isSaved) next.delete(id); else next.add(id);
       return next;
     });
+    try {
+      const res = await fetch(`${API}/api/customers/saved/${id}`, {
+        method: isSaved ? "DELETE" : "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      if (isSaved) toast("Removed from saved"); else toast.success("Provider saved!");
+    } catch (err: any) {
+      setSaved((prev) => {
+        const next = new Set(prev);
+        if (isSaved) next.add(id); else next.delete(id);
+        return next;
+      });
+      toast.error(err.message || "Failed to update saved");
+    }
   };
 
   const hasActiveFilters = minRating > 0 || verifiedOnly || sortBy !== "Top Rated" || minPrice > 0 || maxPrice > 0 || openNow;

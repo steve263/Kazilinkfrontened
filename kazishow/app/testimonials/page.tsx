@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Play, Star, MessageCircle, Eye, Filter, X, Upload, Heart } from "lucide-react";
+import { ExpiryBadgeLight } from "@/components/ui/ExpiryBadge";
 import toast from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -346,6 +347,7 @@ export default function TestimonialsPage() {
                         <Eye className="w-3.5 h-3.5" />
                         {testimonial.views}
                       </div>
+                      {testimonial.expiresAt && <ExpiryBadgeLight expiresAt={testimonial.expiresAt} />}
                     </div>
                     <span className="text-kazi-orange font-semibold">{testimonial.category}</span>
                   </div>

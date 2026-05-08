@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   Star, MapPin, Phone, CheckCircle, Clock, Share2,
-  Bookmark, ArrowLeft, Calendar, ExternalLink, HardHat,
+  Bookmark, BookmarkCheck, ArrowLeft, Calendar, ExternalLink, HardHat,
   Store, ShieldCheck, MessageCircle, Flag, MessageSquare, X,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
@@ -25,6 +25,7 @@ export default function ProviderProfilePage() {
   const [showBooking, setShowBooking] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(undefined);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isSaved, setIsSaved] = useState(false);
 
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
@@ -40,6 +41,37 @@ export default function ProviderProfilePage() {
     const stored = localStorage.getItem("kazishow_user");
     if (stored) { try { setCurrentUser(JSON.parse(stored)); } catch {} }
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("kazishow_token");
+    if (!token || !params.id) return;
+    fetch(`${API_URL}/api/customers/saved`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setIsSaved((data.data || []).some((p: any) => p.id === params.id));
+      })
+      .catch(() => {});
+  }, [params.id]);
+
+  const toggleSave = async () => {
+    const token = localStorage.getItem("kazishow_token");
+    if (!token) { toast.error("Login to save providers"); return; }
+    setIsSaved((v) => !v);
+    try {
+      const res = await fetch(`${API_URL}/api/customers/saved/${params.id}`, {
+        method: isSaved ? "DELETE" : "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      if (isSaved) toast("Removed from saved"); else toast.success("Provider saved!");
+    } catch (err: any) {
+      setIsSaved((v) => !v);
+      toast.error(err.message || "Failed to update saved");
+    }
+  };
 
   useEffect(() => {
     const fetchProvider = async () => {
@@ -180,8 +212,11 @@ export default function ProviderProfilePage() {
           <button className="w-10 h-10 bg-black/40 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-black/60 transition-colors">
             <Share2 className="w-5 h-5 text-white" />
           </button>
-          <button className="w-10 h-10 bg-black/40 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-black/60 transition-colors">
-            <Bookmark className="w-5 h-5 text-white" />
+          <button onClick={toggleSave} className="w-10 h-10 bg-black/40 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-black/60 transition-colors">
+            {isSaved
+              ? <BookmarkCheck className="w-5 h-5 text-kazi-orange" fill="#FF6B2B" />
+              : <Bookmark className="w-5 h-5 text-white" />
+            }
           </button>
         </div>
 

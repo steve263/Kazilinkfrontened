@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, User, Smartphone, MapPin, Navigation,
-  CheckCircle, Loader2, Zap, ShieldCheck, ArrowRight, Lock, Eye, EyeOff,
+  CheckCircle, Loader2, Zap, ShieldCheck, Lock, Eye, EyeOff, Gift,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import OTPModal from "@/components/trust/OTPModal";
@@ -16,7 +16,15 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function CustomerRegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("details");
+  const [refCode, setRefCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlRef = searchParams.get("ref");
+    const storedRef = localStorage.getItem("referral_code");
+    setRefCode(urlRef || storedRef || null);
+  }, [searchParams]);
   const [form, setForm] = useState({ name: "", phone: "+254 ", location: "", profilePhoto: "", password: "", confirmPassword: "" });
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -81,12 +89,14 @@ const handleSubmit = async () => {
           role: "CUSTOMER",
           location: form.location || "Nairobi",
           ...(form.profilePhoto && { profilePhoto: form.profilePhoto }),
+          ...(refCode && { referralCode: refCode }),
         }),
       });
       const data = await response.json();
       if (data.success) {
         localStorage.setItem("kazishow_token", data.data.token);
         localStorage.setItem("kazishow_user", JSON.stringify(data.data.user));
+        localStorage.removeItem("referral_code");
         setLoading(false);
         setDone(true);
       } else {
@@ -121,6 +131,12 @@ const handleSubmit = async () => {
               <CheckCircle className="w-4 h-4 text-kazi-green" fill="#00C896" />
               <span className="text-xs text-white/70">Account secured with OTP</span>
             </div>
+            {refCode && (
+              <div className="flex items-center gap-2">
+                <Gift className="w-4 h-4 text-kazi-orange" />
+                <span className="text-xs text-white/70">KSh 100 first-booking discount ready 🎁</span>
+              </div>
+            )}
           </div>
           <button
             onClick={() => router.push("/")}
@@ -180,6 +196,17 @@ const handleSubmit = async () => {
         {/* Step: Details */}
         {step === "details" && (
           <div className="w-full space-y-4">
+            {/* Referral bonus banner */}
+            {refCode && (
+              <div className="flex items-center gap-3 p-4 bg-kazi-green/10 border border-kazi-green/30 rounded-2xl">
+                <Gift className="w-5 h-5 text-kazi-green flex-shrink-0" />
+                <div>
+                  <p className="font-bold text-kazi-green text-sm">Referral Bonus Applied!</p>
+                  <p className="text-kazi-green/80 text-xs">You will get KSh 100 off your first booking</p>
+                </div>
+              </div>
+            )}
+
             {/* Profile photo */}
             <div className="flex flex-col items-center gap-2 mb-2">
               <ImageUpload

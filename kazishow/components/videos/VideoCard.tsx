@@ -5,6 +5,7 @@ import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, ShoppingBag
 import toast from "react-hot-toast";
 import VideoPlayer from "./VideoPlayer";
 import CommentsSheet from "./CommentsSheet";
+import ExpiryBadge from "@/components/ui/ExpiryBadge";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -18,6 +19,7 @@ interface VideoData {
   likes: number;
   likedByMe: boolean;
   createdAt: string;
+  expiresAt?: string;
   _count?: { comments: number };
   user: {
     id: string;
@@ -187,7 +189,10 @@ export default function VideoCard({
                   </span>
                 )}
               </div>
-              <span className="text-gray-400 text-[10px]">{timeAgo(video.createdAt)} ago</span>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 text-[10px]">{timeAgo(video.createdAt)} ago</span>
+                {video.expiresAt && <ExpiryBadge expiresAt={video.expiresAt} />}
+              </div>
             </div>
           </div>
 

@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   User, MapPin, Star, Trash2, Edit3, Camera, ChevronRight,
   MessageSquare, Calendar, CheckCircle, XCircle, Clock, Heart,
   FileText, CreditCard, Settings, Eye, ThumbsUp, ArrowRight,
-  Lock, Bell, AlertTriangle, Upload, Loader2, LogOut, Navigation,
+  Lock, Bell, AlertTriangle, Upload, Loader2, LogOut, Navigation, Gift,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -60,6 +61,7 @@ function Skeleton({ className }: { className: string }) {
 }
 
 export default function CustomerProfile({ user: initialUser }: { user: any }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("bookings");
   const [profile, setProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -370,6 +372,29 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                 <span className="text-[10px] text-gray-500 font-medium">{s.label}</span>
               </div>
             ))}
+      </div>
+
+      {/* Refer & Earn Banner */}
+      <div className="px-4 pb-4">
+        <button
+          onClick={() => router.push("/profile/referrals")}
+          className="w-full flex items-center justify-between p-4 rounded-2xl transition-all active:scale-95"
+          style={{ background: "linear-gradient(135deg, #FF6B2B 0%, #F59E0B 100%)" }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Gift className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="font-black text-white text-sm">🎁 Refer &amp; Earn</p>
+              <p className="text-xs text-white/80">Earn KSh 200 for every friend you refer!</p>
+            </div>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-white font-black text-lg leading-none">200</span>
+            <span className="text-white/80 text-[10px] font-bold">KSh →</span>
+          </div>
+        </button>
       </div>
 
       {/* ── TAB BAR ────────────────────────────────────────────────── */}
@@ -844,6 +869,24 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                 </div>
               ))}
             </div>
+
+            {/* Refer & Earn */}
+            <button
+              onClick={() => router.push("/profile/referrals")}
+              className="w-full flex items-center justify-between p-4 rounded-2xl transition-all active:scale-95"
+              style={{ background: "linear-gradient(135deg, #FF6B2B 0%, #F59E0B 100%)" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Gift className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left">
+                  <p className="font-black text-white text-sm">🎁 Refer &amp; Earn</p>
+                  <p className="text-xs text-white/80">Invite friends, earn KSh 200 per referral</p>
+                </div>
+              </div>
+              <span className="text-white font-black">→</span>
+            </button>
 
             {/* Danger Zone */}
             <div className="bg-white rounded-2xl shadow-sm p-4 border border-red-100">

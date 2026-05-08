@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Filter, Clock, Heart, Eye, ArrowRight } from "lucide-react";
+import { ExpiryBadgeLight } from "@/components/ui/ExpiryBadge";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import ScrollProgress from "@/components/ui/ScrollProgress";
@@ -186,7 +187,10 @@ export default function TipsPage() {
                       <span className="text-xs font-semibold text-kazi-orange bg-orange-50 px-2 py-1 rounded-full">
                         {tip.category}
                       </span>
-                      <span className="text-xs text-gray-500">{tip.readTime} min</span>
+                      <div className="flex items-center gap-1.5">
+                        {tip.expiresAt && <ExpiryBadgeLight expiresAt={tip.expiresAt} />}
+                        <span className="text-xs text-gray-500">{tip.readTime} min</span>
+                      </div>
                     </div>
 
                     <h3 className="text-sm font-black text-kazi-dark mb-2 line-clamp-2 group-hover:text-kazi-orange transition-colors">

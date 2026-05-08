@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Clock, Heart, MessageCircle, Share2, ArrowLeft, Copy } from "lucide-react";
+import { ExpiryBadgeLight } from "@/components/ui/ExpiryBadge";
 import toast from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -13,8 +14,10 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function TipDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const tipId = params.id as string;
   const [tip, setTip] = useState<any>(null);
+  const [expired, setExpired] = useState(false);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -31,10 +34,13 @@ export default function TipDetailPage() {
     try {
       setLoading(true);
       const res = await fetch(`${API}/api/tips/${tipId}`);
+      if (res.status === 410) { setExpired(true); return; }
       const data = await res.json();
       if (data.success) {
         setTip(data.data);
         setComments(data.data.comments || []);
+      } else if (res.status === 410 || data.message?.includes("expired")) {
+        setExpired(true);
       }
     } catch (error) {
       console.error("Failed to fetch tip:", error);
@@ -124,6 +130,26 @@ export default function TipDetailPage() {
     );
   }
 
+  if (expired) {
+    return (
+      <div className="min-h-screen bg-kazi-cream flex items-center justify-center px-4">
+        <div className="text-center max-w-xs">
+          <div className="text-6xl mb-4">⏰</div>
+          <h2 className="text-xl font-black text-kazi-dark mb-2">This guide has expired</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            KaziShow guides are available for 24 hours only.
+          </p>
+          <button
+            onClick={() => router.push("/tips")}
+            className="px-6 py-3 bg-kazi-orange text-white font-bold rounded-xl hover:bg-orange-600 transition-all"
+          >
+            Browse Latest Guides
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!tip) {
     return (
       <div className="min-h-screen bg-kazi-cream">
@@ -156,13 +182,14 @@ export default function TipDetailPage() {
           <div className="p-6 sm:p-8">
             {/* Header */}
             <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
                 <span className="text-xs font-semibold text-kazi-orange bg-orange-50 px-3 py-1 rounded-full">
                   {tip.category}
                 </span>
                 <span className="text-xs text-gray-500 flex items-center gap-1">
                   <Clock className="w-3 h-3" /> {tip.readTime} min read
                 </span>
+                {tip.expiresAt && <ExpiryBadgeLight expiresAt={tip.expiresAt} />}
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-black text-kazi-dark mb-3">{tip.title}</h1>
