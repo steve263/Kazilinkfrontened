@@ -341,7 +341,7 @@ export default function DealsPage() {
       const next = new Set(prev);
       if (next.has(dealId)) { next.delete(dealId); toast("Removed from saved", { icon: "💔" }); }
       else { next.add(dealId); toast.success("Deal saved!"); }
-      localStorage.setItem("kazishow_saved_deals", JSON.stringify([...next]));
+      localStorage.setItem("kazishow_saved_deals", JSON.stringify(Array.from(next)));
       return next;
     });
   };
