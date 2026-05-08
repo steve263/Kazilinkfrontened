@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Same in-memory store — must be same module instance as send route
-// In production use Redis/DB so both routes share state across instances
 declare global {
   // eslint-disable-next-line no-var
   var __otpStore: Map<string, { code: string; expiresAt: number; attempts: number }> | undefined;
 }
 
-// Share store via global to survive hot-reload in dev
 if (!global.__otpStore) {
   global.__otpStore = new Map();
 }
@@ -26,6 +23,13 @@ export async function POST(req: NextRequest) {
     }
 
     const normalized = normalizePhone(phone);
+
+    // Dev mode bypass — must come BEFORE store lookup so serverless cold instances don't fail
+    const devMode = process.env.OTP_DEV_MODE === "true";
+    if (devMode && code.trim() === "123456") {
+      return NextResponse.json({ success: true, message: "Phone number verified" });
+    }
+
     const record = otpStore.get(normalized);
 
     if (!record) {
@@ -37,13 +41,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "OTP has expired. Request a new one." }, { status: 400 });
     }
 
-    const devMode = process.env.OTP_DEV_MODE === "true";
-    const isDemo = devMode && code.trim() === "123456";
-    if (!isDemo && record.code !== code.trim()) {
+    if (record.code !== code.trim()) {
       return NextResponse.json({ error: "Incorrect code. Please try again." }, { status: 400 });
     }
 
-    // Valid — clear the OTP
     otpStore.delete(normalized);
     return NextResponse.json({ success: true, message: "Phone number verified" });
 
