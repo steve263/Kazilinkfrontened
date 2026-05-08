@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Tag, Clock, ArrowRight, Star } from "lucide-react";
+import { Tag, Clock, ArrowRight, Star, Share2, Heart, Plus, X, Loader2, Zap, TrendingUp, Flame } from "lucide-react";
+import toast from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import ScrollProgress from "@/components/ui/ScrollProgress";
@@ -14,20 +15,306 @@ const CATEGORY_EMOJI: Record<string, string> = {
   TECH: "💻", PROFESSIONAL: "⚖️", BUSINESS: "💼",
 };
 
-function timeLeft(endDate: string) {
+function getTimeLeft(endDate: string) {
   const diff = new Date(endDate).getTime() - Date.now();
-  if (diff <= 0) return "Expired";
-  const h = Math.floor(diff / (1000 * 60 * 60));
-  const d = Math.floor(h / 24);
-  if (d > 0) return `${d}d ${h % 24}h left`;
-  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
+  if (diff <= 0) return { text: "Expired", ms: 0, isFlash: false };
+  const totalHours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const secs = Math.floor((diff % (1000 * 60)) / 1000);
+  const isFlash = diff < 2 * 60 * 60 * 1000;
+  if (days > 0) return { text: `${days}d ${hours}h left`, ms: diff, isFlash: false };
+  if (totalHours > 0) return { text: `${totalHours}h ${mins}m ${secs}s`, ms: diff, isFlash };
+  return { text: `${mins}m ${secs}s`, ms: diff, isFlash };
+}
+
+function CountdownBadge({ endDate }: { endDate: string }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const { text, ms, isFlash } = getTimeLeft(endDate);
+  if (ms <= 0) return (
+    <span className="flex items-center gap-1 px-2 py-0.5 bg-gray-500/80 text-white text-[10px] font-bold rounded-full">
+      Expired
+    </span>
+  );
+  return (
+    <span className={`flex items-center gap-1 px-2 py-0.5 text-white text-[10px] font-bold rounded-full ${isFlash ? "bg-red-600 animate-pulse" : "bg-black/50"}`}>
+      <Clock className="w-2.5 h-2.5" /> {text}
+    </span>
+  );
+}
+
+function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; onToggleSave: (id: string) => void }) {
+  const expired = new Date(deal.endDate).getTime() <= Date.now();
+  const { isFlash } = getTimeLeft(deal.endDate);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const discount = deal.discountType === "PERCENTAGE" ? `${deal.discountValue}% OFF` : `KSh ${deal.discountValue} OFF`;
+    const msg = `🔥 ${discount} — ${deal.title} by ${deal.provider?.businessName}! Book now on KaziShow: ${window.location.origin}/business/${deal.provider?.id}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const handleSave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onToggleSave(deal.id);
+  };
+
+  const discountedPrice =
+    deal.originalPrice && deal.discountType === "PERCENTAGE"
+      ? Math.round(deal.originalPrice * (1 - deal.discountValue / 100))
+      : deal.originalPrice
+        ? deal.originalPrice - deal.discountValue
+        : null;
+
+  return (
+    <Link href={`/business/${deal.provider?.id}`}>
+      <div className={`relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group cursor-pointer ${expired ? "opacity-60" : ""}`}>
+        {/* Expired overlay */}
+        {expired && (
+          <div className="absolute inset-0 z-10 bg-gray-900/20 flex items-center justify-center rounded-2xl pointer-events-none">
+            <span className="bg-gray-800 text-white text-xs font-black px-3 py-1.5 rounded-full">EXPIRED</span>
+          </div>
+        )}
+
+        {/* Flash badge */}
+        {isFlash && !expired && (
+          <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+            <Zap className="w-2.5 h-2.5" /> FLASH
+          </div>
+        )}
+
+        {/* Save & Share */}
+        <div className="absolute top-2 right-2 z-20 flex gap-1.5">
+          <button onClick={handleSave} className={`w-7 h-7 rounded-full flex items-center justify-center shadow transition-all ${saved ? "bg-red-500 text-white" : "bg-white/90 text-gray-500 hover:text-red-500"}`}>
+            <Heart className="w-3.5 h-3.5" fill={saved ? "white" : "none"} />
+          </button>
+          <button onClick={handleShare} className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow hover:bg-green-500 hover:text-white transition-all text-gray-500">
+            <Share2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Image or gradient header */}
+        <div className="relative h-36 overflow-hidden">
+          {deal.imageUrl ? (
+            <img src={deal.imageUrl} alt={deal.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-5xl" style={{ background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)" }}>
+              {CATEGORY_EMOJI[deal.provider?.category] || "🏷️"}
+            </div>
+          )}
+          {/* Overlay gradient for readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {/* Discount badge */}
+          <div className="absolute bottom-2 left-2 bg-red-600 text-white px-2.5 py-1 rounded-xl font-black text-sm shadow-lg">
+            {deal.discountType === "PERCENTAGE" ? `${deal.discountValue}% OFF` : `KSh ${deal.discountValue} OFF`}
+          </div>
+          {/* Countdown */}
+          <div className="absolute bottom-2 right-2">
+            <CountdownBadge endDate={deal.endDate} />
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="p-3">
+          <p className="font-black text-kazi-dark text-sm line-clamp-1">{deal.title}</p>
+          {deal.description && <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{deal.description}</p>}
+
+          {deal.originalPrice && discountedPrice !== null && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-gray-400 line-through">KSh {deal.originalPrice.toLocaleString()}</span>
+              <span className="text-sm font-black text-red-500">KSh {discountedPrice.toLocaleString()}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+            <div className="w-6 h-6 rounded-lg bg-orange-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+              {deal.provider?.profileImage
+                ? <img src={deal.provider.profileImage} className="w-full h-full object-cover" alt="" />
+                : <span className="text-xs">{CATEGORY_EMOJI[deal.provider?.category] || "🏷️"}</span>
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-kazi-dark truncate">{deal.provider?.businessName}</p>
+              <div className="flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 text-amber-400" fill="#F59E0B" />
+                <span className="text-[10px] text-gray-400">{(deal.provider?.rating || 0).toFixed(1)}</span>
+                <span className="text-[10px] text-gray-300">·</span>
+                <span className="text-[10px] text-gray-400 truncate">{deal.provider?.user?.location || "Nairobi"}</span>
+              </div>
+            </div>
+            <span className="flex items-center gap-0.5 text-[10px] text-kazi-orange font-bold flex-shrink-0">
+              Book <ArrowRight className="w-2.5 h-2.5" />
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function CreateDealModal({ onClose, onCreated }: { onClose: () => void; onCreated: (deal: any) => void }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [discountType, setDiscountType] = useState("PERCENTAGE");
+  const [discountValue, setDiscountValue] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be less than 5MB"); return; }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const token = localStorage.getItem("kazishow_token");
+      const res = await fetch(`${API}/api/upload/public?folder=general`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token || ""}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) { setImageUrl(data.data.url); toast.success("Image uploaded!"); }
+      else toast.error(data.message || "Upload failed");
+    } catch { toast.error("Upload failed"); }
+    finally { setUploading(false); }
+  };
+
+  const handleSubmit = async () => {
+    if (!title || !discountValue || !endDate) { toast.error("Fill all required fields"); return; }
+    const token = localStorage.getItem("kazishow_token");
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/api/promotions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title, description, discountType,
+          discountValue: parseFloat(discountValue),
+          originalPrice: originalPrice ? parseInt(originalPrice) : null,
+          endDate, imageUrl: imageUrl || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) { toast.success("Deal published!"); onCreated(data.data); onClose(); }
+      else toast.error(data.message || "Failed to create deal");
+    } catch { toast.error("Network error"); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white px-6 pt-6 pb-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-black text-kazi-dark flex items-center gap-2">
+            <Tag className="w-5 h-5 text-red-500" /> Create New Deal
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200">
+            <X className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* Image upload */}
+          <div>
+            <label className="text-xs font-bold text-gray-700 mb-2 block">Deal Image (optional)</label>
+            {imageUrl ? (
+              <div className="relative rounded-xl overflow-hidden h-36">
+                <img src={imageUrl} alt="Deal" className="w-full h-full object-cover" />
+                <button onClick={() => setImageUrl("")} className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+                <div className="absolute bottom-2 left-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">✅ Uploaded</div>
+              </div>
+            ) : (
+              <label className="block cursor-pointer">
+                <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${uploading ? "border-red-400 bg-red-50" : "border-gray-300 hover:border-red-400 hover:bg-red-50"}`}>
+                  {uploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-7 h-7 text-red-500 animate-spin" />
+                      <p className="text-sm text-red-500 font-semibold">Uploading...</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-xl">🖼️</div>
+                      <p className="text-sm font-bold text-gray-600">Click to upload deal image</p>
+                      <p className="text-xs text-gray-400">JPG, PNG, WebP up to 5MB</p>
+                    </div>
+                  )}
+                </div>
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
+              </label>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-700 mb-2 block">Deal Title *</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Weekend Special — 20% Off" className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-700 mb-2 block">Description (optional)</label>
+            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the deal" className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-gray-700 mb-2 block">Discount Type</label>
+              <select value={discountType} onChange={(e) => setDiscountType(e.target.value)} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400">
+                <option value="PERCENTAGE">Percentage (%)</option>
+                <option value="FIXED">Fixed (KSh)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-700 mb-2 block">
+                {discountType === "PERCENTAGE" ? "Discount %" : "Amount (KSh)"} *
+              </label>
+              <input type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} placeholder={discountType === "PERCENTAGE" ? "e.g. 20" : "e.g. 500"} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-700 mb-2 block">Original Price (KSh) — optional</label>
+            <input type="number" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} placeholder="e.g. 2500 (shows strikethrough price)" className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-700 mb-2 block">Expires On *</label>
+            <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={new Date().toISOString().slice(0, 16)} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={saving || uploading}
+            className="w-full py-3.5 bg-red-500 text-white font-black rounded-xl hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tag className="w-4 h-4" />}
+            Publish Deal
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function DealsPage() {
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const [savedDeals, setSavedDeals] = useState<Set<string>>(new Set());
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isProvider, setIsProvider] = useState(false);
 
   const categories = ["All", "FUNDI", "SHOP", "HOTEL", "RESTAURANT", "TECH", "PROFESSIONAL", "BUSINESS"];
 
@@ -37,9 +324,36 @@ export default function DealsPage() {
       .then((d) => { if (d.success) setDeals(d.data); })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    try {
+      const user = JSON.parse(localStorage.getItem("kazishow_user") || "{}");
+      setIsProvider(user?.role === "PROVIDER");
+    } catch {}
+
+    try {
+      const saved = JSON.parse(localStorage.getItem("kazishow_saved_deals") || "[]");
+      setSavedDeals(new Set(saved));
+    } catch {}
   }, []);
 
+  const toggleSave = (dealId: string) => {
+    setSavedDeals((prev) => {
+      const next = new Set(prev);
+      if (next.has(dealId)) { next.delete(dealId); toast("Removed from saved", { icon: "💔" }); }
+      else { next.add(dealId); toast.success("Deal saved!"); }
+      localStorage.setItem("kazishow_saved_deals", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const now = Date.now();
+  const activeDeals = deals.filter((d) => new Date(d.endDate).getTime() > now);
   const filtered = filter === "All" ? deals : deals.filter((d) => d.provider?.category === filter);
+  const flashDeals = activeDeals.filter((d) => new Date(d.endDate).getTime() - now < 2 * 60 * 60 * 1000);
+  const popularDeals = [...activeDeals]
+    .sort((a, b) => (b.bookingCount || 0) - (a.bookingCount || 0))
+    .slice(0, 4)
+    .filter((d) => (d.bookingCount || 0) > 0);
 
   return (
     <div className="min-h-screen bg-kazi-cream">
@@ -55,7 +369,14 @@ export default function DealsPage() {
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white mb-3">🔥 Hot Deals</h1>
           <p className="text-white/80 max-w-xl mx-auto">Exclusive discounts from verified providers. Book before they expire!</p>
-          <p className="text-white font-black text-2xl mt-4">{deals.length} active deals</p>
+          <div className="flex items-center justify-center gap-4 mt-4 flex-wrap">
+            <span className="text-white font-black text-2xl">{activeDeals.length} active deals</span>
+            {flashDeals.length > 0 && (
+              <span className="flex items-center gap-1 px-3 py-1 bg-white/20 text-white text-sm font-bold rounded-full animate-pulse">
+                <Zap className="w-3.5 h-3.5" /> {flashDeals.length} flash deal{flashDeals.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
         </div>
       </section>
 
@@ -78,13 +399,12 @@ export default function DealsPage() {
         </div>
       </section>
 
-      {/* Deals grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-white rounded-2xl animate-pulse overflow-hidden">
-                <div className="h-32 bg-gray-200" />
+                <div className="h-36 bg-gray-200" />
                 <div className="p-4 space-y-3">
                   <div className="h-4 bg-gray-200 rounded w-3/4" />
                   <div className="h-3 bg-gray-200 rounded" />
@@ -93,7 +413,7 @@ export default function DealsPage() {
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : deals.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🏷️</div>
             <h2 className="text-xl font-black text-kazi-dark mb-2">No deals right now</h2>
@@ -103,60 +423,85 @@ export default function DealsPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((deal) => (
-              <Link key={deal.id} href={`/business/${deal.provider?.id}`}>
-                <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group cursor-pointer">
-                  {/* Discount banner */}
-                  <div className="relative p-5 text-white" style={{ background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)" }}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="text-3xl font-black">
-                          {deal.discountType === "PERCENTAGE" ? `${deal.discountValue}%` : `KSh ${deal.discountValue}`}
-                        </span>
-                        <span className="text-white/80 text-sm ml-1">OFF</span>
-                        <p className="font-black text-sm mt-1">{deal.title}</p>
-                        {deal.description && <p className="text-white/70 text-xs mt-0.5 line-clamp-1">{deal.description}</p>}
-                      </div>
-                      <span className="text-4xl">{CATEGORY_EMOJI[deal.provider?.category] || "🏷️"}</span>
-                    </div>
-                    <div className="flex items-center gap-1 mt-3 bg-black/20 rounded-full px-3 py-1 w-fit">
-                      <Clock className="w-3 h-3 text-white" />
-                      <span className="text-white text-xs font-bold">{timeLeft(deal.endDate)}</span>
-                    </div>
+          <>
+            {/* Flash Deals */}
+            {filter === "All" && flashDeals.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-xl">
+                    <Zap className="w-4 h-4" />
+                    <span className="font-black text-sm">FLASH DEALS</span>
                   </div>
-
-                  {/* Provider info */}
-                  <div className="p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-xl flex-shrink-0">
-                        {deal.provider?.profileImage
-                          ? <img src={deal.provider.profileImage} className="w-full h-full object-cover rounded-xl" alt="" />
-                          : CATEGORY_EMOJI[deal.provider?.category] || "🏷️"
-                        }
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-black text-kazi-dark text-sm truncate">{deal.provider?.businessName}</p>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 text-amber-400" fill="#F59E0B" />
-                          <span className="text-xs text-gray-500">{(deal.provider?.rating || 0).toFixed(1)}</span>
-                          <span className="text-xs text-gray-400 ml-1">{deal.provider?.user?.location || "Nairobi"}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-100">
-                      <span className="px-2 py-0.5 bg-orange-50 text-kazi-orange font-semibold rounded-full">{deal.provider?.category}</span>
-                      <span className="flex items-center gap-1 text-kazi-orange font-bold">
-                        Book Now <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
+                  <span className="text-xs text-gray-500 font-medium">Expiring in under 2 hours!</span>
                 </div>
-              </Link>
-            ))}
-          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {flashDeals.map((deal) => (
+                    <DealCard key={deal.id} deal={deal} saved={savedDeals.has(deal.id)} onToggleSave={toggleSave} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Most Popular */}
+            {filter === "All" && popularDeals.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-kazi-orange" />
+                  <h2 className="text-lg font-black text-kazi-dark">Most Popular</h2>
+                  <span className="text-xs text-gray-400 font-medium">Most booked deals</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {popularDeals.map((deal) => (
+                    <DealCard key={deal.id} deal={deal} saved={savedDeals.has(deal.id)} onToggleSave={toggleSave} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* All / filtered deals */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Flame className="w-5 h-5 text-red-500" />
+                <h2 className="text-lg font-black text-kazi-dark">
+                  {filter === "All" ? "All Deals" : `${CATEGORY_EMOJI[filter] || ""} ${filter} Deals`}
+                </h2>
+                <span className="text-xs text-gray-400 font-medium">
+                  ({filtered.filter((d) => new Date(d.endDate).getTime() > now).length} active)
+                </span>
+              </div>
+              {filtered.length === 0 ? (
+                <div className="text-center py-10 bg-white rounded-2xl">
+                  <p className="text-gray-400 text-sm">No deals for this category</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {filtered.map((deal) => (
+                    <DealCard key={deal.id} deal={deal} saved={savedDeals.has(deal.id)} onToggleSave={toggleSave} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
         )}
-      </section>
+      </div>
+
+      {/* Provider FAB */}
+      {isProvider && (
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="fixed bottom-24 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-red-500 text-white font-black rounded-2xl shadow-xl hover:bg-red-600 transition-all hover:scale-105 active:scale-95"
+        >
+          <Plus className="w-5 h-5" />
+          <span className="text-sm">New Deal</span>
+        </button>
+      )}
+
+      {showCreateModal && (
+        <CreateDealModal
+          onClose={() => setShowCreateModal(false)}
+          onCreated={(deal) => setDeals((prev) => [deal, ...prev])}
+        />
+      )}
 
       <BottomNav />
       <WhatsAppBubble />

@@ -124,6 +124,9 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
   const [promoType, setPromoType] = useState("PERCENTAGE");
   const [promoValue, setPromoValue] = useState("");
   const [promoEnd, setPromoEnd] = useState("");
+  const [promoImage, setPromoImage] = useState("");
+  const [promoOriginalPrice, setPromoOriginalPrice] = useState("");
+  const [promoImageUploading, setPromoImageUploading] = useState(false);
   const [savingPromo, setSavingPromo] = useState(false);
 
   // Countdown timers for pending bookings
@@ -290,6 +293,26 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
       toast.error(d.message || "Failed to update status");
     }
     setTogglingBusy(false);
+  };
+
+  const handlePromoImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be less than 5MB"); return; }
+    setPromoImageUploading(true);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch(`${API}/api/upload/public?folder=general`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (data.success) { setPromoImage(data.data.url); toast.success("Image uploaded!"); }
+      else toast.error(data.message || "Upload failed");
+    } catch { toast.error("Upload failed"); }
+    finally { setPromoImageUploading(false); }
   };
 
   const handleAcceptBooking = async (bookingId: string) => {
@@ -1171,6 +1194,38 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                   <h4 className="font-bold text-kazi-dark text-sm">Create New Deal</h4>
                   <button onClick={() => setShowPromoForm(false)}><X className="w-4 h-4 text-gray-400" /></button>
                 </div>
+
+                {/* Deal image */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Deal Image (optional)</label>
+                  {promoImage ? (
+                    <div className="relative rounded-xl overflow-hidden h-28">
+                      <img src={promoImage} alt="Deal" className="w-full h-full object-cover" />
+                      <button onClick={() => setPromoImage("")} className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white">
+                        <X className="w-3 h-3" />
+                      </button>
+                      <div className="absolute bottom-1.5 left-1.5 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">✅ Uploaded</div>
+                    </div>
+                  ) : (
+                    <label className="block cursor-pointer">
+                      <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${promoImageUploading ? "border-red-400 bg-red-50" : "border-gray-200 hover:border-red-400 hover:bg-red-50"}`}>
+                        {promoImageUploading ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
+                            <span className="text-xs text-red-500 font-semibold">Uploading...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2 text-gray-400">
+                            <Image className="w-4 h-4" />
+                            <span className="text-xs font-medium">Click to upload image</span>
+                          </div>
+                        )}
+                      </div>
+                      <input type="file" accept="image/*" onChange={handlePromoImageUpload} className="hidden" disabled={promoImageUploading} />
+                    </label>
+                  )}
+                </div>
+
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Deal Title *</label>
                   <input value={promoTitle} onChange={(e) => setPromoTitle(e.target.value)} placeholder="e.g. Weekend Special" className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
@@ -1195,6 +1250,10 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                   </div>
                 </div>
                 <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Original Price (KSh) — optional</label>
+                  <input type="number" value={promoOriginalPrice} onChange={(e) => setPromoOriginalPrice(e.target.value)} placeholder="e.g. 2500 (shows strikethrough)" className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                </div>
+                <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Expires On *</label>
                   <input type="datetime-local" value={promoEnd} onChange={(e) => setPromoEnd(e.target.value)} min={new Date().toISOString().slice(0, 16)} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
                 </div>
@@ -1207,7 +1266,12 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                       const res = await fetch(`${API}/api/promotions`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                        body: JSON.stringify({ title: promoTitle, description: promoDesc, discountType: promoType, discountValue: parseFloat(promoValue), endDate: promoEnd }),
+                        body: JSON.stringify({
+                          title: promoTitle, description: promoDesc, discountType: promoType,
+                          discountValue: parseFloat(promoValue), endDate: promoEnd,
+                          imageUrl: promoImage || null,
+                          originalPrice: promoOriginalPrice ? parseInt(promoOriginalPrice) : null,
+                        }),
                       });
                       const data = await res.json();
                       if (data.success) {
@@ -1215,11 +1279,12 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                         setPromotions((prev) => [data.data, ...prev]);
                         setShowPromoForm(false);
                         setPromoTitle(""); setPromoDesc(""); setPromoValue(""); setPromoEnd("");
+                        setPromoImage(""); setPromoOriginalPrice("");
                       } else { toast.error(data.message || "Failed"); }
                     } catch { toast.error("Network error"); }
                     setSavingPromo(false);
                   }}
-                  disabled={savingPromo}
+                  disabled={savingPromo || promoImageUploading}
                   className="w-full py-3 bg-red-500 text-white font-bold text-sm rounded-xl hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {savingPromo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tag className="w-4 h-4" />}
