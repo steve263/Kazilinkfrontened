@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   User, MapPin, Star, Trash2, Edit3, Camera, ChevronRight,
   MessageSquare, Calendar, CheckCircle, XCircle, Clock, Heart,
-  FileText, CreditCard, Settings, Eye, ThumbsUp, ArrowRight,
-  Lock, Bell, AlertTriangle, Upload, Loader2, LogOut, Navigation, Gift,
+  FileText, CreditCard, Settings, ThumbsUp, ArrowRight,
+  Lock, Bell, AlertTriangle, Loader2, LogOut, Navigation, Gift,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -19,7 +19,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
   TECH: "💻", PROFESSIONAL: "💼", BUSINESS: "🏢",
 };
 
-type Tab = "bookings" | "reviews" | "saved" | "testimonials" | "tips" | "payments" | "settings";
+type Tab = "bookings" | "reviews" | "saved" | "tips" | "payments" | "settings";
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -74,8 +74,6 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [saved, setSaved] = useState<any[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
-  const [testimonials, setTestimonials] = useState<any[]>([]);
-  const [testimonialsLoading, setTestimonialsLoading] = useState(false);
   const [tips, setTips] = useState<any[]>([]);
   const [tipsLoading, setTipsLoading] = useState(false);
   const [payments, setPayments] = useState<any[]>([]);
@@ -139,11 +137,6 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
         const d = await authFetch(`${API}/api/customers/saved`);
         if (d.success) setSaved(d.data);
         setSavedLoading(false);
-      } else if (tab === "testimonials") {
-        setTestimonialsLoading(true);
-        const d = await authFetch(`${API}/api/testimonials/my`);
-        if (d.success) setTestimonials(d.data.testimonials || d.data);
-        setTestimonialsLoading(false);
       } else if (tab === "tips") {
         setTipsLoading(true);
         const d = await authFetch(`${API}/api/tips/my`);
@@ -291,7 +284,6 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
     { id: "bookings", label: "Bookings", icon: <Calendar className="w-4 h-4" /> },
     { id: "reviews", label: "Reviews", icon: <Star className="w-4 h-4" /> },
     { id: "saved", label: "Saved", icon: <Heart className="w-4 h-4" /> },
-    { id: "testimonials", label: "Testimonials", icon: <Eye className="w-4 h-4" /> },
     { id: "tips", label: "Tips", icon: <FileText className="w-4 h-4" /> },
     { id: "payments", label: "Payments", icon: <CreditCard className="w-4 h-4" /> },
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
@@ -655,49 +647,6 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
           </div>
         )}
 
-        {/* ── TESTIMONIALS ── */}
-        {activeTab === "testimonials" && (
-          <div className="space-y-3">
-            {testimonialsLoading ? (
-              [0, 1].map((i) => <Skeleton key={i} className="h-24" />)
-            ) : testimonials.length === 0 ? (
-              <div className="bg-white rounded-2xl p-8 text-center">
-                <Eye className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400 font-medium">No testimonials yet</p>
-                <Link href="/testimonials?upload=1" className="mt-3 inline-flex items-center gap-1 px-4 py-2 bg-kazi-orange text-white text-xs font-bold rounded-xl">
-                  <Upload className="w-3 h-3" /> Upload Testimonial
-                </Link>
-              </div>
-            ) : (
-              testimonials.map((t: any) => {
-                const statusColor = t.status === "APPROVED" ? "bg-green-100 text-green-700" : t.status === "REJECTED" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700";
-                return (
-                  <div key={t.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        {t.thumbnailUrl && (
-                          <img src={t.thumbnailUrl} alt="" className="w-12 h-12 rounded-xl object-cover" />
-                        )}
-                        <div>
-                          <p className="font-bold text-kazi-dark text-sm">{t.summary?.slice(0, 60) || "Testimonial"}</p>
-                          <Stars rating={t.rating} />
-                        </div>
-                      </div>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor}`}>{t.status}</span>
-                    </div>
-                    {t.status === "REJECTED" && t.rejectReason && (
-                      <p className="text-xs text-red-500 bg-red-50 rounded-xl p-2">Reason: {t.rejectReason}</p>
-                    )}
-                    <p className="text-[10px] text-gray-400">
-                      {new Date(t.createdAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                      {" · "}{t.views || 0} views
-                    </p>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
 
         {/* ── TIPS ── */}
         {activeTab === "tips" && (

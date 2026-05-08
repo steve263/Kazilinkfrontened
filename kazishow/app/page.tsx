@@ -15,7 +15,6 @@ import WhatsAppBubble from "@/components/ui/WhatsAppBubble";
 import LiveBookingToast from "@/components/ui/LiveBookingToast";
 import TrustBar from "@/components/home/TrustBar";
 import SocialProofSection from "@/components/home/SocialProofSection";
-import VideoTestimonials from "@/components/home/VideoTestimonials";
 import BookingDemo from "@/components/home/BookingDemo";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import KaziPromise from "@/components/home/KaziPromise";
@@ -437,8 +436,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <VideoTestimonials />
-
       {/* Trending Feed */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
         <div className="flex items-center justify-between mb-5">
@@ -517,11 +514,6 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="text-center mt-8">
-            <Link href="/testimonials" className="inline-flex items-center gap-2 px-6 py-3 bg-kazi-orange text-white font-bold rounded-2xl hover:bg-orange-600 transition-all text-sm">
-              View All Testimonials <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
         </div>
       </section>
 
