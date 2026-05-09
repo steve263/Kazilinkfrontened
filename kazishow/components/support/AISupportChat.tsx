@@ -17,7 +17,7 @@ const INITIAL_MESSAGES: Message[] = [
   {
     role: "assistant",
     content:
-      "Karibu! I'm Kazi AI, your KaziShow assistant 👋 How can I help you today?",
+      "Hello! I'm Kazi AI, your KaziShow support assistant. How can I help you today?",
   },
 ];
 
