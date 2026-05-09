@@ -7,7 +7,7 @@ import {
   User, MapPin, Star, Trash2, Edit3, Camera, ChevronRight,
   MessageSquare, Calendar, CheckCircle, XCircle, Clock, Heart,
   FileText, CreditCard, Settings, ThumbsUp, ArrowRight,
-  Lock, Bell, AlertTriangle, Loader2, LogOut, Navigation, Gift,
+  Lock, Bell, AlertTriangle, Loader2, LogOut, Navigation, Gift, Music,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -91,6 +91,10 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
   const [savingPassword, setSavingPassword] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
 
+  // Ringtone
+  const [ringtoneUrl, setRingtoneUrl] = useState("");
+  const [savedRingtone, setSavedRingtone] = useState("");
+
   const token = typeof window !== "undefined" ? localStorage.getItem("kazishow_token") : null;
 
   const authFetch = useCallback(
@@ -115,6 +119,10 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
       }
       setProfileLoading(false);
     });
+    // Load saved ringtone from localStorage
+    const saved = localStorage.getItem("kazishow_ringtone_url") || "";
+    setRingtoneUrl(saved);
+    setSavedRingtone(saved);
   }, []);
 
   const loadTab = useCallback(
@@ -817,6 +825,64 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Call Ringtone */}
+            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+              <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2">
+                <Music className="w-4 h-4 text-kazi-orange" /> Call Ringtone
+              </h3>
+              <p className="text-xs text-gray-400">Paste a direct link to an .mp3 file to use as your incoming call ringtone</p>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">Ringtone URL (.mp3)</label>
+                <input
+                  value={ringtoneUrl}
+                  onChange={(e) => setRingtoneUrl(e.target.value)}
+                  placeholder="https://example.com/my-ringtone.mp3"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-kazi-orange"
+                />
+              </div>
+              {savedRingtone && (
+                <p className="text-[11px] text-kazi-green font-semibold">✔ Custom ringtone active</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (!ringtoneUrl.trim()) return;
+                    const audio = new Audio(ringtoneUrl.trim());
+                    audio.play()
+                      .then(() => setTimeout(() => audio.pause(), 5000))
+                      .catch(() => toast.error("Could not play audio — check the URL"));
+                  }}
+                  className="flex-1 py-2 border border-kazi-orange text-kazi-orange font-bold text-xs rounded-xl hover:bg-orange-50 transition-colors"
+                >
+                  ▶ Preview
+                </button>
+                <button
+                  onClick={() => {
+                    const url = ringtoneUrl.trim();
+                    localStorage.setItem("kazishow_ringtone_url", url);
+                    setSavedRingtone(url);
+                    toast.success("Ringtone saved!");
+                  }}
+                  className="flex-1 py-2 bg-kazi-orange text-white font-bold text-xs rounded-xl hover:bg-orange-600 transition-colors"
+                >
+                  Save
+                </button>
+                {savedRingtone && (
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("kazishow_ringtone_url");
+                      setRingtoneUrl("");
+                      setSavedRingtone("");
+                      toast.success("Ringtone reset to default");
+                    }}
+                    className="px-3 py-2 border border-gray-200 text-gray-400 font-bold text-xs rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Refer & Earn */}

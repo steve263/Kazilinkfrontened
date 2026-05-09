@@ -25,11 +25,16 @@ export default function IncomingCallHandler() {
   const socketRef = useRef<Socket | null>(null);
   const peerRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  // DOM audio element for remote stream — browser AEC works better with a real DOM element
+  const remoteAudioElRef = useRef<HTMLAudioElement | null>(null);
   const callTimerRef = useRef<any>(null);
   const callSecondsRef = useRef(0);
-  const ringtoneCtxRef = useRef<AudioContext | null>(null);
-  const ringtoneOscsRef = useRef<OscillatorNode[]>([]);
+
+  // Ringtone refs
+  const ringtoneAudioRef = useRef<HTMLAudioElement | null>(null);   // custom URL ringtone
+  const ringtoneCtxRef = useRef<AudioContext | null>(null);          // synthesized ringtone
+  const ringtoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null); // loop interval
+
   const callerIdRef = useRef<string>("");
 
   useEffect(() => {
@@ -61,6 +66,7 @@ export default function IncomingCallHandler() {
       stopRingtone();
       cleanupCall(false);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Call duration timer
@@ -80,35 +86,79 @@ export default function IncomingCallHandler() {
     return () => clearInterval(callTimerRef.current);
   }, [callState]);
 
+  // ── Ringtone ────────────────────────────────────────────────────────────────
+
   const startRingtone = () => {
+    // Use custom ringtone URL if the user set one
+    const customUrl = typeof window !== "undefined"
+      ? localStorage.getItem("kazishow_ringtone_url")
+      : null;
+
+    if (customUrl) {
+      try {
+        const audio = new Audio(customUrl);
+        audio.loop = true;
+        audio.volume = 0.8;
+        audio.play().catch(() => {});
+        ringtoneAudioRef.current = audio;
+      } catch {}
+      return;
+    }
+
+    // Synthesized two-tone ring pattern, looping via setInterval
     try {
       const ctx = new AudioContext();
       ringtoneCtxRef.current = ctx;
-      ringtoneOscsRef.current = [];
-      for (let i = 0; i < 40; i++) {
-        const t = ctx.currentTime + i * 0.7;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = i % 2 === 0 ? 440 : 480;
-        gain.gain.setValueAtTime(0.25, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-        osc.start(t);
-        osc.stop(t + 0.5);
-        ringtoneOscsRef.current.push(osc);
-      }
+
+      const scheduleBatch = () => {
+        const c = ringtoneCtxRef.current;
+        if (!c || c.state === "closed") return;
+        const now = c.currentTime;
+        [
+          { delay: 0,   freq: 440 },
+          { delay: 0.3, freq: 480 },
+        ].forEach(({ delay, freq }) => {
+          try {
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.connect(gain);
+            gain.connect(c.destination);
+            osc.frequency.value = freq;
+            const t = now + delay;
+            gain.gain.setValueAtTime(0.3, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+            osc.start(t);
+            osc.stop(t + 0.25);
+          } catch {}
+        });
+      };
+
+      scheduleBatch();
+      // Repeat every 1.5 s — keeps ringing indefinitely until stopRingtone()
+      ringtoneIntervalRef.current = setInterval(scheduleBatch, 1500);
     } catch {}
   };
 
   const stopRingtone = () => {
-    ringtoneOscsRef.current.forEach(osc => { try { osc.stop(0); } catch {} });
-    ringtoneOscsRef.current = [];
+    // Stop custom audio
+    if (ringtoneAudioRef.current) {
+      ringtoneAudioRef.current.pause();
+      ringtoneAudioRef.current.currentTime = 0;
+      ringtoneAudioRef.current = null;
+    }
+    // Stop looping interval
+    if (ringtoneIntervalRef.current) {
+      clearInterval(ringtoneIntervalRef.current);
+      ringtoneIntervalRef.current = null;
+    }
+    // Close AudioContext — kills any still-scheduled oscillators immediately
     if (ringtoneCtxRef.current) {
       try { ringtoneCtxRef.current.close(); } catch {}
       ringtoneCtxRef.current = null;
     }
   };
+
+  // ── Call helpers ─────────────────────────────────────────────────────────────
 
   const getDuration = () => {
     const s = callSecondsRef.current;
@@ -118,7 +168,11 @@ export default function IncomingCallHandler() {
   const cleanupCall = (emitEnd: boolean) => {
     if (peerRef.current) { peerRef.current.destroy(); peerRef.current = null; }
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    if (remoteAudioRef.current) { remoteAudioRef.current.pause(); remoteAudioRef.current = null; }
+    // Reset the DOM audio element without removing it from the DOM
+    if (remoteAudioElRef.current) {
+      remoteAudioElRef.current.pause();
+      remoteAudioElRef.current.srcObject = null;
+    }
     if (emitEnd && callerIdRef.current) {
       socketRef.current?.emit("end_call", { to: callerIdRef.current, duration: getDuration() });
     }
@@ -132,12 +186,18 @@ export default function IncomingCallHandler() {
 
   const acceptCall = async () => {
     if (!incomingCall) return;
+    // Stop ringtone immediately when user taps Accept
     stopRingtone();
     const callFrom = incomingCall.from;
     const callSignal = incomingCall.signal;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
       });
       streamRef.current = stream;
       setConnectedCaller({ name: incomingCall.callerName, avatar: incomingCall.callerAvatar });
@@ -164,11 +224,12 @@ export default function IncomingCallHandler() {
         }
       });
 
+      // Attach remote stream to the DOM audio element — reduces echo vs new Audio()
       peer.on("stream", (remoteStream: MediaStream) => {
-        const audio = new Audio();
-        audio.srcObject = remoteStream;
-        audio.play().catch(() => {});
-        remoteAudioRef.current = audio;
+        if (remoteAudioElRef.current) {
+          remoteAudioElRef.current.srcObject = remoteStream;
+          remoteAudioElRef.current.play().catch(() => {});
+        }
         setCallState("connected");
       });
 
@@ -204,6 +265,13 @@ export default function IncomingCallHandler() {
 
   return (
     <div className="fixed inset-0 bg-[#1A1714] z-[9999] flex flex-col items-center justify-center px-6">
+      {/*
+        Hidden DOM audio element for the remote stream.
+        Attaching srcObject to a DOM <audio> element lets the browser's
+        built-in acoustic echo cancellation reference the output signal,
+        reducing echo compared to a detached `new Audio()` object.
+      */}
+      <audio ref={remoteAudioElRef} autoPlay playsInline style={{ display: "none" }} />
 
       {/* ── Incoming call ── */}
       {incomingCall && (

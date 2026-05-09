@@ -79,9 +79,14 @@ export default function ChatRoomPage() {
   // Call refs
   const peerRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // DOM element ref — browser AEC works better with a real DOM element than new Audio()
+  const remoteAudioElRef = useRef<HTMLAudioElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const callTimerRef = useRef<any>(null);
   const callSecondsRef = useRef(0);
+  // Caller-side ringtone (plays while waiting for other side to pick up)
+  const callerRingCtxRef = useRef<AudioContext | null>(null);
+  const callerRingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Socket + init ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -156,6 +161,16 @@ export default function ChatRoomPage() {
       cleanupCall(false);
     };
   }, [otherId]);
+
+  // Start / stop caller-side ring when callState changes
+  useEffect(() => {
+    if (callState === "calling") {
+      startCallerRing();
+    } else {
+      stopCallerRing();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [callState]);
 
   // ── Call duration timer ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -312,6 +327,46 @@ export default function ChatRoomPage() {
     if (e.key === "Escape") setShowEmojiPicker(false);
   };
 
+  // ── Caller ringtone (plays while "Calling…" waiting for answer) ──────────────
+  const startCallerRing = () => {
+    try {
+      const ctx = new AudioContext();
+      callerRingCtxRef.current = ctx;
+      const scheduleBatch = () => {
+        const c = callerRingCtxRef.current;
+        if (!c || c.state === "closed") return;
+        const now = c.currentTime;
+        [{ delay: 0, freq: 440 }, { delay: 0.3, freq: 480 }].forEach(({ delay, freq }) => {
+          try {
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.connect(gain);
+            gain.connect(c.destination);
+            osc.frequency.value = freq;
+            const t = now + delay;
+            gain.gain.setValueAtTime(0.2, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+            osc.start(t);
+            osc.stop(t + 0.25);
+          } catch {}
+        });
+      };
+      scheduleBatch();
+      callerRingIntervalRef.current = setInterval(scheduleBatch, 1500);
+    } catch {}
+  };
+
+  const stopCallerRing = () => {
+    if (callerRingIntervalRef.current) {
+      clearInterval(callerRingIntervalRef.current);
+      callerRingIntervalRef.current = null;
+    }
+    if (callerRingCtxRef.current) {
+      try { callerRingCtxRef.current.close(); } catch {}
+      callerRingCtxRef.current = null;
+    }
+  };
+
   // ── Call helpers ─────────────────────────────────────────────────────────────
   const getDuration = () => {
     const s = callSecondsRef.current;
@@ -319,9 +374,14 @@ export default function ChatRoomPage() {
   };
 
   const cleanupCall = (emitEnd: boolean) => {
+    stopCallerRing();
     if (peerRef.current) { peerRef.current.destroy(); peerRef.current = null; }
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    if (remoteAudioRef.current) { remoteAudioRef.current.pause(); remoteAudioRef.current = null; }
+    if (remoteAudioElRef.current) {
+      remoteAudioElRef.current.pause();
+      remoteAudioElRef.current.srcObject = null;
+    }
+    remoteAudioRef.current = null;
     if (emitEnd) {
       socketRef.current?.emit("end_call", { to: otherId, duration: getDuration() });
     }
@@ -334,7 +394,7 @@ export default function ChatRoomPage() {
     if (callState !== "idle") return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
       });
       streamRef.current = stream;
 
@@ -368,10 +428,11 @@ export default function ChatRoomPage() {
       });
 
       peer.on("stream", (remoteStream: MediaStream) => {
-        const audio = new Audio();
-        audio.srcObject = remoteStream;
-        audio.play().catch(() => {});
-        remoteAudioRef.current = audio;
+        if (remoteAudioElRef.current) {
+          remoteAudioElRef.current.srcObject = remoteStream;
+          remoteAudioElRef.current.play().catch(() => {});
+        }
+        remoteAudioRef.current = remoteAudioElRef.current;
         setCallState("connected");
       });
 
@@ -419,6 +480,8 @@ export default function ChatRoomPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+      {/* Hidden DOM audio element — browser AEC references this for echo cancellation */}
+      <audio ref={remoteAudioElRef} autoPlay playsInline style={{ display: "none" }} />
 
       {/* ── Outgoing call overlay ── */}
       {callState === "calling" && (
