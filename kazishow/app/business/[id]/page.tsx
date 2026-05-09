@@ -12,6 +12,8 @@ import BottomNav from "@/components/layout/BottomNav";
 import BookingModal from "@/components/booking/BookingModal";
 import ReviewCard from "@/components/shared/ReviewCard";
 import ReviewModal from "@/components/trust/ReviewModal";
+import ReportModal from "@/components/trust/ReportModal";
+import TrustBadge from "@/components/trust/TrustBadge";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -46,6 +48,8 @@ export default function ProviderProfilePage() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewableBookingId, setReviewableBookingId] = useState<string | null>(null);
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
+  const [trustScore, setTrustScore] = useState<any>(null);
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("kazishow_user");
@@ -88,7 +92,16 @@ export default function ProviderProfilePage() {
       try {
         const response = await fetch(`${API_URL}/api/providers/${params.id}`);
         const data = await response.json();
-        if (data.success) setProvider(data.data);
+        if (data.success) {
+          setProvider(data.data);
+          const userId = data.data.userId;
+          if (userId) {
+            fetch(`${API_URL}/api/trust/trust-score/${userId}`)
+              .then((r) => r.json())
+              .then((ts) => { if (ts.success) setTrustScore(ts.data); })
+              .catch(() => {});
+          }
+        }
       } catch {
         console.error("Failed to fetch provider");
       } finally {
@@ -284,6 +297,9 @@ export default function ProviderProfilePage() {
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-kazi-orange">
                   {provider.category}
                 </span>
+                {trustScore && (
+                  <TrustBadge level={trustScore.level} score={trustScore.score} showScore size="sm" />
+                )}
               </div>
 
               <div className="flex items-center gap-3 mt-2 flex-wrap">
@@ -318,21 +334,31 @@ export default function ProviderProfilePage() {
             </div>
           </div>
 
-          {/* Availability badge */}
-          <div className="flex items-center gap-2 mt-3">
-            {isBusy ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
-                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-xs font-bold text-red-600">Currently Busy</span>
-                {waitlistCount > 0 && (
-                  <span className="text-xs text-red-400">· {waitlistCount} waiting</span>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
-                <span className="w-2 h-2 bg-green-500 rounded-full" />
-                <span className="text-xs font-bold text-green-600">Available Now</span>
-              </div>
+          {/* Availability badge + report button */}
+          <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
+            <div>
+              {isBusy ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-xs font-bold text-red-600">Currently Busy</span>
+                  {waitlistCount > 0 && (
+                    <span className="text-xs text-red-400">· {waitlistCount} waiting</span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+                  <span className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span className="text-xs font-bold text-green-600">Available Now</span>
+                </div>
+              )}
+            </div>
+            {currentUser && currentUser.role === "CUSTOMER" && (
+              <button
+                onClick={() => setShowReport(true)}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <Flag className="w-3.5 h-3.5" /> Report
+              </button>
             )}
           </div>
 
@@ -739,6 +765,15 @@ export default function ProviderProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Report modal */}
+      {showReport && provider && (
+        <ReportModal
+          reportedId={provider.userId}
+          reportedName={provider.businessName}
+          onClose={() => setShowReport(false)}
+        />
+      )}
 
       {/* Review modal */}
       {showReviewModal && reviewableBookingId && (

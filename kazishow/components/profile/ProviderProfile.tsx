@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
+import TrustScoreCard from "@/components/trust/TrustScoreCard";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -1356,6 +1357,9 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
         {/* ── SETTINGS ── */}
         {activeTab === "settings" && (
           <div className="space-y-4">
+            {/* Trust Score */}
+            <TrustScoreCard />
+
             {/* Business Info */}
             <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
               <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2">
