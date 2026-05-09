@@ -94,6 +94,7 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
   // Ringtone
   const [ringtoneUrl, setRingtoneUrl] = useState("");
   const [savedRingtone, setSavedRingtone] = useState("");
+  const [ringtoneFileName, setRingtoneFileName] = useState("");
 
   const token = typeof window !== "undefined" ? localStorage.getItem("kazishow_token") : null;
 
@@ -123,6 +124,7 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
     const saved = localStorage.getItem("kazishow_ringtone_url") || "";
     setRingtoneUrl(saved);
     setSavedRingtone(saved);
+    setRingtoneFileName(localStorage.getItem("kazishow_ringtone_name") || "");
   }, []);
 
   const loadTab = useCallback(
@@ -832,52 +834,74 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
               <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2">
                 <Music className="w-4 h-4 text-kazi-orange" /> Call Ringtone
               </h3>
-              <p className="text-xs text-gray-400">Paste a direct link to an .mp3 file to use as your incoming call ringtone</p>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">Ringtone URL (.mp3)</label>
+              <p className="text-xs text-gray-400">Select an audio file from your device to use as your incoming call ringtone (max 1.5 MB)</p>
+
+              {/* File picker */}
+              <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed border-kazi-orange/40 rounded-xl cursor-pointer hover:bg-orange-50 transition-colors">
+                <Music className="w-5 h-5 text-kazi-orange flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  {ringtoneFileName ? (
+                    <p className="text-sm font-semibold text-kazi-dark truncate">{ringtoneFileName}</p>
+                  ) : (
+                    <p className="text-sm text-gray-400">Tap to choose an audio file…</p>
+                  )}
+                  <p className="text-[11px] text-gray-300">.mp3, .ogg, .wav, .aac</p>
+                </div>
                 <input
-                  value={ringtoneUrl}
-                  onChange={(e) => setRingtoneUrl(e.target.value)}
-                  placeholder="https://example.com/my-ringtone.mp3"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-kazi-orange"
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 1.5 * 1024 * 1024) {
+                      toast.error("File too large — please use a file under 1.5 MB");
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const dataUrl = reader.result as string;
+                      setRingtoneUrl(dataUrl);
+                      setRingtoneFileName(file.name);
+                      localStorage.setItem("kazishow_ringtone_url", dataUrl);
+                      localStorage.setItem("kazishow_ringtone_name", file.name);
+                      setSavedRingtone(dataUrl);
+                      toast.success(`Ringtone set: ${file.name}`);
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = "";
+                  }}
                 />
-              </div>
+              </label>
+
               {savedRingtone && (
                 <p className="text-[11px] text-kazi-green font-semibold">✔ Custom ringtone active</p>
               )}
+
               <div className="flex gap-2">
                 <button
+                  disabled={!savedRingtone}
                   onClick={() => {
-                    if (!ringtoneUrl.trim()) return;
-                    const audio = new Audio(ringtoneUrl.trim());
+                    const audio = new Audio(savedRingtone);
                     audio.play()
-                      .then(() => setTimeout(() => audio.pause(), 5000))
-                      .catch(() => toast.error("Could not play audio — check the URL"));
+                      .then(() => setTimeout(() => { audio.pause(); audio.currentTime = 0; }, 5000))
+                      .catch(() => toast.error("Could not preview ringtone"));
                   }}
-                  className="flex-1 py-2 border border-kazi-orange text-kazi-orange font-bold text-xs rounded-xl hover:bg-orange-50 transition-colors"
+                  className="flex-1 py-2 border border-kazi-orange text-kazi-orange font-bold text-xs rounded-xl hover:bg-orange-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   ▶ Preview
-                </button>
-                <button
-                  onClick={() => {
-                    const url = ringtoneUrl.trim();
-                    localStorage.setItem("kazishow_ringtone_url", url);
-                    setSavedRingtone(url);
-                    toast.success("Ringtone saved!");
-                  }}
-                  className="flex-1 py-2 bg-kazi-orange text-white font-bold text-xs rounded-xl hover:bg-orange-600 transition-colors"
-                >
-                  Save
                 </button>
                 {savedRingtone && (
                   <button
                     onClick={() => {
                       localStorage.removeItem("kazishow_ringtone_url");
+                      localStorage.removeItem("kazishow_ringtone_name");
                       setRingtoneUrl("");
                       setSavedRingtone("");
+                      setRingtoneFileName("");
                       toast.success("Ringtone reset to default");
                     }}
-                    className="px-3 py-2 border border-gray-200 text-gray-400 font-bold text-xs rounded-xl hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 border border-gray-200 text-gray-400 font-bold text-xs rounded-xl hover:bg-gray-50 transition-colors"
                   >
                     Reset
                   </button>

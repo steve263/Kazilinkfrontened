@@ -261,17 +261,20 @@ export default function IncomingCallHandler() {
     }
   };
 
-  if (!incomingCall && callState !== "connected") return null;
-
+  // Always render — the <audio> element must stay mounted from the moment
+  // the component loads so remoteAudioElRef.current is never null when the
+  // peer stream arrives. The overlay is shown conditionally inside.
   return (
-    <div className="fixed inset-0 bg-[#1A1714] z-[9999] flex flex-col items-center justify-center px-6">
+    <>
       {/*
-        Hidden DOM audio element for the remote stream.
-        Attaching srcObject to a DOM <audio> element lets the browser's
-        built-in acoustic echo cancellation reference the output signal,
-        reducing echo compared to a detached `new Audio()` object.
+        Keep this <audio> ALWAYS in the DOM (outside any conditional).
+        If it unmounts between setIncomingCall(null) and peer.on("stream"),
+        remoteAudioElRef.current becomes null and neither side hears anything.
       */}
       <audio ref={remoteAudioElRef} autoPlay playsInline style={{ display: "none" }} />
+
+      {!incomingCall && callState !== "connected" ? null : (
+      <div className="fixed inset-0 bg-[#1A1714] z-[9999] flex flex-col items-center justify-center px-6">
 
       {/* ── Incoming call ── */}
       {incomingCall && (
@@ -362,5 +365,7 @@ export default function IncomingCallHandler() {
         </>
       )}
     </div>
+      )}
+    </>
   );
 }
