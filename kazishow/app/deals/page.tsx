@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Tag, Clock, ArrowRight, Star, Share2, Heart, Plus, X, Loader2, Zap, TrendingUp, Flame } from "lucide-react";
 import toast from "react-hot-toast";
@@ -50,6 +51,7 @@ function CountdownBadge({ endDate }: { endDate: string }) {
 
 function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; onToggleSave: (id: string) => void }) {
   const expired = new Date(deal.endDate).getTime() <= Date.now();
+  const router = useRouter();
   const { isFlash } = getTimeLeft(deal.endDate);
 
   const handleShare = (e: React.MouseEvent) => {
@@ -64,6 +66,20 @@ function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; on
     e.preventDefault();
     e.stopPropagation();
     onToggleSave(deal.id);
+  };
+
+  const handleBookDeal = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const params = new URLSearchParams({
+      dealId: deal.id,
+      dealTitle: deal.title,
+      discount: String(deal.discountValue),
+      discountType: deal.discountType,
+    });
+    if (discountedPrice !== null) params.set("dealPrice", String(discountedPrice));
+    if (deal.originalPrice) params.set("originalPrice", String(deal.originalPrice));
+    router.push(`/business/${deal.provider?.id}?${params.toString()}`);
   };
 
   const discountedPrice =
@@ -149,10 +165,16 @@ function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; on
                 <span className="text-[10px] text-gray-400 truncate">{deal.provider?.user?.location || "Nairobi"}</span>
               </div>
             </div>
-            <span className="flex items-center gap-0.5 text-[10px] text-kazi-orange font-bold flex-shrink-0">
-              Book <ArrowRight className="w-2.5 h-2.5" />
-            </span>
           </div>
+
+          {!expired && (
+            <button
+              onClick={handleBookDeal}
+              className="mt-2 w-full py-2.5 bg-kazi-orange text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 hover:bg-orange-600 transition-colors"
+            >
+              🔥 Book This Deal
+            </button>
+          )}
         </div>
       </div>
     </Link>

@@ -21,9 +21,15 @@ import toast from "react-hot-toast";
 import ProviderBusyModal from "./ProviderBusyModal";
 
 interface BookingModalProps {
-  business: any; // provider object with .id, .businessName, .services[], .user?.location, .user?.phone, .category
-  service?: any; // pre-selected service (optional)
+  business: any;
+  service?: any;
   onClose: () => void;
+  dealId?: string;
+  dealPrice?: number;
+  dealTitle?: string;
+  discount?: number;
+  discountType?: string;
+  originalPrice?: number;
 }
 
 const TIMES = [
@@ -47,7 +53,8 @@ type Step =
 
 const PROGRESS_STEPS: Step[] = ["service", "datetime", "payment", "confirm"];
 
-export default function BookingModal({ business, service, onClose }: BookingModalProps) {
+export default function BookingModal({ business, service, onClose, dealId, dealPrice, dealTitle, discount, discountType, originalPrice }: BookingModalProps) {
+  const hasDeal = !!dealId;
   const [step, setStep] = useState<Step>(service ? "datetime" : "service");
   const [selectedService, setSelectedService] = useState<any>(service || null);
   const [selectedDate, setSelectedDate] = useState("");
@@ -229,8 +236,9 @@ export default function BookingModal({ business, service, onClose }: BookingModa
           address: locationAddress,
           lat: locationLat || undefined,
           lng: locationLng || undefined,
-          totalAmount: selectedService?.price || 0,
+          totalAmount: hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0),
           notes,
+          dealId: dealId || null,
         }),
       });
       const data = await res.json();
@@ -721,10 +729,24 @@ export default function BookingModal({ business, service, onClose }: BookingModa
                     {paymentLabel(selectedPayment)}
                   </span>
                 </div>
+                {hasDeal && dealPrice !== undefined && originalPrice !== undefined && (
+                  <>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-400 line-through">Original</span>
+                      <span className="text-gray-400 line-through">{formatCurrency(originalPrice)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-green-600 font-semibold">
+                        {discountType === "PERCENTAGE" ? `${discount}% Discount` : `KSh ${discount} OFF`}
+                      </span>
+                      <span className="text-green-600 font-bold">-{formatCurrency(originalPrice - dealPrice)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="border-t border-gray-200 pt-2.5 flex justify-between items-center">
                   <span className="font-bold text-kazi-dark">Total</span>
                   <span className="font-black text-kazi-orange text-xl">
-                    {formatCurrency(selectedService?.price || 0)}
+                    {formatCurrency(hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0))}
                   </span>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Star, MapPin, Phone, CheckCircle, Clock, Share2,
@@ -19,6 +19,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function ProviderProfilePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const dealId = searchParams.get("dealId");
+  const dealPrice = searchParams.get("dealPrice") ? Number(searchParams.get("dealPrice")) : undefined;
+  const dealTitle = searchParams.get("dealTitle") || undefined;
+  const discount = searchParams.get("discount") ? Number(searchParams.get("discount")) : undefined;
+  const discountType = searchParams.get("discountType") || "PERCENTAGE";
+  const originalPrice = searchParams.get("originalPrice") ? Number(searchParams.get("originalPrice")) : undefined;
+  const hasDeal = !!dealId;
   const [provider, setProvider] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Overview");
@@ -328,6 +336,34 @@ export default function ProviderProfilePage() {
             )}
           </div>
 
+          {/* Deal banner (from deals page) */}
+          {hasDeal && (
+            <div className="mt-4 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-4 text-white">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🔥</span>
+                  <div>
+                    <p className="font-black text-sm">
+                      {discountType === "PERCENTAGE" ? `${discount}% OFF Applied!` : `KSh ${discount} OFF Applied!`}
+                    </p>
+                    {dealTitle && <p className="text-white/80 text-xs">{dealTitle}</p>}
+                  </div>
+                </div>
+                {dealPrice !== undefined && originalPrice !== undefined && (
+                  <div className="text-right">
+                    <p className="text-white/70 text-xs line-through">KSh {originalPrice.toLocaleString()}</p>
+                    <p className="font-black text-lg leading-none">KSh {dealPrice.toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
+              {dealPrice !== undefined && originalPrice !== undefined && (
+                <div className="bg-white/20 rounded-xl px-3 py-1.5 text-center">
+                  <p className="text-xs font-bold">💰 You save KSh {(originalPrice - dealPrice).toLocaleString()} on this booking!</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Action buttons */}
           <div className="flex gap-2 mt-4">
             {(!currentUser || currentUser.role === "CUSTOMER") && (
@@ -336,7 +372,10 @@ export default function ProviderProfilePage() {
                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-kazi-orange text-white font-bold rounded-2xl hover:bg-orange-600 transition-all active:scale-95 text-sm"
               >
                 <Calendar className="w-4 h-4" />
-                {provider.category === "FUNDI" ? "Book Now" : "Order Now"}
+                {hasDeal && dealPrice !== undefined
+                  ? `🔥 Book Deal — KSh ${dealPrice.toLocaleString()}`
+                  : provider.category === "FUNDI" ? "Book Now" : "Order Now"
+                }
               </button>
             )}
             {currentUser && provider.user?.id && (
@@ -721,6 +760,12 @@ export default function ProviderProfilePage() {
           business={provider}
           service={selectedService}
           onClose={() => { setShowBooking(false); setSelectedService(undefined); }}
+          dealId={dealId || undefined}
+          dealPrice={dealPrice}
+          dealTitle={dealTitle}
+          discount={discount}
+          discountType={discountType}
+          originalPrice={originalPrice}
         />
       )}
 
