@@ -56,18 +56,23 @@ export default function AISupportChat() {
         body: JSON.stringify({ messages: next }),
       });
       const data = await res.json();
-      const reply =
-        data.data?.reply ||
-        "I'm having trouble responding right now. Please try WhatsApp: +254795542312";
+      if (!data.success) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: data.message || "Something went wrong. Please try WhatsApp: +254795542312" },
+        ]);
+        return;
+      }
+      const reply = data.data?.reply || "No response received. Please try WhatsApp: +254795542312";
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
       if (!open) setUnread((n) => n + 1);
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "Connection error. Please contact us on WhatsApp:\n+254795542312 (General)\n+254731421635 (Payments)",
+          content: `Error: ${msg}\n\nPlease contact us on WhatsApp:\n+254795542312 (General)\n+254731421635 (Payments)`,
         },
       ]);
     } finally {
