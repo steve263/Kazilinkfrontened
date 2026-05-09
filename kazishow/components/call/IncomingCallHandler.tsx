@@ -16,7 +16,8 @@ interface IncomingCallData {
 
 export default function IncomingCallHandler() {
   const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
-  const [callState, setCallState] = useState<"idle" | "connected">("idle");
+  const [callState, setCallState] = useState<"idle" | "connected" | "failed">("idle");
+  const [callError, setCallError] = useState<string | null>(null);
   const [connectedCaller, setConnectedCaller] = useState<{ name: string; avatar: string } | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
@@ -44,7 +45,12 @@ export default function IncomingCallHandler() {
     const user = JSON.parse(localStorage.getItem("kazishow_user") || "null");
     if (!user) return;
 
-    const socket = io(API, { transports: ["websocket"] });
+    const socket = io(API, {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     socketRef.current = socket;
 
     socket.on("connect", () => socket.emit("join", user.id));
@@ -93,6 +99,41 @@ export default function IncomingCallHandler() {
     }
     return () => clearInterval(callTimerRef.current);
   }, [callState]);
+
+  // ── STUN / TURN servers ────────────────────────────────────────────────────
+  const ICE_SERVERS = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun3.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:19302" },
+      { urls: "turn:openrelay.metered.ca:80",              username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443",             username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+    ],
+  };
+
+  // ── Microphone helper ──────────────────────────────────────────────────────
+  const getMicrophone = async (): Promise<MediaStream | null> => {
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 44100, channelCount: 1 },
+        video: false,
+      });
+    } catch (err: any) {
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        toast.error("Microphone permission denied. Please allow microphone access.");
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        toast.error("No microphone found on this device.");
+      } else if (err.name === "NotReadableError") {
+        toast.error("Microphone is in use by another app. Close it and try again.");
+      } else {
+        toast.error("Cannot access microphone: " + (err.message || "Unknown error"));
+      }
+      return null;
+    }
+  };
 
   // ── Ringtone ────────────────────────────────────────────────────────────────
 
@@ -176,8 +217,7 @@ export default function IncomingCallHandler() {
   const cleanupCall = (emitEnd: boolean) => {
     iceCandidateQueueRef.current = [];
     if (peerRef.current) { peerRef.current.destroy(); peerRef.current = null; }
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    // Reset the DOM audio element without removing it from the DOM
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => { t.stop(); }); streamRef.current = null; }
     if (remoteAudioElRef.current) {
       remoteAudioElRef.current.pause();
       remoteAudioElRef.current.srcObject = null;
@@ -187,6 +227,7 @@ export default function IncomingCallHandler() {
     }
     callerIdRef.current = "";
     setCallState("idle");
+    setCallError(null);
     setIncomingCall(null);
     setConnectedCaller(null);
     setIsMuted(false);
@@ -195,45 +236,23 @@ export default function IncomingCallHandler() {
 
   const acceptCall = async () => {
     if (!incomingCall) return;
-    // Stop ringtone immediately when user taps Accept
     stopRingtone();
+    setCallError(null);
     const callFrom = incomingCall.from;
     const callSignal = incomingCall.signal;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-        },
-      });
-      streamRef.current = stream;
-      setConnectedCaller({ name: incomingCall.callerName, avatar: incomingCall.callerAvatar });
 
+    const stream = await getMicrophone();
+    if (!stream) {
+      socketRef.current?.emit("decline_call", { to: callFrom });
+      setIncomingCall(null);
+      return;
+    }
+    streamRef.current = stream;
+    setConnectedCaller({ name: incomingCall.callerName, avatar: incomingCall.callerAvatar });
+
+    try {
       const { default: SimplePeer } = await import("simple-peer");
-      const peer = new SimplePeer({
-        initiator: false,
-        trickle: true,
-        stream,
-        config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-            // TURN relay servers — required when both parties are behind NAT
-            // (different mobile networks, home routers, etc.)
-            {
-              urls: [
-                "turn:openrelay.metered.ca:80",
-                "turn:openrelay.metered.ca:443",
-                "turn:openrelay.metered.ca:443?transport=tcp",
-              ],
-              username: "openrelayproject",
-              credential: "openrelayproject",
-            },
-          ],
-        },
-      });
+      const peer = new SimplePeer({ initiator: false, trickle: true, stream, config: ICE_SERVERS });
 
       peer.on("signal", (signal: any) => {
         if (signal.type === "answer") {
@@ -243,32 +262,41 @@ export default function IncomingCallHandler() {
         }
       });
 
-      // Attach remote stream to the DOM audio element — reduces echo vs new Audio()
       peer.on("stream", (remoteStream: MediaStream) => {
         if (remoteAudioElRef.current) {
           remoteAudioElRef.current.srcObject = remoteStream;
-          remoteAudioElRef.current.play().catch(() => {});
+          remoteAudioElRef.current.play().catch((e) => console.warn("Audio play blocked:", e));
         }
         setCallState("connected");
       });
 
+      peer.on("connect", () => {
+        console.log("✅ Peer connected");
+        setCallState("connected");
+      });
+
       peer.on("error", (err: any) => {
-        console.error("Peer error:", err);
-        toast.error("Call connection failed");
+        console.error("❌ Peer error:", err);
+        setCallError("Call connection failed. Check your internet and try again.");
+        setCallState("failed");
         cleanupCall(false);
       });
 
-      // Signal the offer first, then drain any ICE candidates that arrived
-      // before the user tapped Accept (they were queued because peerRef was null)
+      peer.on("close", () => cleanupCall(false));
+
+      // Signal the offer, then drain any queued ICE candidates
       peer.signal(callSignal);
       iceCandidateQueueRef.current.forEach(c => { try { peer.signal(c); } catch {} });
       iceCandidateQueueRef.current = [];
       peerRef.current = peer;
       setIncomingCall(null);
-    } catch {
-      toast.error("Could not access microphone. Please allow permission.");
+    } catch (err: any) {
+      console.error("acceptCall error:", err);
+      setCallError("Failed to accept call: " + (err.message || "Unknown error"));
+      setCallState("failed");
       socketRef.current?.emit("decline_call", { to: callFrom });
       setIncomingCall(null);
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     }
   };
 
@@ -297,8 +325,27 @@ export default function IncomingCallHandler() {
       */}
       <audio ref={remoteAudioElRef} autoPlay playsInline style={{ display: "none" }} />
 
-      {!incomingCall && callState !== "connected" ? null : (
+      {!incomingCall && callState !== "connected" && callState !== "failed" ? null : (
       <div className="fixed inset-0 bg-[#1A1714] z-[9999] flex flex-col items-center justify-center px-6">
+
+      {/* ── Failed state ── */}
+      {callState === "failed" && (
+        <>
+          <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-6">
+            <span className="text-4xl">📵</span>
+          </div>
+          <h2 className="text-white font-black text-2xl mb-2">Call Failed</h2>
+          <p className="text-white/50 text-sm text-center mb-8 max-w-xs">
+            {callError || "Could not connect. Check your internet and try again."}
+          </p>
+          <button
+            onClick={() => { setCallState("idle"); setCallError(null); }}
+            className="w-full max-w-xs py-4 bg-kazi-orange text-white font-bold rounded-2xl mb-3 hover:bg-orange-600 transition-colors active:scale-95"
+          >
+            Close
+          </button>
+        </>
+      )}
 
       {/* ── Incoming call ── */}
       {incomingCall && (

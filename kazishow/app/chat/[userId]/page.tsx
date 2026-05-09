@@ -62,7 +62,8 @@ export default function ChatRoomPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // ── Call state ──────────────────────────────────────────────────────────────
-  const [callState, setCallState] = useState<"idle" | "calling" | "connected">("idle");
+  const [callState, setCallState] = useState<"idle" | "calling" | "connected" | "failed">("idle");
+  const [callError, setCallError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [callDuration, setCallDuration] = useState("00:00");
@@ -100,10 +101,18 @@ export default function ChatRoomPage() {
     fetchUserInfo();
     fetchMessages(1, true);
 
-    const socket = io(API, { transports: ["websocket"] });
+    const socket = io(API, {
+      transports: ["websocket", "polling"], // polling as fallback when websocket is blocked
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     socketRef.current = socket;
 
-    socket.on("connect", () => socket.emit("join", user.id));
+    socket.on("connect", () => {
+      socket.emit("join", user.id);
+      socket.emit("join_room", user.id); // support both event names
+    });
 
     // ── Chat events ──
     socket.on("new_message", (msg: Message) => {
@@ -367,6 +376,33 @@ export default function ChatRoomPage() {
     }
   };
 
+  // ── Microphone helper with specific permission errors ─────────────────────────
+  const getMicrophone = async (): Promise<MediaStream | null> => {
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100,
+          channelCount: 1,
+        },
+        video: false,
+      });
+    } catch (err: any) {
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        toast.error("Microphone permission denied. Please allow microphone access in your browser settings.");
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        toast.error("No microphone found on this device.");
+      } else if (err.name === "NotReadableError") {
+        toast.error("Microphone is in use by another app. Please close it and try again.");
+      } else {
+        toast.error("Cannot access microphone: " + (err.message || "Unknown error"));
+      }
+      return null;
+    }
+  };
+
   // ── Call helpers ─────────────────────────────────────────────────────────────
   const getDuration = () => {
     const s = callSecondsRef.current;
@@ -376,7 +412,7 @@ export default function ChatRoomPage() {
   const cleanupCall = (emitEnd: boolean) => {
     stopCallerRing();
     if (peerRef.current) { peerRef.current.destroy(); peerRef.current = null; }
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => { t.stop(); }); streamRef.current = null; }
     if (remoteAudioElRef.current) {
       remoteAudioElRef.current.pause();
       remoteAudioElRef.current.srcObject = null;
@@ -386,40 +422,47 @@ export default function ChatRoomPage() {
       socketRef.current?.emit("end_call", { to: otherId, duration: getDuration() });
     }
     setCallState("idle");
+    setCallError(null);
     setIsMuted(false);
     setIsSpeaker(false);
   };
 
+  const ICE_SERVERS = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun3.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:19302" },
+      {
+        urls: "turn:openrelay.metered.ca:80",
+        username: "openrelayproject",
+        credential: "openrelayproject",
+      },
+      {
+        urls: "turn:openrelay.metered.ca:443",
+        username: "openrelayproject",
+        credential: "openrelayproject",
+      },
+      {
+        urls: "turn:openrelay.metered.ca:443?transport=tcp",
+        username: "openrelayproject",
+        credential: "openrelayproject",
+      },
+    ],
+  };
+
   const startCall = async () => {
     if (callState !== "idle") return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
-      });
-      streamRef.current = stream;
+    setCallError(null);
 
+    const stream = await getMicrophone();
+    if (!stream) return;
+    streamRef.current = stream;
+
+    try {
       const { default: SimplePeer } = await import("simple-peer");
-      const peer = new SimplePeer({
-        initiator: true,
-        trickle: true,
-        stream,
-        config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-            // TURN relay — required when both parties are behind NAT
-            {
-              urls: [
-                "turn:openrelay.metered.ca:80",
-                "turn:openrelay.metered.ca:443",
-                "turn:openrelay.metered.ca:443?transport=tcp",
-              ],
-              username: "openrelayproject",
-              credential: "openrelayproject",
-            },
-          ],
-        },
-      });
+      const peer = new SimplePeer({ initiator: true, trickle: true, stream, config: ICE_SERVERS });
 
       peer.on("signal", (signal: any) => {
         if (signal.type === "offer") {
@@ -439,22 +482,33 @@ export default function ChatRoomPage() {
       peer.on("stream", (remoteStream: MediaStream) => {
         if (remoteAudioElRef.current) {
           remoteAudioElRef.current.srcObject = remoteStream;
-          remoteAudioElRef.current.play().catch(() => {});
+          remoteAudioElRef.current.play().catch((e) => console.warn("Audio play blocked:", e));
         }
         remoteAudioRef.current = remoteAudioElRef.current;
         setCallState("connected");
       });
 
+      peer.on("connect", () => {
+        console.log("✅ Peer connected");
+        setCallState("connected");
+      });
+
       peer.on("error", (err: any) => {
-        console.error("Peer error:", err);
-        toast.error("Call connection failed");
+        console.error("❌ Peer error:", err);
+        setCallError("Call connection failed. Check your internet and try again.");
+        setCallState("failed");
         cleanupCall(false);
       });
 
+      peer.on("close", () => cleanupCall(false));
+
       peerRef.current = peer;
       setCallState("calling");
-    } catch {
-      toast.error("Could not access microphone. Please allow permission.");
+    } catch (err: any) {
+      console.error("startCall error:", err);
+      setCallError("Failed to start call: " + (err.message || "Unknown error"));
+      setCallState("failed");
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     }
   };
 
@@ -492,6 +546,31 @@ export default function ChatRoomPage() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Hidden DOM audio element — browser AEC references this for echo cancellation */}
       <audio ref={remoteAudioElRef} autoPlay playsInline style={{ display: "none" }} />
+
+      {/* ── Failed call overlay ── */}
+      {callState === "failed" && (
+        <div className="fixed inset-0 bg-[#1A1714] z-50 flex flex-col items-center justify-center px-6">
+          <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-6">
+            <span className="text-4xl">📵</span>
+          </div>
+          <h2 className="text-white font-black text-2xl mb-2">Call Failed</h2>
+          <p className="text-white/50 text-sm text-center mb-8 max-w-xs">
+            {callError || "Could not connect. Check your internet connection and try again."}
+          </p>
+          <button
+            onClick={() => { setCallState("idle"); setCallError(null); }}
+            className="w-full max-w-xs py-4 bg-kazi-orange text-white font-bold rounded-2xl mb-3 hover:bg-orange-600 transition-colors active:scale-95"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={() => { setCallState("idle"); setCallError(null); }}
+            className="text-white/40 text-sm"
+          >
+            Close
+          </button>
+        </div>
+      )}
 
       {/* ── Outgoing call overlay ── */}
       {callState === "calling" && (
