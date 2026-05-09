@@ -36,6 +36,9 @@ export default function IncomingCallHandler() {
   const ringtoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null); // loop interval
 
   const callerIdRef = useRef<string>("");
+  // Queue ICE candidates that arrive before the user taps Accept (peerRef is still null).
+  // Draining them after peer creation ensures no candidates are lost.
+  const iceCandidateQueueRef = useRef<any[]>([]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("kazishow_user") || "null");
@@ -53,7 +56,12 @@ export default function IncomingCallHandler() {
     });
 
     socket.on("ice_candidate", (data: any) => {
-      if (peerRef.current) peerRef.current.signal(data.candidate);
+      if (peerRef.current) {
+        peerRef.current.signal(data.candidate);
+      } else {
+        // Peer not created yet (waiting for Accept) — queue for later
+        iceCandidateQueueRef.current.push(data.candidate);
+      }
     });
 
     socket.on("call_ended", () => {
@@ -166,6 +174,7 @@ export default function IncomingCallHandler() {
   };
 
   const cleanupCall = (emitEnd: boolean) => {
+    iceCandidateQueueRef.current = [];
     if (peerRef.current) { peerRef.current.destroy(); peerRef.current = null; }
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     // Reset the DOM audio element without removing it from the DOM
@@ -211,7 +220,17 @@ export default function IncomingCallHandler() {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
             { urls: "stun:stun1.l.google.com:19302" },
-            { urls: "stun:stun2.l.google.com:19302" },
+            // TURN relay servers — required when both parties are behind NAT
+            // (different mobile networks, home routers, etc.)
+            {
+              urls: [
+                "turn:openrelay.metered.ca:80",
+                "turn:openrelay.metered.ca:443",
+                "turn:openrelay.metered.ca:443?transport=tcp",
+              ],
+              username: "openrelayproject",
+              credential: "openrelayproject",
+            },
           ],
         },
       });
@@ -233,12 +252,17 @@ export default function IncomingCallHandler() {
         setCallState("connected");
       });
 
-      peer.on("error", () => {
+      peer.on("error", (err: any) => {
+        console.error("Peer error:", err);
         toast.error("Call connection failed");
         cleanupCall(false);
       });
 
+      // Signal the offer first, then drain any ICE candidates that arrived
+      // before the user tapped Accept (they were queued because peerRef was null)
       peer.signal(callSignal);
+      iceCandidateQueueRef.current.forEach(c => { try { peer.signal(c); } catch {} });
+      iceCandidateQueueRef.current = [];
       peerRef.current = peer;
       setIncomingCall(null);
     } catch {
