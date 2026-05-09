@@ -6,6 +6,8 @@ import AuthGuard from "@/components/layout/AuthGuard";
 import IncomingCallHandler from "@/components/call/IncomingCallHandler";
 import PushNotificationInit from "@/components/PushNotificationInit";
 import NotificationPermissionBanner from "@/components/notifications/NotificationPermissionBanner";
+import WhatsAppFloat from "@/components/support/WhatsAppFloat";
+import AISupportChat from "@/components/support/AISupportChat";
 
 export const metadata: Metadata = {
   title: "KaziShow — Discover Local Businesses in Kenya",
@@ -38,6 +40,8 @@ export default function RootLayout({
         <NotificationPermissionBanner />
         <ScrollProgress />
         {children}
+        <WhatsAppFloat />
+        <AISupportChat />
         <Toaster
           position="top-center"
           toastOptions={{
