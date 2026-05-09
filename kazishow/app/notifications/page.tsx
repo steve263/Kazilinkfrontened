@@ -4,7 +4,7 @@ import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import {
   Bell, CheckCheck, BellOff, ArrowRight, Calendar,
-  MapPin, Clock, Loader2, RefreshCw, Navigation,
+  MapPin, Clock, Loader2, RefreshCw, Navigation, Trash2,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -133,12 +133,14 @@ function NotifCard({
   token,
   onRead,
   onAction,
+  onDelete,
 }: {
   n: Notif;
   isProvider: boolean;
   token: string;
   onRead: (id: string) => void;
   onAction: (id: string, done: "ACCEPTED" | "DECLINED") => void;
+  onDelete: (id: string, wasUnread: boolean) => void;
 }) {
   const cfg = TYPE_CFG[n.type] ?? TYPE_CFG.SYSTEM;
   const link = navLink(n.type, isProvider, n.bookingId);
@@ -158,6 +160,19 @@ function NotifCard({
     const id = setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
   }, [isNewBooking, actionDone, secs]);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete(n.id, !n.isRead);
+    if (n.id.startsWith("local-")) return;
+    try {
+      await fetch(`${API}/api/notifications/${n.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {}
+  };
 
   const handleAction = async (action: "accept" | "decline", e: React.MouseEvent) => {
     e.preventDefault();
@@ -218,7 +233,16 @@ function NotifCard({
         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">
           {n.body}
         </p>
-        <p className="text-[11px] text-gray-400 mt-1.5 font-medium">{timeAgo(n.createdAt)}</p>
+        <div className="flex items-center justify-between mt-1.5">
+          <p className="text-[11px] text-gray-400 font-medium">{timeAgo(n.createdAt)}</p>
+          <button
+            onClick={handleDelete}
+            className="p-1 -mr-1 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50"
+            title="Delete notification"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
         {/* Booking amount pill */}
         {n.booking?.totalAmount != null && (
@@ -398,7 +422,13 @@ export default function NotificationsPage() {
   }, [token, user?.id]);
 
   const markRead = useCallback(async (id: string) => {
-    setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+    setNotifs((prev) => {
+      const target = prev.find((n) => n.id === id);
+      if (target && !target.isRead) {
+        window.dispatchEvent(new CustomEvent("notif_decrement_unread"));
+      }
+      return prev.map((n) => n.id === id ? { ...n, isRead: true } : n);
+    });
     if (id.startsWith("local-")) return;
     try {
       await fetch(`${API}/api/notifications/${id}/read`, {
@@ -410,6 +440,7 @@ export default function NotificationsPage() {
 
   const markAllRead = useCallback(async () => {
     setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    window.dispatchEvent(new CustomEvent("notif_mark_all_read"));
     try {
       await fetch(`${API}/api/notifications/read-all`, {
         method: "PUT",
@@ -417,6 +448,13 @@ export default function NotificationsPage() {
       });
     } catch {}
   }, [token]);
+
+  const deleteNotif = useCallback((id: string, wasUnread: boolean) => {
+    setNotifs((prev) => prev.filter((n) => n.id !== id));
+    if (wasUnread) {
+      window.dispatchEvent(new CustomEvent("notif_decrement_unread"));
+    }
+  }, []);
 
   const onAction = useCallback((id: string, done: "ACCEPTED" | "DECLINED") => {
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, _actionDone: done } : n));
@@ -534,6 +572,7 @@ export default function NotificationsPage() {
                       token={token}
                       onRead={markRead}
                       onAction={onAction}
+                      onDelete={deleteNotif}
                     />
                   ))}
                 </div>

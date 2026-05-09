@@ -110,6 +110,18 @@ export default function Navbar() {
     }
   }, [pathname, loggedInUser]);
 
+  // Sync bell badge when notifications page marks read / deletes
+  useEffect(() => {
+    const handleAllRead = () => setUnreadNotifCount(0);
+    const handleDecrement = () => setUnreadNotifCount((c) => Math.max(0, c - 1));
+    window.addEventListener("notif_mark_all_read", handleAllRead);
+    window.addEventListener("notif_decrement_unread", handleDecrement);
+    return () => {
+      window.removeEventListener("notif_mark_all_read", handleAllRead);
+      window.removeEventListener("notif_decrement_unread", handleDecrement);
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("kazishow_token");
     localStorage.removeItem("kazishow_user");
