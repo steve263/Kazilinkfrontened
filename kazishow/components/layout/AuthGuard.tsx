@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import SuspensionScreen from "@/components/suspension/SuspensionScreen";
+
+const APPEAL_PATHS = ["/appeal", "/appeal/provide-info"];
 
 export default function AuthGuard() {
+  const pathname = usePathname();
   const [suspended, setSuspended] = useState(false);
 
   useEffect(() => {
@@ -29,34 +34,10 @@ export default function AuthGuard() {
       .catch(() => {});
   }, []);
 
-  if (!suspended) return null;
+  // Allow suspended users to access appeal pages
+  if (suspended && !APPEAL_PATHS.some((p) => pathname?.startsWith(p))) {
+    return <SuspensionScreen />;
+  }
 
-  return (
-    <div className="fixed inset-0 bg-[#1A1714] z-[9999] flex flex-col items-center justify-center px-6">
-      <div className="text-center max-w-sm">
-        <div className="text-7xl mb-6">🚫</div>
-        <h2 className="text-white font-black text-2xl mb-3">Account Suspended</h2>
-        <p className="text-white/50 text-sm mb-8 leading-relaxed">
-          Your account has been suspended due to violations of our community guidelines.
-          Please contact our support team to appeal this decision.
-        </p>
-        <a
-          href="mailto:support@kazishow.co.ke"
-          className="block w-full py-4 bg-kazi-orange text-white font-bold rounded-2xl text-center mb-3"
-        >
-          Appeal Suspension
-        </a>
-        <button
-          onClick={() => {
-            localStorage.removeItem("kazishow_token");
-            localStorage.removeItem("kazishow_user");
-            window.location.href = "/auth/login";
-          }}
-          className="text-white/40 text-sm"
-        >
-          Sign out
-        </button>
-      </div>
-    </div>
-  );
+  return null;
 }
