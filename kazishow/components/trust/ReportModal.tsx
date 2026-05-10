@@ -84,19 +84,19 @@ export default function ReportModal({ reportedId, reportedName, bookingId, onClo
             <div className="overflow-y-auto flex-1 p-5 space-y-4">
               <div>
                 <p className="font-bold text-kazi-dark text-sm mb-3">What is the issue?</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {REPORT_TYPES.map((rt) => (
                     <button
                       key={rt.value}
                       onClick={() => setType(rt.value)}
-                      className={`p-3 rounded-xl text-left text-sm transition-all border-2 ${
+                      className={`p-2.5 rounded-xl text-center text-xs transition-all border-2 ${
                         type === rt.value
                           ? "border-red-400 bg-red-50 text-red-700 font-bold"
                           : "border-gray-200 bg-gray-50 text-gray-600 hover:border-red-200"
                       }`}
                     >
-                      <span className="text-lg block mb-1">{rt.emoji}</span>
-                      {rt.label}
+                      <span className="text-xl block mb-1">{rt.emoji}</span>
+                      <span className="leading-tight">{rt.label}</span>
                     </button>
                   ))}
                 </div>
