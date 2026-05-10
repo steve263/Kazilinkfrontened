@@ -38,7 +38,11 @@ const STATUS_INFO: Record<string, { emoji: string; label: string; color: string;
   },
 };
 
-export default function SuspensionScreen() {
+interface Props {
+  onUnsuspend?: () => void;
+}
+
+export default function SuspensionScreen({ onUnsuspend }: Props) {
   const router = useRouter();
   const [appeal, setAppeal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -59,116 +63,124 @@ export default function SuspensionScreen() {
   const info = appeal ? STATUS_INFO[appeal.status] : null;
   const canAppeal = !appeal || appeal.status === "REJECTED";
 
-  return (
-    <div className="min-h-screen bg-kazi-dark flex flex-col items-center justify-center p-6">
-      {/* Logo */}
-      <div className="mb-8 text-center">
-        <div className="text-5xl mb-3">⚡</div>
-        <h1 className="text-2xl font-black text-white">
-          Kazi<span className="text-kazi-orange">Show</span>
-        </h1>
-      </div>
+  const handleSignOut = () => {
+    localStorage.removeItem("kazishow_token");
+    localStorage.removeItem("kazishow_user");
+    window.location.href = "/auth/login";
+  };
 
-      <div className="w-full max-w-md">
-        {/* Suspension notice */}
-        <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-6 mb-5 text-center">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-red-400" />
-          </div>
-          <h2 className="text-white font-black text-xl mb-2">Account Suspended</h2>
-          <p className="text-white/50 text-sm leading-relaxed">
-            Your KaziShow account has been suspended due to a violation of our community guidelines.
-          </p>
+  // Fixed full-screen — completely covers the app, no background content visible
+  return (
+    <div
+      className="fixed inset-0 bg-kazi-dark z-[99999] overflow-y-auto"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <div className="min-h-full flex flex-col items-center justify-center p-6">
+        {/* Logo */}
+        <div className="mb-8 text-center">
+          <div className="text-5xl mb-3">⚡</div>
+          <h1 className="text-2xl font-black text-white">
+            Kazi<span className="text-kazi-orange">Show</span>
+          </h1>
         </div>
 
-        {/* Appeal status */}
-        {!loading && appeal && info && (
-          <div className={`border rounded-2xl p-4 mb-4 ${info.color}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">{info.emoji}</span>
-              <p className="font-bold text-sm">{info.label}</p>
+        <div className="w-full max-w-md">
+          {/* Suspension notice */}
+          <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-6 mb-5 text-center">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-8 h-8 text-red-400" />
             </div>
-            <p className="text-sm opacity-80">{info.message}</p>
-            {appeal.adminNote && (
-              <div className="mt-3 pt-3 border-t border-current/20">
-                <p className="text-xs font-bold mb-1">Admin note:</p>
-                <p className="text-sm">{appeal.adminNote}</p>
+            <h2 className="text-white font-black text-xl mb-2">Account Suspended</h2>
+            <p className="text-white/50 text-sm leading-relaxed">
+              Your KaziShow account has been suspended due to a violation of our community guidelines.
+            </p>
+          </div>
+
+          {/* Appeal status */}
+          {!loading && appeal && info && (
+            <div className={`border rounded-2xl p-4 mb-4 ${info.color}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xl">{info.emoji}</span>
+                <p className="font-bold text-sm">{info.label}</p>
               </div>
-            )}
-            {appeal.status === "MORE_INFO_NEEDED" && (
+              <p className="text-sm opacity-80">{info.message}</p>
+              {appeal.adminNote && (
+                <div className="mt-3 pt-3 border-t border-white/20">
+                  <p className="text-xs font-bold mb-1">Admin note:</p>
+                  <p className="text-sm">{appeal.adminNote}</p>
+                </div>
+              )}
+              {appeal.status === "MORE_INFO_NEEDED" && (
+                <button
+                  onClick={() => router.push("/appeal/provide-info")}
+                  className="mt-3 w-full py-2.5 bg-kazi-orange text-white font-bold rounded-xl text-sm"
+                >
+                  Provide More Information →
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="space-y-3">
+            {canAppeal && (
               <button
-                onClick={() => router.push("/appeal/provide-info")}
-                className="mt-3 w-full py-2.5 bg-kazi-orange text-white font-bold rounded-xl text-sm"
+                onClick={() => router.push("/appeal")}
+                className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl flex items-center justify-between px-5 hover:bg-orange-600 transition-all"
               >
-                Provide More Information →
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5" />
+                  <div className="text-left">
+                    <p className="font-black">Appeal Suspension</p>
+                    <p className="text-orange-100 text-xs">Submit your case for review</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5" />
               </button>
             )}
-          </div>
-        )}
 
-        {/* Actions */}
-        <div className="space-y-3">
-          {canAppeal && (
-            <button
-              onClick={() => router.push("/appeal")}
-              className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl flex items-center justify-between px-5 hover:bg-orange-600 transition-all"
+            <a
+              href="https://wa.me/254795542312?text=Hello%2C%20my%20KaziShow%20account%20has%20been%20suspended%20and%20I%20need%20help."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-4 bg-green-500/10 border border-green-500/30 text-green-400 font-bold rounded-2xl flex items-center justify-between px-5 hover:bg-green-500/20 transition-all"
             >
               <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5" />
+                <Phone className="w-5 h-5" />
                 <div className="text-left">
-                  <p className="font-black">Appeal Suspension</p>
-                  <p className="text-orange-100 text-xs">Submit your case for review</p>
+                  <p className="font-bold">WhatsApp Support</p>
+                  <p className="text-green-400/60 text-xs">0795542312 or 0731421635</p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5" />
+            </a>
+
+            <a
+              href="mailto:support@kazishow.co.ke?subject=Account%20Suspension%20Appeal"
+              className="w-full py-4 bg-white/5 border border-white/10 text-white/60 font-bold rounded-2xl flex items-center justify-between px-5 hover:bg-white/10 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5" />
+                <div className="text-left">
+                  <p className="font-bold">Email Support</p>
+                  <p className="text-white/40 text-xs">support@kazishow.co.ke</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5" />
+            </a>
+
+            <button
+              onClick={handleSignOut}
+              className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
+            >
+              Sign out
             </button>
-          )}
+          </div>
 
-          <a
-            href="https://wa.me/254795542312?text=Hello%2C%20my%20KaziShow%20account%20has%20been%20suspended%20and%20I%20need%20help."
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-4 bg-green-500/10 border border-green-500/30 text-green-400 font-bold rounded-2xl flex items-center justify-between px-5 hover:bg-green-500/20 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <Phone className="w-5 h-5" />
-              <div className="text-left">
-                <p className="font-bold">WhatsApp Support</p>
-                <p className="text-green-400/60 text-xs">0795542312 or 0731421635</p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5" />
-          </a>
-
-          <a
-            href="mailto:support@kazishow.co.ke?subject=Account%20Suspension%20Appeal"
-            className="w-full py-4 bg-white/5 border border-white/10 text-white/60 font-bold rounded-2xl flex items-center justify-between px-5 hover:bg-white/10 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5" />
-              <div className="text-left">
-                <p className="font-bold">Email Support</p>
-                <p className="text-white/40 text-xs">support@kazishow.co.ke</p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5" />
-          </a>
-
-          <button
-            onClick={() => {
-              localStorage.removeItem("kazishow_token");
-              localStorage.removeItem("kazishow_user");
-              window.location.href = "/auth/login";
-            }}
-            className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
-          >
-            Sign out
-          </button>
+          <p className="mt-6 text-white/30 text-xs text-center leading-relaxed">
+            Appeals are reviewed within 48 hours. Providing false information may result in permanent suspension.
+          </p>
         </div>
-
-        <p className="mt-6 text-white/30 text-xs text-center leading-relaxed">
-          Appeals are reviewed within 48 hours. Providing false information may result in permanent suspension.
-        </p>
       </div>
     </div>
   );

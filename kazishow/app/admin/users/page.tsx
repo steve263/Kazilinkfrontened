@@ -23,6 +23,9 @@ export default function UsersPage() {
   const [role, setRole] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [suspendModal, setSuspendModal] = useState<{ id: string; name: string } | null>(null);
+  const [suspendReason, setSuspendReason] = useState("");
+  const [suspending, setSuspending] = useState(false);
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
 
@@ -40,14 +43,45 @@ export default function UsersPage() {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  async function suspend(id: string, isActive: boolean) {
-    const r = await fetch(`${API}/api/admin/users/${id}/suspend`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } });
+  const handleSuspend = async () => {
+    if (!suspendModal) return;
+    if (!suspendReason.trim()) { toast.error("Please enter a suspension reason"); return; }
+    setSuspending(true);
+    try {
+      const r = await fetch(`${API}/api/trust/admin/users/${suspendModal.id}/suspend`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: suspendReason }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        toast.success(`${suspendModal.name} suspended. User notified via SMS.`);
+        setSuspendModal(null);
+        setSuspendReason("");
+        fetchUsers();
+      } else {
+        toast.error(d.message);
+      }
+    } catch {
+      toast.error("Failed to suspend user");
+    } finally {
+      setSuspending(false);
+    }
+  };
+
+  const handleUnsuspend = async (id: string, name: string) => {
+    const r = await fetch(`${API}/api/trust/admin/users/${id}/unsuspend`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const d = await r.json();
     if (d.success) {
-      toast.success(isActive ? "User suspended" : "User unsuspended");
-      setUsers((prev) => prev.map((u) => u.id === id ? { ...u, isActive: !isActive } : u));
-    } else toast.error(d.message);
-  }
+      toast.success(`${name} reinstated`);
+      fetchUsers();
+    } else {
+      toast.error(d.message);
+    }
+  };
 
   async function deleteUser(id: string) {
     const r = await fetch(`${API}/api/admin/users/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
@@ -66,6 +100,7 @@ export default function UsersPage() {
     <div className="min-h-screen bg-kazi-cream">
       <Toaster position="top-right" />
 
+      {/* Delete confirm modal */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
@@ -74,6 +109,42 @@ export default function UsersPage() {
             <div className="flex gap-3">
               <button onClick={() => deleteUser(confirmDelete)} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl">Delete</button>
               <button onClick={() => setConfirmDelete(null)} className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suspend modal */}
+      {suspendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="font-black text-kazi-dark text-lg mb-1">🚫 Suspend Account</h3>
+            <p className="text-gray-500 text-sm mb-4">
+              <span className="font-semibold text-gray-700">{suspendModal.name}</span> will be immediately notified via SMS and push notification.
+            </p>
+            <textarea
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              placeholder="Enter reason for suspension (required)..."
+              rows={3}
+              className="w-full p-3 border-2 border-gray-200 rounded-xl text-sm mb-4 focus:outline-none focus:border-red-400 resize-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setSuspendModal(null); setSuspendReason(""); }}
+                className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSuspend}
+                disabled={suspending || !suspendReason.trim()}
+                className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                {suspending
+                  ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  : "🚫 Suspend & Notify"}
+              </button>
             </div>
           </div>
         </div>
@@ -126,17 +197,30 @@ export default function UsersPage() {
                     <td className="px-4 py-3 text-gray-600">{u._count?.bookingsAsCustomer ?? 0}</td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{new Date(u.createdAt).toLocaleDateString("en-KE")}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${u.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
-                        {u.isActive ? "Active" : "Suspended"}
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${u.isSuspended ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"}`}>
+                        {u.isSuspended ? "Suspended" : "Active"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {u.role !== "ADMIN" && (
                         <div className="flex gap-1">
-                          <button onClick={() => suspend(u.id, u.isActive)} title={u.isActive ? "Suspend" : "Unsuspend"}
-                            className={`p-1.5 rounded-lg transition-colors ${u.isActive ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" : "bg-green-100 text-green-700 hover:bg-green-200"}`}>
-                            {u.isActive ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                          </button>
+                          {u.isSuspended ? (
+                            <button
+                              onClick={() => handleUnsuspend(u.id, u.name)}
+                              title="Reinstate"
+                              className="p-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setSuspendModal({ id: u.id, name: u.name })}
+                              title="Suspend"
+                              className="p-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button onClick={() => setConfirmDelete(u.id)} title="Delete"
                             className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />

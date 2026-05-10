@@ -30,6 +30,9 @@ export default function AdminTrustPage() {
   const [suspended, setSuspended] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionNote, setActionNote] = useState<Record<string, string>>({});
+  const [suspendModal, setSuspendModal] = useState<{ userId: string; name: string } | null>(null);
+  const [suspendReason, setSuspendReason] = useState("");
+  const [suspending, setSuspending] = useState(false);
 
   const fetchStats = async () => {
     const token = localStorage.getItem("kazishow_token");
@@ -166,18 +169,33 @@ export default function AdminTrustPage() {
     else toast.error(data.message);
   };
 
-  const suspendUser = async (userId: string) => {
-    const reason = prompt("Reason for suspension:");
-    if (!reason) return;
+  const doSuspendUser = async () => {
+    if (!suspendModal) return;
+    if (!suspendReason.trim()) { toast.error("Please enter a suspension reason"); return; }
+    setSuspending(true);
     const token = localStorage.getItem("kazishow_token");
-    const res = await fetch(`${API_URL}/api/trust/admin/users/${userId}/suspend`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ reason }),
-    });
-    const data = await res.json();
-    if (data.success) { toast.success("User suspended"); fetchStats(); fetchReports(); }
-    else toast.error(data.message);
+    try {
+      const res = await fetch(`${API_URL}/api/trust/admin/users/${suspendModal.userId}/suspend`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: suspendReason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`${suspendModal.name} suspended. User notified via SMS.`);
+        setSuspendModal(null);
+        setSuspendReason("");
+        fetchStats();
+        fetchReports();
+        fetchAlerts();
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Failed to suspend user");
+    } finally {
+      setSuspending(false);
+    }
   };
 
   const unsuspendUser = async (userId: string) => {
@@ -196,6 +214,40 @@ export default function AdminTrustPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" />
+
+      {/* Suspend user modal */}
+      {suspendModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="font-black text-kazi-dark text-lg mb-1">🚫 Suspend Account</h3>
+            <p className="text-gray-500 text-sm mb-4">
+              <span className="font-semibold text-gray-700">{suspendModal.name}</span> will be immediately notified via SMS and push notification.
+            </p>
+            <textarea
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              placeholder="Enter reason for suspension (required)..."
+              rows={3}
+              className="w-full p-3 border-2 border-gray-200 rounded-xl text-sm mb-4 focus:outline-none focus:border-red-400 resize-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setSuspendModal(null); setSuspendReason(""); }}
+                className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={doSuspendUser}
+                disabled={suspending || !suspendReason.trim()}
+                className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                {suspending ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : "🚫 Suspend & Notify"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
@@ -356,7 +408,7 @@ export default function AdminTrustPage() {
                       Resolve
                     </button>
                     <button
-                      onClick={() => suspendUser(a.userId)}
+                      onClick={() => setSuspendModal({ userId: a.userId, name: a.user?.name || a.userId })}
                       className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-xl"
                     >
                       Suspend

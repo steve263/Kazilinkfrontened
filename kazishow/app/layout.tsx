@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import ScrollProgress from "@/components/ui/ScrollProgress";
 import AuthGuard from "@/components/layout/AuthGuard";
+import SuspensionGate from "@/components/layout/SuspensionGate";
 import IncomingCallHandler from "@/components/call/IncomingCallHandler";
 import PushNotificationInit from "@/components/PushNotificationInit";
 import NotificationPermissionBanner from "@/components/notifications/NotificationPermissionBanner";
@@ -34,14 +35,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-kazi-cream min-h-screen">
-        <AuthGuard />
-        <IncomingCallHandler />
-        <PushNotificationInit />
-        <NotificationPermissionBanner />
-        <ScrollProgress />
-        {children}
-        <WhatsAppFloat />
-        <AISupportChat />
+        <SuspensionGate>
+          <AuthGuard />
+          <IncomingCallHandler />
+          <PushNotificationInit />
+          <NotificationPermissionBanner />
+          <ScrollProgress />
+          {children}
+          <WhatsAppFloat />
+          <AISupportChat />
+        </SuspensionGate>
         <Toaster
           position="top-center"
           toastOptions={{

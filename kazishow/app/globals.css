@@ -31,6 +31,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Prevent background scroll when account is suspended */
+body.suspended {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

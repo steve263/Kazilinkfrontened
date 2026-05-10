@@ -28,6 +28,23 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     } catch {}
   }
 
+  // If account suspended — update localStorage and reload to trigger SuspensionGate
+  if (res.status === 403) {
+    const clone = res.clone();
+    try {
+      const data = await clone.json();
+      if (data.code === "ACCOUNT_SUSPENDED") {
+        const userRaw = localStorage.getItem("kazishow_user");
+        if (userRaw) {
+          const user = JSON.parse(userRaw);
+          user.isSuspended = true;
+          localStorage.setItem("kazishow_user", JSON.stringify(user));
+        }
+        window.location.reload();
+      }
+    } catch {}
+  }
+
   return res;
 }
 
