@@ -50,10 +50,16 @@ export default function AdminTrustPage() {
   const fetchReports = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    const res = await fetch(`${API}/api/trust/admin/reports`, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    if (data.success) setReports(data.data);
-    setLoading(false);
+    try {
+      const res = await fetch(`${API}/api/trust/admin/reports`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.success) setReports(data.data);
+      else toast.error(`Failed to load reports: ${data.message}`);
+    } catch (err: any) {
+      toast.error(`Network error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
 
   const fetchAlerts = useCallback(async () => {
