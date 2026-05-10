@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, AlertTriangle, Flag, CheckCircle, XCircle, Ban, RefreshCw, ChevronRight } from "lucide-react";
+import { Shield, Flag, CheckCircle, XCircle, Ban, RefreshCw, ChevronRight } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
-import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
+import { useAdminGuard } from "@/middleware/adminGuard";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const SEVERITY_COLOR: Record<string, string> = {
   LOW:      "bg-gray-100 text-gray-600",
@@ -23,7 +23,6 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function AdminTrustPage() {
   const ready = useAdminGuard();
-  const [token, setToken] = useState("");
   const [tab, setTab] = useState<"reports" | "alerts" | "suspended">("reports");
   const [stats, setStats] = useState<any>(null);
   const [reports, setReports] = useState<any[]>([]);
@@ -32,65 +31,110 @@ export default function AdminTrustPage() {
   const [loading, setLoading] = useState(false);
   const [actionNote, setActionNote] = useState<Record<string, string>>({});
 
-  useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
-
-  const fetchStats = useCallback(async () => {
+  const fetchStats = async () => {
+    const token = localStorage.getItem("kazishow_token");
     if (!token) return;
-    const h = { Authorization: `Bearer ${token}` };
-    const [statsRes, suspRes] = await Promise.all([
-      fetch(`${API}/api/trust/admin/stats`, { headers: h }),
-      fetch(`${API}/api/users?suspended=true`, { headers: h }),
-    ]);
-    const s = await statsRes.json();
-    if (s.success) setStats(s.data);
-    const su = await suspRes.json();
-    if (su.success) setSuspended((su.data?.users || []).filter((u: any) => u.isSuspended));
-  }, [token]);
+    try {
+      const [statsRes, suspRes] = await Promise.all([
+        fetch(`${API_URL}/api/trust/admin/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/admin/users?page=1&limit=100`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const s = await statsRes.json();
+      if (s.success) setStats(s.data);
+      const su = await suspRes.json();
+      if (su.success) setSuspended((su.data?.users || []).filter((u: any) => u.isSuspended));
+    } catch (err: any) {
+      console.error("Stats fetch error:", err);
+    }
+  };
 
-  const fetchReports = useCallback(async () => {
+  const fetchReports = async () => {
+    const token = localStorage.getItem("kazishow_token");
+    console.log("Fetching reports, token:", token ? "exists" : "MISSING");
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/trust/admin/reports`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/trust/admin/reports`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      console.log("Reports response status:", res.status);
       const data = await res.json();
-      if (data.success) setReports(data.data);
-      else toast.error(`Failed to load reports: ${data.message}`);
+      console.log("Reports data:", data);
+      if (data.success) {
+        setReports(data.data);
+      } else {
+        toast.error(`Failed to load reports: ${data.message}`);
+      }
     } catch (err: any) {
+      console.error("Reports fetch error:", err);
       toast.error(`Network error: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  };
 
-  const fetchAlerts = useCallback(async () => {
+  const fetchAlerts = async () => {
+    const token = localStorage.getItem("kazishow_token");
+    console.log("Fetching fraud alerts, token:", token ? "exists" : "MISSING");
     if (!token) return;
     setLoading(true);
-    const res = await fetch(`${API}/api/trust/admin/fraud-alerts`, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    if (data.success) setAlerts(data.data);
-    setLoading(false);
-  }, [token]);
+    try {
+      const res = await fetch(`${API_URL}/api/trust/admin/fraud-alerts`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      console.log("Alerts response status:", res.status);
+      const data = await res.json();
+      console.log("Fraud alerts data:", data);
+      if (data.success) setAlerts(data.data);
+    } catch (err: any) {
+      console.error("Alerts fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const fetchSuspended = useCallback(async () => {
+  const fetchSuspended = async () => {
+    const token = localStorage.getItem("kazishow_token");
     if (!token) return;
     setLoading(true);
-    const res = await fetch(`${API}/api/admin/users?page=1&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    if (data.success) setSuspended((data.data?.users || []).filter((u: any) => u.isSuspended));
-    setLoading(false);
-  }, [token]);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users?page=1&limit=100`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) setSuspended((data.data?.users || []).filter((u: any) => u.isSuspended));
+    } catch (err: any) {
+      console.error("Suspended fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load on mount and whenever tab changes
+  useEffect(() => {
+    if (!ready) return;
+    fetchStats();
+    fetchReports();
+  }, [ready]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!ready) return;
+    if (tab === "reports") fetchReports();
+    if (tab === "alerts") fetchAlerts();
+    if (tab === "suspended") fetchSuspended();
+  }, [ready, tab]);
+
+  const refresh = () => {
     fetchStats();
     if (tab === "reports") fetchReports();
     if (tab === "alerts") fetchAlerts();
     if (tab === "suspended") fetchSuspended();
-  }, [token, tab, fetchStats, fetchReports, fetchAlerts, fetchSuspended]);
+  };
 
   const resolveReport = async (id: string, action?: string) => {
+    const token = localStorage.getItem("kazishow_token");
     const note = actionNote[id] || "";
-    const res = await fetch(`${API}/api/trust/admin/reports/${id}/resolve`, {
+    const res = await fetch(`${API_URL}/api/trust/admin/reports/${id}/resolve`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ adminNote: note, action }),
@@ -101,7 +145,8 @@ export default function AdminTrustPage() {
   };
 
   const dismissReport = async (id: string) => {
-    const res = await fetch(`${API}/api/trust/admin/reports/${id}/dismiss`, {
+    const token = localStorage.getItem("kazishow_token");
+    const res = await fetch(`${API_URL}/api/trust/admin/reports/${id}/dismiss`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -111,7 +156,8 @@ export default function AdminTrustPage() {
   };
 
   const resolveAlert = async (id: string) => {
-    const res = await fetch(`${API}/api/trust/admin/fraud-alerts/${id}/resolve`, {
+    const token = localStorage.getItem("kazishow_token");
+    const res = await fetch(`${API_URL}/api/trust/admin/fraud-alerts/${id}/resolve`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -123,7 +169,8 @@ export default function AdminTrustPage() {
   const suspendUser = async (userId: string) => {
     const reason = prompt("Reason for suspension:");
     if (!reason) return;
-    const res = await fetch(`${API}/api/trust/admin/users/${userId}/suspend`, {
+    const token = localStorage.getItem("kazishow_token");
+    const res = await fetch(`${API_URL}/api/trust/admin/users/${userId}/suspend`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ reason }),
@@ -134,7 +181,8 @@ export default function AdminTrustPage() {
   };
 
   const unsuspendUser = async (userId: string) => {
-    const res = await fetch(`${API}/api/trust/admin/users/${userId}/unsuspend`, {
+    const token = localStorage.getItem("kazishow_token");
+    const res = await fetch(`${API_URL}/api/trust/admin/users/${userId}/unsuspend`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -152,12 +200,16 @@ export default function AdminTrustPage() {
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/admin" className="text-gray-400 hover:text-gray-600"><ChevronRight className="w-5 h-5 rotate-180" /></Link>
+          <Link href="/admin" className="text-gray-400 hover:text-gray-600">
+            <ChevronRight className="w-5 h-5 rotate-180" />
+          </Link>
           <Shield className="w-6 h-6 text-red-500" />
           <h1 className="font-black text-xl text-gray-900">Trust & Safety</h1>
         </div>
-        <button onClick={() => { fetchStats(); if (tab === "reports") fetchReports(); if (tab === "alerts") fetchAlerts(); if (tab === "suspended") fetchSuspended(); }}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+        <button
+          onClick={refresh}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+        >
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -205,7 +257,13 @@ export default function AdminTrustPage() {
         {/* Reports tab */}
         {!loading && tab === "reports" && (
           <div className="space-y-4">
-            {reports.length === 0 && <p className="text-center text-gray-400 py-12">No reports yet</p>}
+            {reports.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-5xl mb-3">🎉</div>
+                <p className="font-bold text-gray-700">No reports yet</p>
+                <p className="text-gray-400 text-sm mt-1">Reports from users will appear here</p>
+              </div>
+            )}
             {reports.map((r) => (
               <div key={r.id} className="bg-white rounded-2xl border p-5">
                 <div className="flex items-start justify-between gap-4 mb-3">
@@ -217,7 +275,8 @@ export default function AdminTrustPage() {
                       <span className="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{r.type}</span>
                     </div>
                     <p className="text-sm font-bold text-gray-800">
-                      <span className="text-red-500">{r.reporter?.name}</span> reported <span className="text-gray-900">{r.reported?.name}</span>
+                      <span className="text-red-500">{r.reporter?.name}</span> reported{" "}
+                      <span className="text-gray-900">{r.reported?.name}</span>
                       <span className="text-gray-400 text-xs ml-1">({r.reported?.role})</span>
                     </p>
                     <p className="text-sm text-gray-600 mt-1">{r.description}</p>
@@ -266,7 +325,13 @@ export default function AdminTrustPage() {
         {/* Fraud alerts tab */}
         {!loading && tab === "alerts" && (
           <div className="space-y-4">
-            {alerts.length === 0 && <p className="text-center text-gray-400 py-12">No active fraud alerts</p>}
+            {alerts.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-5xl mb-3">✅</div>
+                <p className="font-bold text-gray-700">No active fraud alerts</p>
+                <p className="text-gray-400 text-sm mt-1">Fraud alerts will appear here automatically</p>
+              </div>
+            )}
             {alerts.map((a) => (
               <div key={a.id} className="bg-white rounded-2xl border p-5">
                 <div className="flex items-start justify-between gap-4">
@@ -306,7 +371,13 @@ export default function AdminTrustPage() {
         {/* Suspended users tab */}
         {!loading && tab === "suspended" && (
           <div className="space-y-4">
-            {suspended.length === 0 && <p className="text-center text-gray-400 py-12">No suspended users</p>}
+            {suspended.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-5xl mb-3">🎉</div>
+                <p className="font-bold text-gray-700">No suspended users</p>
+                <p className="text-gray-400 text-sm mt-1">Suspended accounts will appear here</p>
+              </div>
+            )}
             {suspended.map((u) => (
               <div key={u.id} className="bg-white rounded-2xl border p-5 flex items-center justify-between gap-4">
                 <div>

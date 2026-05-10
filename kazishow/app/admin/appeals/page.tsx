@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
-import { ChevronLeft, CheckCircle, XCircle, MessageSquare, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAdminGuard } from "@/middleware/adminGuard";
+import { ChevronLeft, CheckCircle, XCircle, MessageSquare, ExternalLink, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:          "bg-amber-100 text-amber-700",
@@ -33,45 +33,64 @@ export default function AdminAppealsPage() {
   const [acting, setActing] = useState(false);
   const [stats, setStats] = useState({ pending: 0, underReview: 0, approvedToday: 0, rejectedToday: 0 });
 
-  const token = ready ? getAdminToken() : "";
-
-  const fetchAppeals = useCallback(async () => {
-    if (!ready || !token) return;
+  const fetchAppeals = async (statusFilter?: string) => {
+    const token = localStorage.getItem("kazishow_token");
+    console.log("Fetching appeals, token:", token ? "exists" : "MISSING");
+    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/trust/admin/appeals?status=${filter}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const qs = (statusFilter || filter) !== "ALL" ? `?status=${statusFilter || filter}` : "";
+      const res = await fetch(`${API_URL}/api/trust/admin/appeals${qs}`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
+      console.log("Appeals response status:", res.status);
       const data = await res.json();
-      if (data.success) setAppeals(data.data);
-    } catch {
-      toast.error("Failed to load appeals");
+      console.log("Appeals data:", data);
+      if (data.success) {
+        setAppeals(data.data);
+      } else {
+        toast.error(`Failed to load appeals: ${data.message}`);
+      }
+    } catch (err: any) {
+      console.error("Appeals fetch error:", err);
+      toast.error(`Network error: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [ready, token, filter]);
+  };
 
-  const fetchStats = useCallback(async () => {
-    if (!ready || !token) return;
+  const fetchStats = async () => {
+    const token = localStorage.getItem("kazishow_token");
+    if (!token) return;
     try {
       const [pending, review, all] = await Promise.all([
-        fetch(`${API}/api/trust/admin/appeals?status=PENDING`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-        fetch(`${API}/api/trust/admin/appeals?status=UNDER_REVIEW`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-        fetch(`${API}/api/trust/admin/appeals`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+        fetch(`${API_URL}/api/trust/admin/appeals?status=PENDING`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+        fetch(`${API_URL}/api/trust/admin/appeals?status=UNDER_REVIEW`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+        fetch(`${API_URL}/api/trust/admin/appeals`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
       ]);
       const today = new Date().toDateString();
-      const allAppeals = all.data || [];
+      const allAppeals: any[] = all.data || [];
       setStats({
         pending: pending.data?.length || 0,
         underReview: review.data?.length || 0,
-        approvedToday: allAppeals.filter((a: any) => a.status === "APPROVED" && new Date(a.resolvedAt).toDateString() === today).length,
-        rejectedToday: allAppeals.filter((a: any) => a.status === "REJECTED" && new Date(a.resolvedAt).toDateString() === today).length,
+        approvedToday: allAppeals.filter((a) => a.status === "APPROVED" && new Date(a.resolvedAt).toDateString() === today).length,
+        rejectedToday: allAppeals.filter((a) => a.status === "REJECTED" && new Date(a.resolvedAt).toDateString() === today).length,
       });
-    } catch {}
-  }, [ready, token]);
+    } catch (err) {
+      console.error("Stats fetch error:", err);
+    }
+  };
 
-  useEffect(() => { fetchAppeals(); }, [fetchAppeals]);
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => {
+    if (!ready) return;
+    fetchAppeals();
+    fetchStats();
+  }, [ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    fetchAppeals(filter);
+  }, [filter, ready]);
 
   const handleAction = async () => {
     if (!actionModal) return;
@@ -85,9 +104,10 @@ export default function AdminAppealsPage() {
     }
 
     setActing(true);
+    const token = localStorage.getItem("kazishow_token");
     const endpoint =
-      actionModal.type === "approve" ? `approve` :
-      actionModal.type === "reject"  ? `reject`  : `request-info`;
+      actionModal.type === "approve" ? "approve" :
+      actionModal.type === "reject"  ? "reject"  : "request-info";
 
     const body =
       actionModal.type === "approve" ? { adminNote: actionNote } :
@@ -95,7 +115,7 @@ export default function AdminAppealsPage() {
       { questions: actionNote };
 
     try {
-      const res = await fetch(`${API}/api/trust/admin/appeals/${actionModal.id}/${endpoint}`, {
+      const res = await fetch(`${API_URL}/api/trust/admin/appeals/${actionModal.id}/${endpoint}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -104,8 +124,7 @@ export default function AdminAppealsPage() {
       if (data.success) {
         toast.success(
           actionModal.type === "approve" ? "Appeal approved — account reinstated!" :
-          actionModal.type === "reject"  ? "Appeal rejected" :
-          "More info requested"
+          actionModal.type === "reject"  ? "Appeal rejected" : "More info requested"
         );
         setActionModal(null);
         setActionNote("");
@@ -164,14 +183,12 @@ export default function AdminAppealsPage() {
                 disabled={acting}
                 className={`flex-1 py-3 text-white font-bold rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-2 ${
                   actionModal.type === "approve" ? "bg-green-500" :
-                  actionModal.type === "reject"  ? "bg-red-500" :
-                  "bg-amber-500"
+                  actionModal.type === "reject"  ? "bg-red-500"   : "bg-amber-500"
                 }`}
               >
-                {acting ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : null}
+                {acting && <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
                 {actionModal.type === "approve" ? "Approve & Reinstate" :
-                 actionModal.type === "reject"  ? "Reject Appeal" :
-                 "Send Request"}
+                 actionModal.type === "reject"  ? "Reject Appeal" : "Send Request"}
               </button>
             </div>
           </div>
@@ -180,14 +197,22 @@ export default function AdminAppealsPage() {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center gap-4">
-          <Link href="/admin" className="text-gray-400 hover:text-gray-600">
-            <ChevronLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="font-black text-kazi-dark text-xl">Suspension Appeals</h1>
-            <p className="text-gray-400 text-xs">Review and respond to provider appeals</p>
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/admin" className="text-gray-400 hover:text-gray-600">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="font-black text-kazi-dark text-xl">Suspension Appeals</h1>
+              <p className="text-gray-400 text-xs">Review and respond to provider appeals</p>
+            </div>
           </div>
+          <button
+            onClick={() => { fetchAppeals(); fetchStats(); }}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+          >
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </button>
         </div>
       </div>
 
@@ -196,10 +221,10 @@ export default function AdminAppealsPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Pending", value: stats.pending, color: "text-amber-600 bg-amber-50" },
-            { label: "Under Review", value: stats.underReview, color: "text-blue-600 bg-blue-50" },
-            { label: "Approved Today", value: stats.approvedToday, color: "text-green-600 bg-green-50" },
-            { label: "Rejected Today", value: stats.rejectedToday, color: "text-red-600 bg-red-50" },
+            { label: "Pending",        value: stats.pending,        color: "text-amber-600 bg-amber-50" },
+            { label: "Under Review",   value: stats.underReview,    color: "text-blue-600 bg-blue-50" },
+            { label: "Approved Today", value: stats.approvedToday,  color: "text-green-600 bg-green-50" },
+            { label: "Rejected Today", value: stats.rejectedToday,  color: "text-red-600 bg-red-50" },
           ].map((s) => (
             <div key={s.label} className={`${s.color} rounded-2xl p-4 text-center`}>
               <p className="text-2xl font-black">{s.value}</p>
@@ -232,6 +257,7 @@ export default function AdminAppealsPage() {
           <div className="text-center py-12 text-gray-400">
             <p className="text-4xl mb-3">⚖️</p>
             <p className="font-semibold">No {STATUS_LABEL[filter].toLowerCase()} appeals</p>
+            <p className="text-sm mt-1">Appeals will appear here when providers submit them</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -240,16 +266,16 @@ export default function AdminAppealsPage() {
                 {/* Provider header */}
                 <div className="flex items-start gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center font-black text-kazi-orange text-lg shrink-0">
-                    {appeal.user.name.charAt(0)}
+                    {appeal.user?.name?.charAt(0) || "?"}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-kazi-dark">{appeal.user.name}</p>
+                    <p className="font-bold text-kazi-dark">{appeal.user?.name}</p>
                     <p className="text-xs text-gray-400">
-                      {appeal.user.provider?.businessName
+                      {appeal.user?.provider?.businessName
                         ? `${appeal.user.provider.businessName} · ${appeal.user.provider.category}`
-                        : appeal.user.role}
+                        : appeal.user?.role}
                     </p>
-                    <p className="text-xs text-gray-400">{appeal.user.phone}</p>
+                    <p className="text-xs text-gray-400">{appeal.user?.phone}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_BADGE[appeal.status]}`}>
@@ -262,12 +288,12 @@ export default function AdminAppealsPage() {
                 </div>
 
                 {/* Provider stats */}
-                {appeal.user.provider && (
+                {appeal.user?.provider && (
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     {[
-                      { label: "Rating", value: appeal.user.provider.rating || "—" },
+                      { label: "Rating",  value: appeal.user.provider.rating || "—" },
                       { label: "Reviews", value: appeal.user.provider.totalReviews || 0 },
-                      { label: "Joined", value: new Date(appeal.user.createdAt).getFullYear() },
+                      { label: "Joined",  value: new Date(appeal.user.createdAt).getFullYear() },
                     ].map((s) => (
                       <div key={s.label} className="bg-gray-50 rounded-xl p-2.5 text-center">
                         <p className="font-black text-kazi-dark text-sm">{s.value}</p>
@@ -280,7 +306,7 @@ export default function AdminAppealsPage() {
                 {/* Appeal reason */}
                 <div className="bg-gray-50 rounded-xl p-3 mb-3">
                   <p className="text-xs font-bold text-gray-400 mb-1">APPEAL REASON</p>
-                  <p className="text-sm font-semibold text-kazi-dark">{appeal.appealReason.replace(/_/g, " ")}</p>
+                  <p className="text-sm font-semibold text-kazi-dark">{appeal.appealReason?.replace(/_/g, " ")}</p>
                 </div>
 
                 {/* Explanation */}
@@ -306,7 +332,7 @@ export default function AdminAppealsPage() {
                   </div>
                 )}
 
-                {/* Admin note (if any) */}
+                {/* Admin note */}
                 {appeal.adminNote && (
                   <div className="bg-blue-50 rounded-xl p-3 mb-4">
                     <p className="text-xs font-bold text-blue-500 mb-1">ADMIN NOTE</p>
@@ -314,7 +340,7 @@ export default function AdminAppealsPage() {
                   </div>
                 )}
 
-                {/* Actions — only for active statuses */}
+                {/* Actions */}
                 {["PENDING", "UNDER_REVIEW", "MORE_INFO_NEEDED"].includes(appeal.status) && (
                   <div className="space-y-2 pt-3 border-t border-gray-100">
                     <button
