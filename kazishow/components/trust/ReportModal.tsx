@@ -54,8 +54,9 @@ export default function ReportModal({ reportedId, reportedName, bookingId, onClo
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="bg-red-500 p-5 text-white flex items-center justify-between">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: "90vh" }}>
+        {/* Fixed header */}
+        <div className="bg-red-500 p-5 text-white flex items-center justify-between rounded-t-3xl shrink-0">
           <div className="flex items-center gap-3">
             <Flag className="w-6 h-6" />
             <div>
@@ -78,59 +79,65 @@ export default function ReportModal({ reportedId, reportedName, bookingId, onClo
             </button>
           </div>
         ) : (
-          <div className="p-5 space-y-4">
-            <div>
-              <p className="font-bold text-kazi-dark text-sm mb-3">What is the issue?</p>
-              <div className="grid grid-cols-2 gap-2">
-                {REPORT_TYPES.map((rt) => (
-                  <button
-                    key={rt.value}
-                    onClick={() => setType(rt.value)}
-                    className={`p-3 rounded-xl text-left text-sm transition-all border-2 ${
-                      type === rt.value
-                        ? "border-red-400 bg-red-50 text-red-700 font-bold"
-                        : "border-gray-200 bg-gray-50 text-gray-600 hover:border-red-200"
-                    }`}
-                  >
-                    <span className="text-lg block mb-1">{rt.emoji}</span>
-                    {rt.label}
-                  </button>
-                ))}
+          <>
+            {/* Scrollable content */}
+            <div className="overflow-y-auto flex-1 p-5 space-y-4">
+              <div>
+                <p className="font-bold text-kazi-dark text-sm mb-3">What is the issue?</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {REPORT_TYPES.map((rt) => (
+                    <button
+                      key={rt.value}
+                      onClick={() => setType(rt.value)}
+                      className={`p-3 rounded-xl text-left text-sm transition-all border-2 ${
+                        type === rt.value
+                          ? "border-red-400 bg-red-50 text-red-700 font-bold"
+                          : "border-gray-200 bg-gray-50 text-gray-600 hover:border-red-200"
+                      }`}
+                    >
+                      <span className="text-lg block mb-1">{rt.emoji}</span>
+                      {rt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="font-bold text-kazi-dark text-sm mb-2">Describe what happened</p>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Please provide details about the issue..."
+                  rows={4}
+                  maxLength={500}
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-red-400 resize-none"
+                />
+                <p className="text-xs text-gray-400 mt-1">{description.length}/500 characters (min 20)</p>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700">
+                  False reports may result in your account being penalized. Only report genuine violations.
+                </p>
               </div>
             </div>
 
-            <div>
-              <p className="font-bold text-kazi-dark text-sm mb-2">Describe what happened</p>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Please provide details about the issue..."
-                rows={4}
-                maxLength={500}
-                className="w-full p-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-red-400 resize-none"
-              />
-              <p className="text-xs text-gray-400 mt-1">{description.length}/500 characters (min 20)</p>
+            {/* Pinned submit button */}
+            <div className="p-4 border-t border-gray-100 bg-white rounded-b-3xl shrink-0">
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || !type || description.length < 20}
+                className="w-full py-4 bg-red-500 text-white font-bold rounded-2xl disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Submitting...</>
+                ) : (
+                  <><Flag className="w-4 h-4" /> Submit Report</>
+                )}
+              </button>
             </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700">
-                False reports may result in your account being penalized. Only report genuine violations.
-              </p>
-            </div>
-
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || !type || description.length < 20}
-              className="w-full py-4 bg-red-500 text-white font-bold rounded-2xl disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {submitting ? (
-                <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Submitting...</>
-              ) : (
-                <><Flag className="w-4 h-4" /> Submit Report</>
-              )}
-            </button>
-          </div>
+          </>
         )}
       </div>
     </div>
