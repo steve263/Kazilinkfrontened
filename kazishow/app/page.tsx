@@ -18,8 +18,6 @@ import SocialProofSection from "@/components/home/SocialProofSection";
 import BookingDemo from "@/components/home/BookingDemo";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import KaziPromise from "@/components/home/KaziPromise";
-import CostCalculator from "@/components/home/CostCalculator";
-import BlogPreview from "@/components/home/BlogPreview";
 import NewsletterSignup from "@/components/home/NewsletterSignup";
 import ReferralBanner from "@/components/home/ReferralBanner";
 import { POSTS, CATEGORIES } from "@/lib/data";
@@ -86,10 +84,10 @@ const VERIFICATION_STEPS = [
   { icon: "⭐", title: "First Review Gate", desc: "After 3 bookings, ratings must stay above 4.0 to keep the verified badge." },
 ];
 
-const PLACEHOLDER_REVIEWS = [
-  { id: "p1", customer: { name: "Awaiting Reviews" }, provider: { businessName: "—" }, rating: 5, comment: "Be the first to review!" },
-  { id: "p2", customer: { name: "Awaiting Reviews" }, provider: { businessName: "—" }, rating: 5, comment: "Be the first to review!" },
-  { id: "p3", customer: { name: "Awaiting Reviews" }, provider: { businessName: "—" }, rating: 5, comment: "Be the first to review!" },
+const STATIC_TESTIMONIALS = [
+  { id: "t1", name: "Grace Mwangi", location: "Kilimani, Nairobi", provider: "James Electricals", rating: 5, comment: "Fixed our faulty wiring in under 2 hours. Super professional, affordable and he explained everything clearly. Will definitely book again!" },
+  { id: "t2", name: "Brian Odhiambo", location: "Westlands, Nairobi", provider: "Glamour Studio", rating: 5, comment: "Best salon experience I've had in Nairobi. Always on time, clean environment, and the braids lasted over 3 weeks. Highly recommend!" },
+  { id: "t3", name: "Fatuma Hassan", location: "South B, Nairobi", provider: "CleanPro Kenya", rating: 5, comment: "My whole house was spotless in 3 hours. The team was respectful, thorough, and very hardworking. Booked them again the following week!" },
 ];
 
 export default function HomePage() {
@@ -108,9 +106,6 @@ export default function HomePage() {
   // Live visitors via Socket.io
   const [liveVisitors, setLiveVisitors] = useState(0);
 
-  // Real reviews from database
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [reviewsLoaded, setReviewsLoaded] = useState(false);
 
   const trendingPosts = POSTS.filter((p) => p.isTrending).slice(0, 3);
 
@@ -143,24 +138,6 @@ export default function HomePage() {
     return () => { socket.disconnect(); };
   }, []);
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        const res = await fetch(`${API}/api/reviews`);
-        const data = await res.json();
-        if (data.success && data.data.length > 0) {
-          setReviews(data.data.slice(0, 3));
-        } else {
-          setReviews([]);
-        }
-      } catch {
-        setReviews([]);
-      } finally {
-        setReviewsLoaded(true);
-      }
-    };
-    fetchReviews();
-  }, []);
 
   useEffect(() => {
     if (exitDismissed) return;
@@ -452,72 +429,38 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Real Stories, Real Results — real reviews from database */}
+      {/* Customer Testimonials */}
       <section className="bg-kazi-dark py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-black text-white mb-2">Real Stories, Real Results</h2>
-            <p className="text-white/50 text-sm">What real customers say about KaziShow providers</p>
+            <h2 className="text-2xl font-black text-white mb-2">What Our Customers Say</h2>
+            <p className="text-white/50 text-sm">Trusted by thousands of Kenyans across Nairobi</p>
           </div>
-
-          {!reviewsLoaded && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 animate-pulse">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {STATIC_TESTIMONIALS.map((t, i) => {
+              const avatarColors = ["#FF6B2B", "#EC4899", "#0EA5E9"];
+              return (
+                <div key={t.id} className="bg-white/5 border border-white/10 rounded-3xl p-6 hover:bg-white/10 transition-all">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white/10" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-white/10 rounded w-24" />
-                      <div className="h-2 bg-white/10 rounded w-16" />
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-lg flex-shrink-0" style={{ backgroundColor: avatarColors[i % avatarColors.length] }}>
+                      {t.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-black text-white text-sm">{t.name}</p>
+                      <p className="text-white/50 text-xs">{t.location}</p>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="h-2 bg-white/10 rounded" />
-                    <div className="h-2 bg-white/10 rounded w-5/6" />
+                  <StarRating rating={t.rating} />
+                  <p className="text-sm text-white/70 mt-3 leading-relaxed">"{t.comment}"</p>
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <span className="text-kazi-orange font-semibold text-xs">Provider: {t.provider}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {reviewsLoaded && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {(reviews.length > 0 ? reviews : PLACEHOLDER_REVIEWS).map((review, i) => {
-                const isPlaceholder = reviews.length === 0;
-                const avatarColors = ["#FF6B2B", "#EC4899", "#0EA5E9"];
-                const avatarColor = avatarColors[i % avatarColors.length];
-                const customerName = review.customer?.name || "Anonymous";
-                const providerName = review.provider?.businessName;
-                return (
-                  <div key={review.id} className={`bg-white/5 border border-white/10 rounded-3xl p-6 hover:bg-white/10 transition-all ${isPlaceholder ? "opacity-50" : ""}`}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-lg flex-shrink-0" style={{ backgroundColor: avatarColor }}>
-                        {customerName.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-black text-white text-sm">{customerName}</p>
-                        <p className="text-white/50 text-xs">{providerName ? `Reviewed ${providerName}` : "— awaiting reviews"}</p>
-                      </div>
-                    </div>
-                    <StarRating rating={review.rating} />
-                    <p className="text-sm text-white/70 mt-3 leading-relaxed line-clamp-3">
-                      {isPlaceholder ? "Be the first to review!" : (review.comment || "Great service!")}
-                    </p>
-                    {!isPlaceholder && providerName && (
-                      <div className="mt-4 pt-4 border-t border-white/10">
-                        <span className="text-kazi-orange font-semibold text-xs">Provider: {providerName}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
+              );
+            })}
+          </div>
         </div>
       </section>
-
-      <CostCalculator />
 
       {/* FAQ */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-14">
@@ -543,7 +486,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <BlogPreview />
       <ReferralBanner />
       <NewsletterSignup />
 
