@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, ShoppingBag, Flag, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, ShoppingBag, Flag, Trash2, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import VideoPlayer from "./VideoPlayer";
 import CommentsSheet from "./CommentsSheet";
@@ -158,6 +158,21 @@ export default function VideoCard({
     }
   }
 
+  async function handleDownload() {
+    try {
+      const res = await fetch(video.videoUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `kazishow-video-${video.id}.mp4`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(video.videoUrl, "_blank");
+    }
+  }
+
   function share() {
     const url = `${window.location.origin}/videos/${video.id}`;
     if (navigator.share) {
@@ -311,6 +326,16 @@ export default function VideoCard({
           >
             <Share2 className="w-5 h-5" />
             <span>Share</span>
+          </button>
+
+          {/* Download */}
+          <button
+            onClick={handleDownload}
+            title="Download video"
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+          >
+            <Download className="w-5 h-5" />
+            <span>Download</span>
           </button>
 
           {/* CTA button */}
