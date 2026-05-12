@@ -9,6 +9,7 @@ import PushNotificationInit from "@/components/PushNotificationInit";
 import NotificationPermissionBanner from "@/components/notifications/NotificationPermissionBanner";
 import WhatsAppFloat from "@/components/support/WhatsAppFloat";
 import AISupportChat from "@/components/support/AISupportChat";
+import GoogleAuthProvider from "@/components/auth/GoogleAuthProvider";
 
 export const metadata: Metadata = {
   title: "KaziShow — Discover Local Businesses in Kenya",
@@ -35,6 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-kazi-cream min-h-screen">
+        <GoogleAuthProvider>
         <SuspensionGate>
           <AuthGuard />
           <IncomingCallHandler />
@@ -45,6 +47,7 @@ export default function RootLayout({
           <WhatsAppFloat />
           <AISupportChat />
         </SuspensionGate>
+        </GoogleAuthProvider>
         <Toaster
           position="top-center"
           toastOptions={{
