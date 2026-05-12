@@ -350,7 +350,7 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
       />
 
       {/* Modal panel */}
-      <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Mobile drag handle */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
@@ -390,7 +390,7 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
           </div>
         )}
 
-        <div className="px-5 pb-6 pt-4">
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-2">
           {/* ─────────────────────────────────────────
               STEP 1: Select Service
           ───────────────────────────────────────── */}
@@ -531,13 +531,6 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
                 />
               </div>
 
-              <button
-                disabled={!selectedDate || !selectedTime}
-                onClick={() => setStep("payment")}
-                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 transition-all active:scale-[0.98]"
-              >
-                Continue
-              </button>
             </div>
           )}
 
@@ -678,12 +671,6 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
                 </div>
               )}
 
-              <button
-                onClick={() => setStep("confirm")}
-                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98]"
-              >
-                Review Booking
-              </button>
             </div>
           )}
 
@@ -760,13 +747,6 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
                 </p>
               </div>
 
-              <button
-                onClick={handleConfirm}
-                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                <Calendar className="w-5 h-5" />
-                {business.category === "FUNDI" ? "Confirm & Send Request" : "Confirm & Place Order"}
-              </button>
             </div>
           )}
 
@@ -982,6 +962,38 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
             </div>
           )}
         </div>
+
+        {/* Sticky action footer — always visible above the keyboard / FABs */}
+        {(step === "datetime" || step === "payment" || step === "confirm") && (
+          <div className="px-5 py-4 border-t border-gray-100 bg-white">
+            {step === "datetime" && (
+              <button
+                disabled={!selectedDate || !selectedTime}
+                onClick={() => setStep("payment")}
+                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 transition-all active:scale-[0.98]"
+              >
+                Continue
+              </button>
+            )}
+            {step === "payment" && (
+              <button
+                onClick={() => setStep("confirm")}
+                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98]"
+              >
+                Review Booking
+              </button>
+            )}
+            {step === "confirm" && (
+              <button
+                onClick={handleConfirm}
+                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-5 h-5" />
+                {business.category === "FUNDI" ? "Confirm & Send Request" : "Confirm & Place Order"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {providerBusy && busyProviderData && (
