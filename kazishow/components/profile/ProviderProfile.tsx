@@ -1089,25 +1089,37 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                     multiple
                     onChange={async (e) => {
                       const files = Array.from(e.target.files || []);
+                      let uploaded = 0;
+                      let current = [...portfolioPhotos];
                       for (const file of files.slice(0, 12 - portfolioPhotos.length)) {
                         const form = new FormData();
-                        form.append("file", file);
-                        const res = await fetch(`${API}/api/upload/image`, {
-                          method: "POST",
-                          headers: { Authorization: `Bearer ${token}` },
-                          body: form,
-                        });
-                        const data = await res.json();
-                        if (data.success && data.data?.url) {
-                          const newPhotos = [...portfolioPhotos, data.data.url];
-                          setPortfolioPhotos(newPhotos);
-                          authFetch(`${API}/api/providers/${providerId}`, {
-                            method: "PUT",
-                            body: JSON.stringify({ portfolioPhotos: newPhotos }),
+                        form.append("image", file);
+                        try {
+                          const res = await fetch(`${API}/api/upload/image`, {
+                            method: "POST",
+                            headers: { Authorization: `Bearer ${token}` },
+                            body: form,
                           });
+                          const data = await res.json();
+                          if (data.success && data.data?.url) {
+                            current = [...current, data.data.url];
+                            setPortfolioPhotos(current);
+                            uploaded++;
+                          } else {
+                            toast.error(data.message || "Upload failed");
+                          }
+                        } catch {
+                          toast.error("Upload error — check your connection");
                         }
                       }
-                      toast.success("Photos uploaded!");
+                      if (uploaded > 0) {
+                        await authFetch(`${API}/api/providers/${providerId}`, {
+                          method: "PUT",
+                          body: JSON.stringify({ portfolioPhotos: current }),
+                        });
+                        toast.success(`${uploaded} photo${uploaded > 1 ? "s" : ""} uploaded!`);
+                      }
+                      e.target.value = "";
                     }}
                   />
                 </label>
