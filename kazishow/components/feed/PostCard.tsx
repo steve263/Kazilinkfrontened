@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Heart, MessageCircle, Share2, MoreHorizontal,
-  HardHat, Store, CheckCircle, UserPlus, UserCheck, Tag,
+  HardHat, Store, CheckCircle, UserPlus, UserCheck, Tag, Download,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -93,6 +93,22 @@ export default function PostCard({ post, token, onOpenComments }: Props) {
     }
   }
 
+  async function handleDownload() {
+    if (!post.image) return;
+    try {
+      const res = await fetch(post.image);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `kazishow-${post.id}.jpg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(post.image, "_blank");
+    }
+  }
+
   const timeAgo = (() => {
     try {
       return formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
@@ -178,6 +194,13 @@ export default function PostCard({ post, token, onOpenComments }: Props) {
       {post.image && (
         <div className="relative aspect-[4/3] overflow-hidden mx-4 rounded-xl">
           <Image src={post.image} alt={post.caption} fill className="object-cover" />
+          <button
+            onClick={handleDownload}
+            title="Download image"
+            className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-xl backdrop-blur-sm transition-all active:scale-90"
+          >
+            <Download className="w-4 h-4" />
+          </button>
         </div>
       )}
 
