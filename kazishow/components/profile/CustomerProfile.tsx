@@ -238,20 +238,26 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
   };
 
   const handleChangePassword = async () => {
+    if (!curPassword) { toast.error("Please enter your current password"); return; }
     if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
     if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
     setSavingPassword(true);
-    const d = await authFetch(`${API}/api/auth/change-password`, {
-      method: "PUT",
-      body: JSON.stringify({ currentPassword: curPassword, newPassword }),
-    });
-    if (d.success) {
-      toast.success("Password updated!");
-      setCurPassword(""); setNewPassword(""); setConfirmPassword("");
-    } else {
-      toast.error(d.message || "Update failed");
+    try {
+      const d = await authFetch(`${API}/api/auth/change-password`, {
+        method: "PUT",
+        body: JSON.stringify({ currentPassword: curPassword, newPassword }),
+      });
+      if (d.success) {
+        toast.success("Password updated!");
+        setCurPassword(""); setNewPassword(""); setConfirmPassword("");
+      } else {
+        toast.error(d.message || "Failed to update password");
+      }
+    } catch {
+      toast.error("Network error — please try again");
+    } finally {
+      setSavingPassword(false);
     }
-    setSavingPassword(false);
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -838,7 +844,7 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
               <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2">
                 <Music className="w-4 h-4 text-kazi-orange" /> Call Ringtone
               </h3>
-              <p className="text-xs text-gray-400">Select an audio file from your device to use as your incoming call ringtone (max 1.5 MB)</p>
+              <p className="text-xs text-gray-400">Select an audio file from your device to use as your incoming call ringtone (max 3 MB)</p>
 
               {/* File picker */}
               <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed border-kazi-orange/40 rounded-xl cursor-pointer hover:bg-orange-50 transition-colors">
@@ -858,8 +864,8 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (file.size > 1.5 * 1024 * 1024) {
-                      toast.error("File too large — please use a file under 1.5 MB");
+                    if (file.size > 3 * 1024 * 1024) {
+                      toast.error("File too large — please use a file under 3 MB");
                       return;
                     }
                     const reader = new FileReader();
@@ -937,14 +943,25 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                 <AlertTriangle className="w-4 h-4" /> Danger Zone
               </h3>
               <button
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete your account? This cannot be undone.")) {
-                    toast.error("Please contact support to delete your account");
+                onClick={async () => {
+                  if (!confirm("Deactivate your account? You can contact support to reactivate it later.")) return;
+                  try {
+                    const d = await authFetch(`${API}/api/auth/deactivate`, { method: "PUT" });
+                    if (d.success) {
+                      toast.success("Account deactivated");
+                      localStorage.removeItem("kazishow_token");
+                      localStorage.removeItem("kazishow_user");
+                      setTimeout(() => { window.location.href = "/auth/login"; }, 1500);
+                    } else {
+                      toast.error(d.message || "Failed to deactivate");
+                    }
+                  } catch {
+                    toast.error("Network error — please try again");
                   }
                 }}
                 className="w-full py-3 border-2 border-red-200 text-red-500 font-bold text-sm rounded-xl hover:bg-red-50 transition-colors"
               >
-                Delete Account
+                Deactivate Account
               </button>
             </div>
           </div>
