@@ -1,7 +1,14 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { X, Send } from "lucide-react";
+import { X, Send, Smile } from "lucide-react";
 import toast from "react-hot-toast";
+
+const EMOJIS = [
+  "😀","😂","😍","🥰","😎","🤔","😭","😤","🤣","😊",
+  "👍","👎","❤️","🙌","👏","🔥","✨","💯","🎉","👌",
+  "💪","🤝","🌟","😅","🥳","😬","🤩","😴","🥺","🫡",
+  "🙈","💀","👀","🫶","💔","😱","🤯","😏","🥲","🤑",
+];
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -33,7 +40,32 @@ export default function CommentsSheet({ videoId, isOpen, onClose }: CommentsShee
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setShowEmojis(false);
+      }
+    }
+    if (showEmojis) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEmojis]);
+
+  function insertEmoji(emoji: string) {
+    const el = inputRef.current;
+    if (!el) { setText((t) => t + emoji); return; }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + emoji + text.slice(end);
+    setText(next);
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + emoji.length, start + emoji.length);
+    }, 0);
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -128,23 +160,48 @@ export default function CommentsSheet({ videoId, isOpen, onClose }: CommentsShee
         </div>
 
         {/* Input */}
-        <form onSubmit={submit} className="flex gap-3 px-5 py-4 border-t border-white/10">
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Add a comment…"
-            maxLength={500}
-            className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-kazi-orange"
-          />
-          <button
-            type="submit"
-            disabled={posting || !text.trim()}
-            className="p-2.5 bg-kazi-orange rounded-xl text-white disabled:opacity-50 transition-all hover:bg-orange-600"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
+        <div className="px-5 py-4 border-t border-white/10">
+          {/* Emoji picker */}
+          {showEmojis && (
+            <div ref={emojiRef} className="mb-2 bg-gray-800 border border-white/10 rounded-2xl p-3 grid grid-cols-8 gap-1">
+              {EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => insertEmoji(emoji)}
+                  className="text-xl leading-none p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+          <form onSubmit={submit} className="flex gap-2">
+            {/* Emoji toggle */}
+            <button
+              type="button"
+              onClick={() => setShowEmojis((s) => !s)}
+              className={`flex-shrink-0 p-2.5 rounded-xl transition-colors ${showEmojis ? "bg-kazi-orange text-white" : "bg-white/10 text-gray-400 hover:text-white hover:bg-white/20"}`}
+            >
+              <Smile className="w-4 h-4" />
+            </button>
+            <input
+              ref={inputRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Add a comment…"
+              maxLength={500}
+              className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-kazi-orange"
+            />
+            <button
+              type="submit"
+              disabled={posting || !text.trim()}
+              className="flex-shrink-0 p-2.5 bg-kazi-orange rounded-xl text-white disabled:opacity-50 transition-all hover:bg-orange-600"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
       </div>
     </>
   );
