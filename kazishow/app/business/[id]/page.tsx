@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Star, MapPin, Phone, CheckCircle, Clock, Share2,
   Bookmark, BookmarkCheck, ArrowLeft, Calendar, ExternalLink, HardHat,
-  Store, ShieldCheck, MessageCircle, Flag, MessageSquare, X,
+  Store, ShieldCheck, MessageCircle, Flag, MessageSquare, X, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -50,6 +50,7 @@ export default function ProviderProfilePage() {
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [trustScore, setTrustScore] = useState<any>(null);
   const [showReport, setShowReport] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("kazishow_user");
@@ -493,9 +494,16 @@ export default function ProviderProfilePage() {
                   </h3>
                   <div className="grid grid-cols-3 gap-2">
                     {provider.portfolioPhotos.map((url: string, i: number) => (
-                      <div key={i} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
-                        <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                      </div>
+                      <button
+                        key={i}
+                        onClick={() => setLightboxIndex(i)}
+                        className="aspect-square rounded-xl overflow-hidden bg-gray-100 relative group"
+                      >
+                        <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold bg-black/50 px-2 py-1 rounded-lg">View</span>
+                        </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -805,6 +813,55 @@ export default function ProviderProfilePage() {
       )}
 
       <BottomNav />
+
+      {/* Photo lightbox */}
+      {lightboxIndex !== null && provider?.portfolioPhotos && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={() => setLightboxIndex(null)}
+        >
+          {/* Close */}
+          <button
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+
+          {/* Prev */}
+          {provider.portfolioPhotos.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + provider.portfolioPhotos.length) % provider.portfolioPhotos.length); }}
+              className="absolute left-3 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
+            >
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+          )}
+
+          {/* Image */}
+          <img
+            src={provider.portfolioPhotos[lightboxIndex]}
+            alt={`Photo ${lightboxIndex + 1}`}
+            className="max-w-full max-h-full object-contain px-16"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Next */}
+          {provider.portfolioPhotos.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % provider.portfolioPhotos.length); }}
+              className="absolute right-3 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
+            >
+              <ChevronRight className="w-5 h-5 text-white" />
+            </button>
+          )}
+
+          {/* Counter */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white/10 rounded-full text-white text-xs font-semibold">
+            {lightboxIndex + 1} / {provider.portfolioPhotos.length}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
