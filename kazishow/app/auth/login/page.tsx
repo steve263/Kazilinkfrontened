@@ -189,7 +189,13 @@ export default function LoginPage() {
 
           <button
             type="button"
-            onClick={() => googleLogin()}
+            onClick={() => {
+              if (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+                googleLogin();
+              } else {
+                toast.error("Google sign-in is not configured yet");
+              }
+            }}
             disabled={loading}
             className="w-full py-3.5 bg-white text-kazi-dark text-sm font-semibold rounded-2xl hover:bg-gray-50 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
           >
