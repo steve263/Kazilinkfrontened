@@ -33,6 +33,7 @@ export default function CustomerRegisterPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -300,18 +301,23 @@ const handleSubmit = async () => {
             </div>
 
             <label className="flex items-start gap-2.5 cursor-pointer pt-1">
-              <input type="checkbox" required className="mt-0.5 w-4 h-4 accent-kazi-orange flex-shrink-0" />
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-kazi-orange flex-shrink-0"
+              />
               <span className="text-xs text-white/40 leading-relaxed">
                 I agree to KaziShow&apos;s{" "}
-                <Link href="#" className="text-kazi-orange hover:underline">Terms of Service</Link>{" "}
+                <Link href="/terms" className="text-kazi-orange hover:underline">Terms of Service</Link>{" "}
                 and{" "}
-                <Link href="#" className="text-kazi-orange hover:underline">Privacy Policy</Link>
+                <Link href="/privacy" className="text-kazi-orange hover:underline">Privacy Policy</Link>
               </span>
             </label>
 
             <button
               onClick={handleDetailsNext}
-              disabled={!form.name || !form.phone || !form.password || form.password.length < 6 || form.password !== form.confirmPassword}
+              disabled={!form.name || !form.phone || !form.password || form.password.length < 6 || form.password !== form.confirmPassword || !termsAccepted}
               className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm mt-2"
             >
               <ShieldCheck className="w-5 h-5" />

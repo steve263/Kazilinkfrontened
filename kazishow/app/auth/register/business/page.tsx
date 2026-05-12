@@ -70,6 +70,7 @@ export default function BusinessRegisterPage() {
   const [serviceInput, setServiceInput] = useState({ name: "", price: "", duration: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [form, setForm] = useState<BusinessForm>({
     businessName: "", phone: "+254 ", email: "", password: "", confirmPassword: "", category: "", description: "",
@@ -104,7 +105,7 @@ export default function BusinessRegisterPage() {
   };
 
   const canProceed = () => {
-    if (step === 0) return form.businessName && form.phone && form.category && form.description.length >= 20 && form.password.length >= 6 && form.password === form.confirmPassword;
+    if (step === 0) return !!(form.businessName && form.phone && form.category && form.description.length >= 20 && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
     if (step === 1) return form.services.length >= 1 && form.openTime && form.closeTime;
     if (step === 2) return form.businessPhotos.length >= 1;
     if (step === 3) return form.location.length > 0;
@@ -346,6 +347,21 @@ const handleSubmit = async () => {
                 {form.description.length}/20 min
               </p>
             </Field>
+
+            <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-kazi-orange flex-shrink-0"
+              />
+              <span className="text-xs text-white/40 leading-relaxed">
+                I agree to KaziShow&apos;s{" "}
+                <Link href="/terms" className="text-kazi-orange hover:underline">Terms of Service</Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-kazi-orange hover:underline">Privacy Policy</Link>
+              </span>
+            </label>
           </>
         )}
 

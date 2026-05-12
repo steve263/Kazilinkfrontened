@@ -4,6 +4,16 @@ import { useEffect } from "react";
 // Checks token validity on mount. Suspension is handled by SuspensionGate.
 export default function AuthGuard() {
   useEffect(() => {
+    // If user logged in without "Remember me", clear their token when a new browser session starts
+    const shouldForget = localStorage.getItem("kazishow_forget") === "1";
+    const sessionActive = sessionStorage.getItem("kazishow_session");
+    if (shouldForget && !sessionActive) {
+      localStorage.removeItem("kazishow_token");
+      localStorage.removeItem("kazishow_user");
+      localStorage.removeItem("kazishow_forget");
+      return;
+    }
+
     const token = localStorage.getItem("kazishow_token");
     if (!token) return;
 

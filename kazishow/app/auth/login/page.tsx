@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -33,6 +34,12 @@ export default function LoginPage() {
       if (data.success) {
         localStorage.setItem("kazishow_token", data.data.token);
         localStorage.setItem("kazishow_user", JSON.stringify(data.data.user));
+        sessionStorage.setItem("kazishow_session", "1");
+        if (!rememberMe) {
+          localStorage.setItem("kazishow_forget", "1");
+        } else {
+          localStorage.removeItem("kazishow_forget");
+        }
         toast.success("Welcome back! 🎉");
         const user = data.data.user;
         if (user.role === "ADMIN") {
@@ -123,7 +130,12 @@ export default function LoginPage() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded accent-kazi-orange" />
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded accent-kazi-orange"
+                />
                 <span className="text-sm text-white/60">Remember me</span>
               </label>
               <Link href="/auth/forgot-password" className="text-sm text-kazi-orange hover:underline font-medium">

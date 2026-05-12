@@ -83,6 +83,7 @@ export default function FundiRegisterPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [certUploading, setCertUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const certInputRef = useRef<HTMLInputElement>(null);
@@ -229,7 +230,7 @@ export default function FundiRegisterPage() {
   // ── Step validation ──────────────────────────────────────────────────────────
 
   const canProceed = () => {
-    if (step === 0) return form.name && form.phone && form.category && form.yearsExperience && form.password.length >= 6 && form.password === form.confirmPassword;
+    if (step === 0) return !!(form.name && form.phone && form.category && form.yearsExperience && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
     if (step === 1) return form.description.length >= 30 && form.skills.length >= 1;
     if (step === 2) return form.services.length >= 1;
     if (step === 3) return !!(form.idPhotoUrl && form.idBackPhotoUrl && form.education);
@@ -468,6 +469,21 @@ export default function FundiRegisterPage() {
                 {["Less than 1 year", "1–2 years", "3–5 years", "6–10 years", "10+ years"].map((y) => <option key={y}>{y}</option>)}
               </select>
             </Field>
+
+            <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-kazi-orange flex-shrink-0"
+              />
+              <span className="text-xs text-white/40 leading-relaxed">
+                I agree to KaziShow&apos;s{" "}
+                <Link href="/terms" className="text-kazi-orange hover:underline">Terms of Service</Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-kazi-orange hover:underline">Privacy Policy</Link>
+              </span>
+            </label>
           </>
         )}
 
