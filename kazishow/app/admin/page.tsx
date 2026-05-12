@@ -5,6 +5,7 @@ import {
   Users, ShoppingBag, DollarSign, Clock, Activity, Star,
   CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale,
 } from "lucide-react";
+import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
 import StatCard from "@/components/admin/StatCard";
 import ApprovalCard from "@/components/admin/ApprovalCard";
@@ -52,6 +53,13 @@ export default function AdminDashboard() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [token, setToken] = useState("");
+  const [liveVisitors, setLiveVisitors] = useState(0);
+
+  useEffect(() => {
+    const socket = io(API, { transports: ["websocket"] });
+    socket.on("live_visitors", ({ count }: { count: number }) => setLiveVisitors(count));
+    return () => { socket.disconnect(); };
+  }, []);
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
 
@@ -142,9 +150,16 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-400">{new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
             </div>
           </div>
-          <button onClick={fetchDashboard} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-xl transition-colors">
-            <RefreshCw className="w-3.5 h-3.5" />Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <Users className="w-3.5 h-3.5 text-green-600" />
+              <span className="text-sm font-bold text-green-700">{liveVisitors} live</span>
+            </div>
+            <button onClick={fetchDashboard} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-xl transition-colors">
+              <RefreshCw className="w-3.5 h-3.5" />Refresh
+            </button>
+          </div>
         </div>
 
         <div className="p-5 space-y-6">

@@ -4,9 +4,8 @@ import Link from "next/link";
 import {
   Search, MapPin, ArrowRight, Star, Zap, TrendingUp, Shield,
   Smartphone, ChevronRight, Play, CheckCircle, HardHat, Store,
-  ChevronDown, X, Users,
+  ChevronDown, X,
 } from "lucide-react";
-import { io } from "socket.io-client";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import PostCard from "@/components/feed/PostCard";
@@ -103,8 +102,6 @@ export default function HomePage() {
   const [counterStarted, setCounterStarted] = useState(false);
   const animatedBookings = useCountUp(totalBookings, 2000, counterStarted && bookingsLoaded);
 
-  // Live visitors via Socket.io
-  const [liveVisitors, setLiveVisitors] = useState(0);
 
 
   const trendingPosts = POSTS.filter((p) => p.isTrending).slice(0, 3);
@@ -132,11 +129,6 @@ export default function HomePage() {
     return () => obs.disconnect();
   }, []);
 
-  useEffect(() => {
-    const socket = io(API, { transports: ["websocket"] });
-    socket.on("live_visitors", ({ count }: { count: number }) => setLiveVisitors(count));
-    return () => { socket.disconnect(); };
-  }, []);
 
 
   useEffect(() => {
@@ -185,14 +177,6 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-left">
-              {/* Live visitors badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-4 border border-white/20">
-                <div className="w-2 h-2 rounded-full bg-kazi-green animate-pulse" />
-                <Users className="w-3.5 h-3.5 text-white/80" />
-                <span className="text-sm text-white/90 font-medium">
-                  {liveVisitors > 0 ? `${liveVisitors} people browsing right now` : "Join thousands browsing now"}
-                </span>
-              </div>
 
               <h1 className="text-4xl sm:text-6xl font-black text-white leading-tight mb-4">
                 Find Verified{" "}
