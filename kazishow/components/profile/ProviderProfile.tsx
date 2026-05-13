@@ -570,8 +570,8 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     <div className="min-h-screen bg-kazi-cream pb-24">
       {/* ── HEADER (LinkedIn style) ─────────────────────────────────── */}
       <div className="bg-white shadow-sm mb-2">
-        {/* Cover photo */}
-        <div className="h-44 bg-gradient-to-br from-kazi-dark via-kazi-dark2 to-gray-800 relative overflow-hidden">
+        {/* Cover photo — shorter so avatar feels prominent like LinkedIn */}
+        <div className="h-32 bg-gradient-to-br from-kazi-dark via-kazi-dark2 to-gray-800 relative overflow-hidden">
           {provider?.coverImage && (
             <img src={provider.coverImage} alt="cover" className="w-full h-full object-cover" />
           )}
@@ -584,26 +584,26 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
 
         <div className="px-4 pb-4">
           {/* Avatar + action buttons row — mirrors LinkedIn */}
-          <div className="flex items-start justify-between -mt-10 mb-3">
-            {/* Avatar */}
+          <div className="flex items-start justify-between -mt-16 mb-3">
+            {/* Avatar — 128px like LinkedIn mobile */}
             <div className="relative">
-              <div className="w-24 h-24 rounded-full border-4 border-white bg-orange-50 overflow-hidden shadow-md">
+              <div className="w-32 h-32 rounded-full border-4 border-white bg-orange-50 overflow-hidden shadow-lg">
                 {provider?.profileImage ? (
                   <img src={provider.profileImage} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-3xl">
+                  <div className="w-full h-full flex items-center justify-center text-5xl">
                     {CATEGORY_EMOJI[provider?.category || initialUser?.provider?.category] || "🔧"}
                   </div>
                 )}
               </div>
-              <label className="absolute bottom-1 right-0 w-7 h-7 bg-kazi-orange rounded-full flex items-center justify-center cursor-pointer shadow border-2 border-white">
-                {photoUploading ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Camera className="w-3.5 h-3.5 text-white" />}
+              <label className="absolute bottom-2 right-0 w-8 h-8 bg-kazi-orange rounded-full flex items-center justify-center cursor-pointer shadow-md border-2 border-white">
+                {photoUploading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
                 <input type="file" className="hidden" accept="image/*" onChange={handleProfilePhotoUpload} />
               </label>
             </div>
 
             {/* Status buttons — top-right like LinkedIn's action buttons */}
-            <div className="flex flex-wrap gap-2 mt-12">
+            <div className="flex flex-wrap gap-2 mt-16">
               <button
                 onClick={handleToggleOnline}
                 disabled={togglingOnline}
