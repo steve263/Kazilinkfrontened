@@ -153,6 +153,11 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
 
+  // Notification preferences (persisted in localStorage)
+  const [notifBooking, setNotifBooking] = useState(true);
+  const [notifPayment, setNotifPayment] = useState(true);
+  const [notifReview, setNotifReview] = useState(true);
+
   // Ringtone
   const [ringtoneUrl, setRingtoneUrl] = useState("");
   const [savedRingtone, setSavedRingtone] = useState("");
@@ -206,6 +211,12 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     setRingtoneUrl(saved);
     setSavedRingtone(saved);
     setRingtoneFileName(localStorage.getItem("kazishow_ringtone_name") || "");
+
+    // Load notification preferences
+    const prefs = JSON.parse(localStorage.getItem("kazishow_notif_prefs") || "{}");
+    if (prefs.booking !== undefined) setNotifBooking(prefs.booking);
+    if (prefs.payment !== undefined) setNotifPayment(prefs.payment);
+    if (prefs.review !== undefined) setNotifReview(prefs.review);
   }, [providerId, authFetch]);
 
   const loadTab = useCallback(
@@ -1479,16 +1490,39 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
             </div>
 
             {/* Notifications */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
-              <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2">
+            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-1">
+              <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2 mb-2">
                 <Bell className="w-4 h-4 text-kazi-orange" /> Notifications
               </h3>
-              {["New booking alerts", "Payment received alerts", "Review alerts"].map((label) => (
-                <div key={label} className="flex items-center justify-between py-1">
-                  <p className="text-sm text-kazi-dark">{label}</p>
-                  <div className="w-10 h-6 bg-kazi-green rounded-full relative cursor-pointer">
-                    <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow" />
+              {[
+                { label: "New booking alerts", value: notifBooking, key: "booking", set: setNotifBooking },
+                { label: "Payment received alerts", value: notifPayment, key: "payment", set: setNotifPayment },
+                { label: "Review alerts", value: notifReview, key: "review", set: setNotifReview },
+              ].map((item) => (
+                <div key={item.key} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                  <div>
+                    <p className="text-sm text-kazi-dark font-medium">{item.label}</p>
+                    <p className="text-xs text-gray-400">{item.value ? "On" : "Off"}</p>
                   </div>
+                  <button
+                    onClick={() => {
+                      const next = !item.value;
+                      item.set(next);
+                      const prefs = JSON.parse(localStorage.getItem("kazishow_notif_prefs") || "{}");
+                      prefs[item.key] = next;
+                      localStorage.setItem("kazishow_notif_prefs", JSON.stringify(prefs));
+                      toast.success(`${item.label} ${next ? "enabled" : "disabled"}`);
+                    }}
+                    className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none ${
+                      item.value ? "bg-kazi-green" : "bg-gray-200"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${
+                        item.value ? "left-7" : "left-1"
+                      }`}
+                    />
+                  </button>
                 </div>
               ))}
             </div>

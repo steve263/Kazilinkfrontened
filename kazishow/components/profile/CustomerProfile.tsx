@@ -92,6 +92,10 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
   const [savingPassword, setSavingPassword] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
 
+  // Notification preferences
+  const [notifSms, setNotifSms] = useState(true);
+  const [notifReminder, setNotifReminder] = useState(true);
+
   // Ringtone
   const [ringtoneUrl, setRingtoneUrl] = useState("");
   const [savedRingtone, setSavedRingtone] = useState("");
@@ -126,6 +130,11 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
     setRingtoneUrl(saved);
     setSavedRingtone(saved);
     setRingtoneFileName(localStorage.getItem("kazishow_ringtone_name") || "");
+
+    // Load notification preferences
+    const prefs = JSON.parse(localStorage.getItem("kazishow_notif_prefs") || "{}");
+    if (prefs.sms !== undefined) setNotifSms(prefs.sms);
+    if (prefs.reminder !== undefined) setNotifReminder(prefs.reminder);
   }, []);
 
   const loadTab = useCallback(
@@ -814,22 +823,38 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
             </div>
 
             {/* Notifications */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
-              <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2">
+            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-1">
+              <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2 mb-2">
                 <Bell className="w-4 h-4 text-kazi-orange" /> Notification Preferences
               </h3>
               {[
-                { label: "SMS notifications", desc: "Booking updates via SMS" },
-                { label: "Booking reminders", desc: "Reminder before scheduled bookings" },
+                { label: "SMS notifications", desc: "Booking updates via SMS", value: notifSms, key: "sms", set: setNotifSms },
+                { label: "Booking reminders", desc: "Reminder before scheduled bookings", value: notifReminder, key: "reminder", set: setNotifReminder },
               ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between py-1">
+                <div key={item.key} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                   <div>
                     <p className="text-sm font-semibold text-kazi-dark">{item.label}</p>
                     <p className="text-xs text-gray-400">{item.desc}</p>
                   </div>
-                  <div className="w-10 h-6 bg-kazi-green rounded-full relative cursor-pointer">
-                    <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow" />
-                  </div>
+                  <button
+                    onClick={() => {
+                      const next = !item.value;
+                      item.set(next);
+                      const prefs = JSON.parse(localStorage.getItem("kazishow_notif_prefs") || "{}");
+                      prefs[item.key] = next;
+                      localStorage.setItem("kazishow_notif_prefs", JSON.stringify(prefs));
+                      toast.success(`${item.label} ${next ? "enabled" : "disabled"}`);
+                    }}
+                    className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none ${
+                      item.value ? "bg-kazi-green" : "bg-gray-200"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${
+                        item.value ? "left-7" : "left-1"
+                      }`}
+                    />
+                  </button>
                 </div>
               ))}
             </div>
