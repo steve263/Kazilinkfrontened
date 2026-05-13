@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   Star, Trash2, Edit3, Camera, MessageSquare, Calendar, CheckCircle,
-  XCircle, Clock, Loader2, Settings, CreditCard, BarChart2, Image,
+  XCircle, Clock, Loader2, Settings, CreditCard, Image,
   FileText, Plus, Bell, AlertTriangle, Lock, MapPin, Phone,
-  TrendingUp, Users, Zap, ToggleLeft, ToggleRight, ChevronRight, Tag, X, Music,
+  Zap, ToggleLeft, ToggleRight, Tag, X, Music,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -206,7 +206,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     setRingtoneUrl(saved);
     setSavedRingtone(saved);
     setRingtoneFileName(localStorage.getItem("kazishow_ringtone_name") || "");
-  }, [providerId]);
+  }, [providerId, authFetch]);
 
   const loadTab = useCallback(
     async (tab: Tab) => {
@@ -246,7 +246,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     [authFetch, providerId]
   );
 
-  useEffect(() => { loadTab("bookings"); }, []);
+  useEffect(() => { loadTab("bookings"); }, [loadTab]);
   useEffect(() => { loadTab(activeTab); }, [activeTab, loadTab]);
 
   // Start countdown timers for pending bookings
