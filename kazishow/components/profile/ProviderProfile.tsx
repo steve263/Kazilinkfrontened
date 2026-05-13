@@ -568,116 +568,141 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
 
   return (
     <div className="min-h-screen bg-kazi-cream pb-24">
-      {/* ── HEADER ─────────────────────────────────────────────────── */}
-      <div className="relative">
-        {/* Cover */}
-        <div className="h-40 bg-gradient-to-br from-kazi-dark via-kazi-dark2 to-gray-800 relative overflow-hidden">
+      {/* ── HEADER (LinkedIn style) ─────────────────────────────────── */}
+      <div className="bg-white shadow-sm mb-2">
+        {/* Cover photo */}
+        <div className="h-44 bg-gradient-to-br from-kazi-dark via-kazi-dark2 to-gray-800 relative overflow-hidden">
           {provider?.coverImage && (
-            <img src={provider.coverImage} alt="cover" className="w-full h-full object-cover opacity-60" />
+            <img src={provider.coverImage} alt="cover" className="w-full h-full object-cover" />
           )}
-          <label className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 bg-black/40 text-white text-xs rounded-lg cursor-pointer">
-            {coverUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />}
-            Edit Cover
+          <label className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 bg-black/50 text-white text-xs font-medium rounded-lg cursor-pointer hover:bg-black/70 transition-colors">
+            {coverUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+            Edit cover
             <input type="file" className="hidden" accept="image/*" onChange={handleCoverPhotoUpload} />
           </label>
         </div>
 
-        {/* Avatar */}
-        <div className="absolute left-4 top-24">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-white bg-orange-50 overflow-hidden shadow-lg">
-              {provider?.profileImage ? (
-                <img src={provider.profileImage} alt="avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-3xl">
-                  {CATEGORY_EMOJI[provider?.category || initialUser?.provider?.category] || "🔧"}
-                </div>
-              )}
-            </div>
-            <label className="absolute bottom-0 right-0 w-7 h-7 bg-kazi-orange rounded-full flex items-center justify-center cursor-pointer shadow">
-              {photoUploading ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Camera className="w-3.5 h-3.5 text-white" />}
-              <input type="file" className="hidden" accept="image/*" onChange={handleProfilePhotoUpload} />
-            </label>
-          </div>
-        </div>
-
-        {/* Online + Busy toggles */}
-        <div className="absolute right-4 top-44 flex flex-col items-end gap-2">
-          <button
-            onClick={handleToggleOnline}
-            disabled={togglingOnline}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold shadow transition-all ${
-              isOnline ? "bg-kazi-green text-white" : "bg-white text-gray-500 border border-gray-200"
-            }`}
-          >
-            {togglingOnline ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : isOnline ? (
-              <ToggleRight className="w-4 h-4" />
-            ) : (
-              <ToggleLeft className="w-4 h-4" />
-            )}
-            {isOnline ? "Online" : "Offline"}
-          </button>
-          {isBusy && (
-            <button
-              onClick={handleMarkAvailable}
-              disabled={togglingBusy}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold shadow transition-all bg-amber-500 text-white hover:bg-amber-600"
-            >
-              {togglingBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>🔴</span>}
-              Busy · Mark Free
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Business info */}
-      <div className="px-4 pt-14 pb-3">
-        {providerLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-48" />
-            <Skeleton className="h-4 w-32" />
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-black text-kazi-dark">{provider?.businessName}</h1>
-              {provider?.isVerified && (
-                <span className="text-xs font-bold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full flex items-center gap-1">
-                  ✓ Verified
-                </span>
-              )}
-              <span className="text-xs font-bold px-2 py-0.5 bg-orange-100 text-kazi-orange rounded-full">
-                {CATEGORY_EMOJI[provider?.category]} {provider?.category}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 mt-1">
-              <Stars rating={Math.round(provider?.rating || 0)} />
-              <span className="text-xs text-gray-500">({provider?.totalReviews || 0} reviews)</span>
-            </div>
-            <div className="flex items-center gap-1 text-gray-400 text-xs mt-0.5">
-              <MapPin className="w-3 h-3" />
-              {provider?.user?.location || "Location not set"}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Earnings stats bar */}
-      <div className="px-4 pb-3 grid grid-cols-3 gap-2">
-        {earningsLoading
-          ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-16" />)
-          : [
-              { label: "This Month", value: formatCurrency(earnings?.month?.amount || 0), color: "text-kazi-orange" },
-              { label: "Total Jobs", value: earnings?.allTime?.jobs || 0, color: "text-kazi-dark" },
-              { label: "Rating", value: (provider?.rating || 0).toFixed(1) + " ★", color: "text-amber-500" },
-            ].map((s) => (
-              <div key={s.label} className="bg-white rounded-2xl shadow-sm p-3 text-center">
-                <p className={`text-base font-black ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-gray-400 font-medium mt-0.5">{s.label}</p>
+        <div className="px-4 pb-4">
+          {/* Avatar + action buttons row — mirrors LinkedIn */}
+          <div className="flex items-start justify-between -mt-10 mb-3">
+            {/* Avatar */}
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full border-4 border-white bg-orange-50 overflow-hidden shadow-md">
+                {provider?.profileImage ? (
+                  <img src={provider.profileImage} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-3xl">
+                    {CATEGORY_EMOJI[provider?.category || initialUser?.provider?.category] || "🔧"}
+                  </div>
+                )}
               </div>
-            ))}
+              <label className="absolute bottom-1 right-0 w-7 h-7 bg-kazi-orange rounded-full flex items-center justify-center cursor-pointer shadow border-2 border-white">
+                {photoUploading ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Camera className="w-3.5 h-3.5 text-white" />}
+                <input type="file" className="hidden" accept="image/*" onChange={handleProfilePhotoUpload} />
+              </label>
+            </div>
+
+            {/* Status buttons — top-right like LinkedIn's action buttons */}
+            <div className="flex flex-wrap gap-2 mt-12">
+              <button
+                onClick={handleToggleOnline}
+                disabled={togglingOnline}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold border-2 transition-all ${
+                  isOnline
+                    ? "border-kazi-green text-kazi-green hover:bg-green-50"
+                    : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {togglingOnline ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : isOnline ? (
+                  <ToggleRight className="w-4 h-4" />
+                ) : (
+                  <ToggleLeft className="w-4 h-4" />
+                )}
+                {isOnline ? "Online" : "Offline"}
+              </button>
+              {isBusy && (
+                <button
+                  onClick={handleMarkAvailable}
+                  disabled={togglingBusy}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold border-2 border-amber-400 text-amber-600 hover:bg-amber-50 transition-all"
+                >
+                  {togglingBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>🔴</span>}
+                  Busy · Mark Free
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Name, headline, location — LinkedIn style */}
+          {providerLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-7 w-48" />
+              <Skeleton className="h-4 w-64" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-black text-kazi-dark">{provider?.businessName}</h1>
+                {provider?.isVerified && (
+                  <span className="text-xs font-bold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full flex items-center gap-1">
+                    ✓ Verified
+                  </span>
+                )}
+                <span className="text-xs font-bold px-2 py-0.5 bg-orange-100 text-kazi-orange rounded-full">
+                  {CATEGORY_EMOJI[provider?.category]} {provider?.category}
+                </span>
+              </div>
+
+              {/* Headline / description — like LinkedIn's tagline */}
+              {provider?.description && (
+                <p className="text-sm text-gray-600 mt-1 leading-relaxed line-clamp-2">
+                  {provider.description}
+                </p>
+              )}
+
+              {/* Location, phone, hours — like LinkedIn's metadata row */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {provider?.user?.location || "Location not set"}
+                </span>
+                {provider?.user?.phone && (
+                  <span className="flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {provider.user.phone}
+                  </span>
+                )}
+                {provider?.workingHoursStart && provider?.workingHoursEnd && (
+                  <span>· Open {provider.workingHoursStart}–{provider.workingHoursEnd}</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1 mt-1.5">
+                <Stars rating={Math.round(provider?.rating || 0)} />
+                <span className="text-xs text-gray-500">({provider?.totalReviews || 0} reviews)</span>
+              </div>
+            </div>
+          )}
+
+          {/* Stats strip — inside the white card like LinkedIn's connection count */}
+          <div className="grid grid-cols-3 divide-x divide-gray-100 mt-4 pt-3 border-t border-gray-100">
+            {earningsLoading
+              ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-10 mx-2" />)
+              : [
+                  { label: "This Month", value: formatCurrency(earnings?.month?.amount || 0), color: "text-kazi-orange" },
+                  { label: "Total Jobs", value: earnings?.allTime?.jobs || 0, color: "text-kazi-dark" },
+                  { label: "Rating", value: (provider?.rating || 0).toFixed(1) + " ★", color: "text-amber-500" },
+                ].map((s) => (
+                  <div key={s.label} className="text-center px-2">
+                    <p className={`text-base font-black ${s.color}`}>{s.value}</p>
+                    <p className="text-[10px] text-gray-400 font-medium">{s.label}</p>
+                  </div>
+                ))}
+          </div>
+        </div>
       </div>
 
       {/* ── TAB BAR ── */}
