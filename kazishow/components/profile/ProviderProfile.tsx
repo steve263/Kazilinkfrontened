@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Cropper from "react-easy-crop";
 import Link from "next/link";
 import {
   Star, Trash2, Edit3, Camera, MessageSquare, Calendar, CheckCircle,
@@ -129,6 +130,14 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
   const [promoOriginalPrice, setPromoOriginalPrice] = useState("");
   const [promoImageUploading, setPromoImageUploading] = useState(false);
   const [savingPromo, setSavingPromo] = useState(false);
+
+  // Image crop modal
+  const [cropSrc, setCropSrc] = useState("");
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppingBusy, setCroppingBusy] = useState(false);
 
   // Countdown timers for pending bookings
   const [pendingTimers, setPendingTimers] = useState<Record<string, number>>({});
@@ -317,24 +326,56 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     setTogglingBusy(false);
   };
 
-  const handlePromoImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePromoImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be less than 5MB"); return; }
-    setPromoImageUploading(true);
+    if (file.size > 15 * 1024 * 1024) { toast.error("Image must be less than 15MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropSrc(reader.result as string);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setShowCropModal(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCropConfirm = async () => {
+    if (!croppedAreaPixels || !cropSrc) return;
+    setCroppingBusy(true);
     try {
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        const image = new window.Image();
+        image.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = croppedAreaPixels.width;
+          canvas.height = croppedAreaPixels.height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(image, croppedAreaPixels.x, croppedAreaPixels.y, croppedAreaPixels.width, croppedAreaPixels.height, 0, 0, croppedAreaPixels.width, croppedAreaPixels.height);
+          canvas.toBlob((b) => (b ? resolve(b) : reject()), "image/jpeg", 0.88);
+        };
+        image.onerror = reject;
+        image.src = cropSrc;
+      });
+      setPromoImageUploading(true);
       const form = new FormData();
-      form.append("image", file);
+      form.append("image", blob, "deal.jpg");
       const res = await fetch(`${API}/api/upload/public?folder=general`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: form,
       });
       const data = await res.json();
-      if (data.success) { setPromoImage(data.data.url); toast.success("Image uploaded!"); }
+      if (data.success) { setPromoImage(data.data.url); toast.success("Image ready!"); }
       else toast.error(data.message || "Upload failed");
-    } catch { toast.error("Upload failed"); }
-    finally { setPromoImageUploading(false); }
+    } catch { toast.error("Crop failed — try again"); }
+    finally {
+      setCroppingBusy(false);
+      setPromoImageUploading(false);
+      setShowCropModal(false);
+      setCropSrc("");
+    }
   };
 
   const handleAcceptBooking = async (bookingId: string) => {
@@ -1286,7 +1327,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                           </div>
                         )}
                       </div>
-                      <input type="file" accept="image/*" onChange={handlePromoImageUpload} className="hidden" disabled={promoImageUploading} />
+                      <input type="file" accept="image/*" onChange={handlePromoImageSelect} className="hidden" disabled={promoImageUploading} />
                     </label>
                   )}
                 </div>
@@ -1657,6 +1698,48 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
           </div>
         )}
       </div>
+
+      {/* ── IMAGE CROP MODAL (Instagram/WhatsApp style) ── */}
+      {showCropModal && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          <div className="flex items-center justify-between px-5 py-4 bg-black border-b border-white/10 flex-shrink-0">
+            <button
+              onClick={() => { setShowCropModal(false); setCropSrc(""); }}
+              className="text-white/70 text-sm font-medium hover:text-white"
+            >
+              Cancel
+            </button>
+            <p className="text-white font-bold text-sm">Crop Image</p>
+            <button
+              onClick={handleCropConfirm}
+              disabled={croppingBusy}
+              className="text-kazi-orange font-black text-sm disabled:opacity-50"
+            >
+              {croppingBusy ? "Uploading…" : "Use Photo"}
+            </button>
+          </div>
+          <div className="flex-1 relative">
+            <Cropper
+              image={cropSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={16 / 9}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
+              style={{ containerStyle: { background: "#000" } }}
+            />
+          </div>
+          <div className="px-6 py-5 bg-black flex-shrink-0">
+            <p className="text-white/40 text-xs text-center mb-3">Drag to reposition · Slider to zoom</p>
+            <input
+              type="range" min={1} max={3} step={0.01} value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-full accent-kazi-orange"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -53,6 +53,7 @@ function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; on
   const expired = new Date(deal.endDate).getTime() <= Date.now();
   const router = useRouter();
   const { isFlash } = getTimeLeft(deal.endDate);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -117,7 +118,10 @@ function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; on
         </div>
 
         {/* Image or gradient header */}
-        <div className="relative h-36 overflow-hidden">
+        <div
+          className="relative h-36 overflow-hidden"
+          onClick={deal.imageUrl ? (e) => { e.preventDefault(); e.stopPropagation(); setLightboxOpen(true); } : undefined}
+        >
           {deal.imageUrl ? (
             <img src={deal.imageUrl} alt={deal.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           ) : (
@@ -178,6 +182,31 @@ function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; on
         </div>
       </div>
     </Link>
+
+    {/* Lightbox */}
+    {lightboxOpen && deal.imageUrl && (
+      <div
+        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+        onClick={() => setLightboxOpen(false)}
+      >
+        <button
+          className="absolute top-4 right-4 w-9 h-9 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <img
+          src={deal.imageUrl}
+          alt={deal.title}
+          className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        />
+        <div className="absolute bottom-6 left-0 right-0 text-center">
+          <p className="text-white font-bold text-sm">{deal.title}</p>
+          <p className="text-white/50 text-xs mt-0.5">Tap anywhere to close</p>
+        </div>
+      </div>
+    )}
   );
 }
 
