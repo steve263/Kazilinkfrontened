@@ -12,6 +12,7 @@ import {
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
 import TrustScoreCard from "@/components/trust/TrustScoreCard";
+import ReviewModal from "@/components/trust/ReviewModal";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -95,6 +96,9 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
   // Notification preferences
   const [notifSms, setNotifSms] = useState(true);
   const [notifReminder, setNotifReminder] = useState(true);
+
+  // Inline review modal
+  const [reviewModal, setReviewModal] = useState<{ bookingId: string; providerName: string } | null>(null);
 
   // Ringtone
   const [ringtoneUrl, setRingtoneUrl] = useState("");
@@ -522,12 +526,12 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                       {b.review ? (
                         <Stars rating={b.review.rating} />
                       ) : (
-                        <Link
-                          href={`/business/${b.provider?.id}?reviewBooking=${b.id}`}
+                        <button
+                          onClick={() => setReviewModal({ bookingId: b.id, providerName: b.provider?.businessName || "Provider" })}
                           className="inline-flex items-center gap-1 text-xs text-kazi-orange font-bold"
                         >
                           <Star className="w-3 h-3" /> Write Review
-                        </Link>
+                        </button>
                       )}
                       <div className="flex gap-2">
                         <Link
@@ -987,6 +991,20 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
           </div>
         )}
       </div>
+
+      {reviewModal && (
+        <ReviewModal
+          bookingId={reviewModal.bookingId}
+          providerName={reviewModal.providerName}
+          onClose={() => setReviewModal(null)}
+          onSubmitted={() => {
+            setReviewModal(null);
+            // Refresh bookings so the star shows instead of "Write Review"
+            loadedTabs.current.delete("bookings");
+            loadTab("bookings");
+          }}
+        />
+      )}
     </div>
   );
 }

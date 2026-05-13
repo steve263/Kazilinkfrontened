@@ -29,6 +29,7 @@ export default function ProviderProfilePage() {
   const discountType = searchParams.get("discountType") || "PERCENTAGE";
   const originalPrice = searchParams.get("originalPrice") ? Number(searchParams.get("originalPrice")) : undefined;
   const hasDeal = !!dealId;
+  const reviewBookingParam = searchParams.get("reviewBooking");
   const [provider, setProvider] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Overview");
@@ -56,6 +57,15 @@ export default function ProviderProfilePage() {
     const stored = localStorage.getItem("kazishow_user");
     if (stored) { try { setCurrentUser(JSON.parse(stored)); } catch {} }
   }, []);
+
+  // Auto-open review modal when coming from profile "Write Review" link
+  useEffect(() => {
+    if (reviewBookingParam && !loading) {
+      setReviewableBookingId(reviewBookingParam);
+      setActiveTab("Reviews");
+      setShowReviewModal(true);
+    }
+  }, [reviewBookingParam, loading]);
 
   useEffect(() => {
     const token = localStorage.getItem("kazishow_token");
