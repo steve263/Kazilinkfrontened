@@ -185,7 +185,7 @@ export default function AnalyticsDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="day" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v: any, name: string) => [name === "revenue" ? `KSh ${v}` : v, name === "revenue" ? "Commission" : "Bookings"]} />
+                <Tooltip formatter={(v: any, name: any) => [name === "revenue" ? `KSh ${v}` : v, name === "revenue" ? "Commission" : "Bookings"]} />
                 <Legend />
                 <Area type="monotone" dataKey="bookings" stroke="#FF6B2B" fill="url(#gradBookings)" strokeWidth={2} name="Bookings" />
                 <Area type="monotone" dataKey="revenue"  stroke="#00C896" fill="url(#gradRevenue)"  strokeWidth={2} name="Revenue" />
