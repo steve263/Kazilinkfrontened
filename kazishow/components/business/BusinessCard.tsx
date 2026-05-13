@@ -265,7 +265,7 @@ export default function BusinessCard({ provider, variant = "grid" }: BusinessCar
             </div>
             <span className="flex items-center gap-1 px-3 py-1.5 bg-kazi-orange text-white text-xs font-bold rounded-xl hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200">
               <Zap className="w-3 h-3" fill="white" />
-              {provider.category === "FUNDI" ? "Book Now" : "Order Now"}
+              Book Now
             </span>
           </div>
         </div>

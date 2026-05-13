@@ -495,7 +495,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <div className="relative">
         {/* Cover */}
-        <div className="h-40 bg-gradient-to-br from-kazi-dark via-kazi-dark2 to-gray-800 relative overflow-hidden">
+        <div className="h-56 bg-gradient-to-br from-kazi-dark via-kazi-dark2 to-gray-800 relative overflow-hidden">
           {provider?.coverImage && (
             <img src={provider.coverImage} alt="cover" className="w-full h-full object-cover opacity-60" />
           )}
@@ -507,9 +507,9 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
         </div>
 
         {/* Avatar */}
-        <div className="absolute left-4 top-24">
+        <div className="absolute left-4 top-36">
           <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-white bg-orange-50 overflow-hidden shadow-lg">
+            <div className="w-28 h-28 rounded-full border-4 border-white bg-orange-50 overflow-hidden shadow-lg">
               {provider?.profileImage ? (
                 <img src={provider.profileImage} alt="avatar" className="w-full h-full object-cover" />
               ) : (
@@ -547,7 +547,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
       </div>
 
       {/* Business info */}
-      <div className="px-4 pt-14 pb-3">
+      <div className="px-4 pt-20 pb-3">
         {providerLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-7 w-48" />

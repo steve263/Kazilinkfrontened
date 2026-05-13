@@ -120,7 +120,7 @@ function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; on
 
         {/* Image or gradient header */}
         <div
-          className="relative h-36 overflow-hidden"
+          className="relative aspect-square overflow-hidden"
           onClick={deal.imageUrl ? (e) => { e.preventDefault(); e.stopPropagation(); setLightboxOpen(true); } : undefined}
         >
           {deal.imageUrl ? (
@@ -457,7 +457,7 @@ export default function DealsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-white rounded-2xl animate-pulse overflow-hidden">
-                <div className="h-36 bg-gray-200" />
+                <div className="aspect-square bg-gray-200" />
                 <div className="p-4 space-y-3">
                   <div className="h-4 bg-gray-200 rounded w-3/4" />
                   <div className="h-3 bg-gray-200 rounded" />

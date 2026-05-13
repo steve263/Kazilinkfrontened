@@ -208,7 +208,7 @@ export default function ProviderBottomSheet({ provider, onClose, onBook }: Props
               className="flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.98] shadow-lg"
               style={{ background: `linear-gradient(135deg, #FF6B2B, #FF8C42)`, boxShadow: "0 4px 15px rgba(255,107,43,0.35)" }}
             >
-              {provider.category === "FUNDI" ? "Book Now" : "Order Now"}
+              Book Now
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

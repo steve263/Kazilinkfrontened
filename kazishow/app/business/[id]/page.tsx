@@ -401,7 +401,7 @@ export default function ProviderProfilePage() {
                 <Calendar className="w-4 h-4" />
                 {hasDeal && dealPrice !== undefined
                   ? `🔥 Book Deal — KSh ${dealPrice.toLocaleString()}`
-                  : provider.category === "FUNDI" ? "Book Now" : "Order Now"
+                  : "Book Now"
                 }
               </button>
             )}

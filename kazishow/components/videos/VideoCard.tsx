@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, ShoppingBag, Flag, Trash2, Download } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, Flag, Trash2, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import VideoPlayer from "./VideoPlayer";
 import CommentsSheet from "./CommentsSheet";
@@ -344,11 +344,7 @@ export default function VideoCard({
               onClick={() => router.push(`/business/${ctaProviderId}`)}
               className={`ml-auto flex items-center gap-1.5 px-4 py-2 bg-kazi-orange text-white text-sm font-black rounded-xl hover:bg-orange-600 transition-all active:scale-95`}
             >
-              {isFundi(video) ? (
-                <><Calendar className="w-4 h-4" /> Book Now</>
-              ) : (
-                <><ShoppingBag className="w-4 h-4" /> Order Now</>
-              )}
+              <><Calendar className="w-4 h-4" /> Book Now</>
             </button>
           )}
         </div>

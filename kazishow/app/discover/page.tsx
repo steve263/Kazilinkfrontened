@@ -241,7 +241,7 @@ function ProviderCard({
           href={`/business/${provider.id}`}
           className="mt-auto block w-full py-2.5 bg-kazi-orange text-white text-sm font-black text-center rounded-xl hover:bg-orange-600 transition-colors active:scale-95"
         >
-          {provider.category === "FUNDI" ? "Book Now" : "Order Now"}
+          {"Book Now"}
         </Link>
       </div>
     </div>
@@ -351,7 +351,7 @@ function ProviderCardHorizontal({
           href={`/business/${provider.id}`}
           className="mt-2 inline-flex items-center gap-1 px-4 py-2 bg-kazi-orange text-white text-xs font-black rounded-xl hover:bg-orange-600 transition-colors self-start"
         >
-          {provider.category === "FUNDI" ? "Book Now" : "Order Now"}
+          {"Book Now"}
         </Link>
       </div>
     </div>
