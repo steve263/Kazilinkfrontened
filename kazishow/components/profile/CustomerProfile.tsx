@@ -308,79 +308,74 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
 
   return (
     <div className="min-h-screen bg-kazi-cream pb-24">
-      {/* ── HEADER ─────────────────────────────────────────────────── */}
-      <div className="relative">
-        {/* Cover */}
-        <div className="h-36 bg-gradient-to-br from-kazi-orange via-orange-400 to-amber-400" />
-
-        {/* Avatar */}
-        <div className="absolute left-4 top-20">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-white bg-orange-100 overflow-hidden shadow-lg">
+      {/* ── HEADER (centered card, no cover) ───────────────────────── */}
+      <div className="bg-white shadow-sm mb-2 px-4 pt-8 pb-5">
+        {/* Avatar — centered, large */}
+        <div className="flex flex-col items-center">
+          <div className="relative mb-3">
+            <div className="w-28 h-28 rounded-full border-4 border-orange-100 bg-orange-50 overflow-hidden shadow-lg">
               {profile?.profilePhoto ? (
                 <img src={profile.profilePhoto} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-3xl font-black text-kazi-orange">
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-kazi-orange to-amber-400">
+                  <span className="text-5xl font-black text-white">
                     {(profile?.name || initialUser?.name || "U")[0].toUpperCase()}
                   </span>
                 </div>
               )}
             </div>
-            <label className="absolute bottom-0 right-0 w-7 h-7 bg-kazi-orange rounded-full flex items-center justify-center cursor-pointer shadow-md hover:bg-orange-600 transition-colors">
-              {photoUploading ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Camera className="w-3.5 h-3.5 text-white" />}
+            <label className="absolute bottom-1 right-0 w-8 h-8 bg-kazi-orange rounded-full flex items-center justify-center cursor-pointer shadow-md border-2 border-white hover:bg-orange-600 transition-colors">
+              {photoUploading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
               <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
             </label>
           </div>
-        </div>
 
-        {/* Edit button */}
-        <div className="absolute right-4 top-40">
+          {/* Name, location, member since — centered */}
+          {profileLoading ? (
+            <div className="space-y-2 flex flex-col items-center">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+          ) : (
+            <>
+              <h1 className="text-xl font-black text-kazi-dark text-center">{profile?.name}</h1>
+              <div className="flex items-center gap-1 text-gray-500 text-sm mt-1">
+                <MapPin className="w-3.5 h-3.5 text-kazi-orange" />
+                <span>{profile?.location || "Location not set"}</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Member since {profile?.createdAt
+                  ? new Date(profile.createdAt).toLocaleDateString("en-KE", { month: "long", year: "numeric" })
+                  : "—"}
+              </p>
+            </>
+          )}
+
+          {/* Edit profile button */}
           <button
             onClick={() => setActiveTab("settings")}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-xl shadow text-sm font-semibold text-kazi-dark hover:bg-gray-50 transition-colors"
+            className="mt-4 flex items-center gap-1.5 px-5 py-2 border-2 border-gray-200 rounded-full text-sm font-semibold text-kazi-dark hover:border-kazi-orange hover:text-kazi-orange transition-colors"
           >
-            <Edit3 className="w-3.5 h-3.5" /> Edit
+            <Edit3 className="w-3.5 h-3.5" /> Edit Profile
           </button>
         </div>
-      </div>
 
-      {/* Name + info */}
-      <div className="px-4 pt-14 pb-4">
-        {profileLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-40" />
-            <Skeleton className="h-4 w-32" />
-          </div>
-        ) : (
-          <>
-            <h1 className="text-2xl font-black text-kazi-dark">{profile?.name}</h1>
-            <div className="flex items-center gap-1 text-gray-500 text-sm mt-0.5">
-              <MapPin className="w-3.5 h-3.5 text-kazi-orange" />
-              <span>{profile?.location || "Location not set"}</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Member since {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString("en-KE", { month: "long", year: "numeric" }) : "—"}
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* Stats bar */}
-      <div className="px-4 pb-4 grid grid-cols-4 gap-2">
-        {profileLoading
-          ? [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16" />)
-          : [
-              { label: "Bookings", value: profile?._count?.bookingsAsCustomer ?? 0, color: "text-kazi-orange" },
-              { label: "Reviews", value: profile?.reviewCount ?? 0, color: "text-amber-500" },
-              { label: "Saved", value: profile?.savedCount ?? 0, color: "text-rose-500" },
-              { label: "Tips", value: profile?.tipCount ?? 0, color: "text-kazi-green" },
-            ].map((s) => (
-              <div key={s.label} className="bg-white rounded-2xl shadow-sm p-3 flex flex-col items-center gap-1">
-                <span className={`text-xl font-black ${s.color}`}>{s.value}</span>
-                <span className="text-[10px] text-gray-500 font-medium">{s.label}</span>
-              </div>
-            ))}
+        {/* Stats strip — dividers like LinkedIn connection count */}
+        <div className="grid grid-cols-4 divide-x divide-gray-100 mt-5 pt-4 border-t border-gray-100">
+          {profileLoading
+            ? [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-10 mx-2" />)
+            : [
+                { label: "Bookings", value: profile?._count?.bookingsAsCustomer ?? 0, color: "text-kazi-orange" },
+                { label: "Reviews", value: profile?.reviewCount ?? 0, color: "text-amber-500" },
+                { label: "Saved", value: profile?.savedCount ?? 0, color: "text-rose-500" },
+                { label: "Tips", value: profile?.tipCount ?? 0, color: "text-kazi-green" },
+              ].map((s) => (
+                <div key={s.label} className="text-center px-1">
+                  <p className={`text-lg font-black ${s.color}`}>{s.value}</p>
+                  <p className="text-[10px] text-gray-400 font-medium">{s.label}</p>
+                </div>
+              ))}
+        </div>
       </div>
 
       {/* Refer & Earn Banner */}
