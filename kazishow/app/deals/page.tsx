@@ -91,6 +91,7 @@ function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; on
         : null;
 
   return (
+    <>
     <Link href={`/business/${deal.provider?.id}`}>
       <div className={`relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group cursor-pointer ${expired ? "opacity-60" : ""}`}>
         {/* Expired overlay */}
@@ -207,6 +208,7 @@ function DealCard({ deal, saved, onToggleSave }: { deal: any; saved: boolean; on
         </div>
       </div>
     )}
+    </>
   );
 }
 
