@@ -20,6 +20,7 @@ import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import KaziPromise from "@/components/home/KaziPromise";
 import NewsletterSignup from "@/components/home/NewsletterSignup";
 import ReferralBanner from "@/components/home/ReferralBanner";
+import BookingReminderBanner from "@/components/ui/BookingReminderBanner";
 import { POSTS, CATEGORIES } from "@/lib/data";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -169,6 +170,7 @@ export default function HomePage() {
       )}
 
       <TrustBar />
+      <BookingReminderBanner />
 
       {/* Hero */}
       <section className="relative bg-kazi-dark overflow-hidden">

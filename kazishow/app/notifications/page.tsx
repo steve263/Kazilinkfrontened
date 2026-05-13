@@ -75,6 +75,7 @@ function navLink(type: NType, isProvider: boolean, bookingId?: string): string |
   if (type === "BOOKING_DECLINED" && !isProvider) return "/discover";
   if (type === "BOOKING_COMPLETED") return "/booking";
   if (type === "PAYMENT_RECEIVED") return "/booking";
+  if (type === "BOOKING_REMINDER") return isProvider ? "/provider/notifications" : "/profile";
   if (type === "SYSTEM") return isProvider ? "/provider/requests" : "/booking";
   return null;
 }
