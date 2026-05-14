@@ -278,25 +278,53 @@ function RequestCard({
 
 // ─── Active Job Card ──────────────────────────────────────────────────────────
 
-const ACTIVE_NEXT: Record<string, { label: string; next: string; color: string; icon: string }> = {
-  ACCEPTED:    { label: "I'm En Route",  next: "EN_ROUTE",    color: "bg-cyan-500 hover:bg-cyan-600",        icon: "🚗" },
-  EN_ROUTE:    { label: "I've Arrived",  next: "ARRIVED",     color: "bg-purple-500 hover:bg-purple-600",    icon: "📍" },
-  ARRIVED:     { label: "Start Job",     next: "IN_PROGRESS", color: "bg-[#FF6B2B] hover:bg-orange-600",     icon: "▶" },
-  IN_PROGRESS: { label: "Complete Job",  next: "COMPLETED",   color: "bg-[#00C896] hover:bg-green-600",      icon: "✅" },
-};
+function isMobileCategory(category: string, description = "") {
+  if (category === "FUNDI") return true;
+  const desc = description.toLowerCase();
+  return desc.includes("catering") || desc.includes("security") || desc.includes("cleaning");
+}
+
+function getNextAction(
+  status: string,
+  category: string,
+  description = ""
+): { label: string; next: string; color: string; icon: string } | null {
+  const mobile = isMobileCategory(category, description);
+
+  if (mobile) {
+    const MAP: Record<string, { label: string; next: string; color: string; icon: string }> = {
+      ACCEPTED:    { label: "I'm On My Way", next: "EN_ROUTE",    color: "bg-cyan-500 hover:bg-cyan-600",     icon: "🚗" },
+      EN_ROUTE:    { label: "I've Arrived",  next: "ARRIVED",     color: "bg-purple-500 hover:bg-purple-600", icon: "📍" },
+      ARRIVED:     { label: "Start Job",     next: "IN_PROGRESS", color: "bg-[#FF6B2B] hover:bg-orange-600",  icon: "▶" },
+      IN_PROGRESS: { label: "Complete Job",  next: "COMPLETED",   color: "bg-[#00C896] hover:bg-green-600",   icon: "✅" },
+    };
+    return MAP[status] || null;
+  } else {
+    // Fixed-location: skip EN_ROUTE and ARRIVED
+    const MAP: Record<string, { label: string; next: string; color: string; icon: string }> = {
+      ACCEPTED:    { label: "Start Service",    next: "IN_PROGRESS", color: "bg-[#FF6B2B] hover:bg-orange-600", icon: "⚡" },
+      IN_PROGRESS: { label: "Complete Service", next: "COMPLETED",   color: "bg-[#00C896] hover:bg-green-600",  icon: "✅" },
+    };
+    return MAP[status] || null;
+  }
+}
 
 function ActiveJobCard({
   booking,
   acting,
+  providerCategory,
+  providerDescription,
   onUpdateStatus,
 }: {
   booking: Booking;
   acting: string | null;
+  providerCategory: string;
+  providerDescription?: string;
   onUpdateStatus: (id: string, status: string) => void;
 }) {
   const [confirmComplete, setConfirmComplete] = useState(false);
   const isActing = acting === booking.id;
-  const nextAction = ACTIVE_NEXT[booking.status];
+  const nextAction = getNextAction(booking.status, providerCategory, providerDescription);
 
   const handleAction = () => {
     if (!nextAction) return;
@@ -902,6 +930,8 @@ export default function ProviderRequestsPage() {
                   key={booking.id}
                   booking={booking}
                   acting={acting}
+                  providerCategory={user?.provider?.category || booking.provider?.category || "BUSINESS"}
+                  providerDescription={user?.provider?.description || ""}
                   onUpdateStatus={updateStatus}
                 />
               ))}

@@ -870,22 +870,32 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
                 )}
               </div>
 
-              <div className="w-full bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
-                <p className="text-sm text-kazi-dark font-medium">
-                  You will receive an SMS confirmation shortly
-                </p>
-              </div>
+              {(() => {
+                const desc = (business?.description || "").toLowerCase();
+                const isMobile = business?.category === "FUNDI" ||
+                  desc.includes("catering") || desc.includes("security") || desc.includes("cleaning");
+                return (
+                  <div className={`w-full rounded-2xl p-4 border ${isMobile ? "bg-orange-50 border-orange-200" : "bg-green-50 border-green-200"}`}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl">{isMobile ? "🚗" : "📍"}</span>
+                      <div>
+                        <p className={`font-bold text-sm ${isMobile ? "text-orange-700" : "text-green-700"}`}>
+                          {isMobile ? "Provider is on the way!" : "Your appointment is confirmed!"}
+                        </p>
+                        <p className={`text-xs mt-0.5 ${isMobile ? "text-orange-600" : "text-green-600"}`}>
+                          {isMobile
+                            ? `${business?.businessName} will arrive at your location at ${selectedTime}`
+                            : `Please visit ${business?.businessName} at ${selectedTime}`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
-              {business.category === "FUNDI" && business.user?.phone && (
-                <div className="w-full bg-orange-50 border border-orange-200 rounded-2xl p-4 text-center">
-                  <p className="text-sm text-kazi-dark font-medium">
-                    Your Fundi is on their way. Stay available on{" "}
-                    <span className="font-bold text-kazi-orange">
-                      {business.user.phone}
-                    </span>
-                  </p>
-                </div>
-              )}
+              <div className="w-full bg-gray-50 rounded-2xl p-3 text-center">
+                <p className="text-xs text-gray-400">📱 You will receive an SMS confirmation shortly</p>
+              </div>
 
               <button
                 onClick={onClose}
