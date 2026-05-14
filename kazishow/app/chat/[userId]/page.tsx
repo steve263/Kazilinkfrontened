@@ -3,11 +3,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, Send, Smile, Paperclip, X,
-  Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX,
+  Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Video,
 } from "lucide-react";
 import { io, Socket } from "socket.io-client";
 import MessageBubble from "@/components/chat/MessageBubble";
 import TypingIndicator from "@/components/chat/TypingIndicator";
+import VideoCall from "@/components/call/VideoCall";
 import toast from "react-hot-toast";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -61,7 +62,7 @@ export default function ChatRoomPage() {
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // ── Call state ──────────────────────────────────────────────────────────────
+  // ── Audio call state ─────────────────────────────────────────────────────────
   const [callState, setCallState] = useState<"idle" | "calling" | "connected" | "failed">("idle");
   const [callError, setCallError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -70,6 +71,14 @@ export default function ChatRoomPage() {
   const [incomingCallData, setIncomingCallData] = useState<{
     from: string; callerName: string; callerRole: string; callerAvatar: string; signal: any;
   } | null>(null);
+
+  // ── Video call state ─────────────────────────────────────────────────────────
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [isVideoCallInitiator, setIsVideoCallInitiator] = useState(false);
+  const [incomingVideoCallData, setIncomingVideoCallData] = useState<{
+    from: string; fromName: string; fromPhoto?: string; signal: any;
+  } | null>(null);
+  const [videoCallSignal, setVideoCallSignal] = useState<any>(null);
 
   // ── Refs ────────────────────────────────────────────────────────────────────
   const socketRef = useRef<Socket | null>(null);
@@ -175,6 +184,20 @@ export default function ChatRoomPage() {
     socket.on("call_ended", () => {
       cleanupCall(false);
       setIncomingCallData(null);
+    });
+
+    // ── Video call signaling events ──
+    socket.on("incoming_video_call", (data: any) => {
+      setIncomingVideoCallData(data);
+    });
+
+    socket.on("video_call_rejected", () => {
+      setShowVideoCall(false);
+      toast.error("Video call was declined");
+    });
+
+    socket.on("video_call_ended", () => {
+      setShowVideoCall(false);
     });
 
     return () => {
@@ -398,6 +421,7 @@ export default function ChatRoomPage() {
           noiseSuppression: true,
           autoGainControl: true,
           channelCount: 1,
+          sampleRate: 44100,
         },
         video: false,
       });
@@ -616,8 +640,74 @@ export default function ChatRoomPage() {
       {/* Hidden DOM audio element — browser AEC references this for echo cancellation */}
       <audio ref={remoteAudioElRef} autoPlay playsInline style={{ display: "none" }} />
 
-      {/* ── Incoming call overlay ── */}
-      {incomingCallData && callState === "idle" && (
+      {/* ── Active video call ── */}
+      {showVideoCall && socketRef.current && (
+        <VideoCall
+          socket={socketRef.current}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          targetUserId={otherId}
+          targetUserName={otherUser?.name || ""}
+          isInitiator={isVideoCallInitiator}
+          initialSignal={videoCallSignal}
+          onClose={() => {
+            setShowVideoCall(false);
+            setIncomingVideoCallData(null);
+            setVideoCallSignal(null);
+          }}
+        />
+      )}
+
+      {/* ── Incoming video call popup ── */}
+      {incomingVideoCallData && !showVideoCall && (
+        <div className="fixed inset-0 bg-[#1A1714]/90 z-50 flex flex-col items-center justify-center px-6">
+          <div className="relative mb-8 flex items-center justify-center">
+            <div className="w-28 h-28 rounded-full bg-kazi-orange/10 animate-ping absolute" />
+            <div className="w-28 h-28 rounded-full bg-kazi-orange/20 flex items-center justify-center relative z-10 overflow-hidden">
+              {incomingVideoCallData.fromPhoto
+                ? <img src={incomingVideoCallData.fromPhoto} className="w-full h-full object-cover" alt="" />
+                : <span className="text-5xl font-black text-white">{incomingVideoCallData.fromName?.charAt(0)?.toUpperCase() || "?"}</span>
+              }
+            </div>
+          </div>
+          <h2 className="text-white font-black text-2xl mb-1">{incomingVideoCallData.fromName}</h2>
+          <p className="text-white/50 text-sm mb-12">Incoming video call…</p>
+          <div className="flex items-center gap-16">
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => {
+                  if (incomingVideoCallData) {
+                    socketRef.current?.emit("video_call_rejected", { to: incomingVideoCallData.from });
+                  }
+                  setIncomingVideoCallData(null);
+                }}
+                className="w-16 h-16 rounded-full bg-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/40"
+              >
+                <PhoneOff className="w-7 h-7 text-white" />
+              </button>
+              <span className="text-white/50 text-xs">Decline</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => {
+                  if (!incomingVideoCallData) return;
+                  setIsVideoCallInitiator(false);
+                  setVideoCallSignal(incomingVideoCallData.signal);
+                  setIncomingVideoCallData(null);
+                  setShowVideoCall(true);
+                }}
+                className="w-16 h-16 rounded-full bg-kazi-orange flex items-center justify-center shadow-lg shadow-orange-500/40"
+              >
+                <Video className="w-7 h-7 text-white" />
+              </button>
+              <span className="text-white/50 text-xs">Accept</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Incoming audio call overlay ── */}
+      {incomingCallData && callState === "idle" && !showVideoCall && (
         <div className="fixed inset-0 bg-[#1A1714]/90 z-50 flex flex-col items-center justify-center px-6">
           <div className="relative mb-8 flex items-center justify-center">
             <div className="w-28 h-28 rounded-full bg-[#00C896]/10 animate-ping absolute" />
@@ -768,7 +858,7 @@ export default function ChatRoomPage() {
           </p>
         </div>
 
-        {/* Call button */}
+        {/* Audio call button */}
         <button
           onClick={startCall}
           disabled={callState !== "idle"}
@@ -776,6 +866,20 @@ export default function ChatRoomPage() {
           className="w-10 h-10 rounded-full bg-[#00C896]/10 flex items-center justify-center hover:bg-[#00C896]/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Phone className="w-5 h-5 text-[#00C896]" />
+        </button>
+
+        {/* Video call button */}
+        <button
+          onClick={() => {
+            setIsVideoCallInitiator(true);
+            setVideoCallSignal(null);
+            setShowVideoCall(true);
+          }}
+          disabled={callState !== "idle" || showVideoCall}
+          title="Video Call"
+          className="w-10 h-10 rounded-full bg-kazi-orange/10 flex items-center justify-center hover:bg-kazi-orange/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Video className="w-5 h-5 text-kazi-orange" />
         </button>
       </div>
 
