@@ -67,6 +67,9 @@ export default function ChatRoomPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [callDuration, setCallDuration] = useState("00:00");
+  const [incomingCallData, setIncomingCallData] = useState<{
+    from: string; callerName: string; callerRole: string; callerAvatar: string; signal: any;
+  } | null>(null);
 
   // ── Refs ────────────────────────────────────────────────────────────────────
   const socketRef = useRef<Socket | null>(null);
@@ -146,7 +149,16 @@ export default function ChatRoomPage() {
       if (userId === otherId) setOtherUser(p => p ? { ...p, isOnline: false } : p);
     });
 
-    // ── Call signaling events (outgoing call side) ──
+    // ── Call signaling events ──
+    socket.on("incoming_call", (data: any) => {
+      // Ignore if already in a call
+      if (callState !== "idle") {
+        socket.emit("decline_call", { to: data.from });
+        return;
+      }
+      setIncomingCallData(data);
+    });
+
     socket.on("call_accepted", (data: any) => {
       if (peerRef.current) peerRef.current.signal(data.signal);
     });
@@ -162,6 +174,7 @@ export default function ChatRoomPage() {
 
     socket.on("call_ended", () => {
       cleanupCall(false);
+      setIncomingCallData(null);
     });
 
     return () => {
@@ -384,7 +397,6 @@ export default function ChatRoomPage() {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: 44100,
           channelCount: 1,
         },
         video: false,
@@ -450,6 +462,63 @@ export default function ChatRoomPage() {
         credential: "openrelayproject",
       },
     ],
+  };
+
+  const declineCall = () => {
+    if (incomingCallData) {
+      socketRef.current?.emit("decline_call", { to: incomingCallData.from });
+    }
+    setIncomingCallData(null);
+  };
+
+  const acceptCall = async () => {
+    if (!incomingCallData) return;
+    const callData = incomingCallData;
+    setIncomingCallData(null);
+
+    const stream = await getMicrophone();
+    if (!stream) { socketRef.current?.emit("decline_call", { to: callData.from }); return; }
+    streamRef.current = stream;
+
+    try {
+      const { default: SimplePeer } = await import("simple-peer");
+      const peer = new SimplePeer({ initiator: false, trickle: true, stream, config: ICE_SERVERS });
+
+      // Feed the caller's offer into the peer first
+      peer.signal(callData.signal);
+
+      peer.on("signal", (signal: any) => {
+        if (signal.type === "answer") {
+          socketRef.current?.emit("accept_call", { to: callData.from, signal });
+        } else {
+          // ICE candidates generated on callee side → send to caller
+          socketRef.current?.emit("ice_candidate", { to: callData.from, candidate: signal });
+        }
+      });
+
+      peer.on("stream", (remoteStream: MediaStream) => {
+        if (remoteAudioElRef.current) {
+          remoteAudioElRef.current.srcObject = remoteStream;
+          remoteAudioElRef.current.play().catch((e) => console.warn("Audio play blocked:", e));
+        }
+        setCallState("connected");
+      });
+
+      peer.on("connect", () => setCallState("connected"));
+      peer.on("error", (err: any) => {
+        setCallError("Call failed: " + err.message);
+        setCallState("failed");
+        cleanupCall(false);
+      });
+      peer.on("close", () => cleanupCall(false));
+
+      peerRef.current = peer;
+      setCallState("connected");
+    } catch (err: any) {
+      setCallError("Failed to accept call: " + (err.message || "Unknown error"));
+      setCallState("failed");
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    }
   };
 
   const startCall = async () => {
@@ -546,6 +615,40 @@ export default function ChatRoomPage() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Hidden DOM audio element — browser AEC references this for echo cancellation */}
       <audio ref={remoteAudioElRef} autoPlay playsInline style={{ display: "none" }} />
+
+      {/* ── Incoming call overlay ── */}
+      {incomingCallData && callState === "idle" && (
+        <div className="fixed inset-0 bg-[#1A1714]/90 z-50 flex flex-col items-center justify-center px-6">
+          <div className="relative mb-8 flex items-center justify-center">
+            <div className="w-28 h-28 rounded-full bg-[#00C896]/10 animate-ping absolute" />
+            <div className="w-28 h-28 rounded-full bg-[#00C896]/20 flex items-center justify-center relative z-10 text-5xl font-black text-white">
+              {incomingCallData.callerAvatar}
+            </div>
+          </div>
+          <h2 className="text-white font-black text-2xl mb-1">{incomingCallData.callerName}</h2>
+          <p className="text-white/50 text-sm mb-12">Incoming audio call…</p>
+          <div className="flex items-center gap-16">
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={declineCall}
+                className="w-16 h-16 rounded-full bg-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/40"
+              >
+                <PhoneOff className="w-7 h-7 text-white" />
+              </button>
+              <span className="text-white/50 text-xs">Decline</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={acceptCall}
+                className="w-16 h-16 rounded-full bg-[#00C896] flex items-center justify-center shadow-lg shadow-emerald-500/40"
+              >
+                <Phone className="w-7 h-7 text-white" />
+              </button>
+              <span className="text-white/50 text-xs">Accept</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Failed call overlay ── */}
       {callState === "failed" && (
