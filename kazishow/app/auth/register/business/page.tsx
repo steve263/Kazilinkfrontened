@@ -71,6 +71,7 @@ export default function BusinessRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
 
   const [form, setForm] = useState<BusinessForm>({
     businessName: "", phone: "+254 ", email: "", password: "", confirmPassword: "", category: "", description: "",
@@ -105,7 +106,7 @@ export default function BusinessRegisterPage() {
   };
 
   const canProceed = () => {
-    if (step === 0) return !!(form.businessName && form.phone && form.category && form.description.length >= 20 && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
+    if (step === 0) return !!(form.businessName && form.phone && form.category && (form.category !== "Other" || customCategory.trim().length >= 2) && form.description.length >= 20 && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
     if (step === 1) return form.services.length >= 1 && form.openTime && form.closeTime;
     if (step === 2) return form.businessPhotos.length >= 1;
     if (step === 3) return form.location.length > 0;
@@ -134,7 +135,9 @@ const handleSubmit = async () => {
           location: form.location || "Nairobi",
           category: CATEGORY_ENUM[form.category] || "BUSINESS",
           businessName: form.businessName,
-          description: form.description,
+          description: form.category === "Other" && customCategory.trim()
+            ? `Business type: ${customCategory.trim()}\n\n${form.description}`
+            : form.description,
           workingHoursStart: form.openTime,
           workingHoursEnd: form.closeTime,
           ...(form.services.length > 0 && { services: form.services }),
@@ -327,12 +330,25 @@ const handleSubmit = async () => {
             <Field label="Business Category" required>
               <select
                 value={form.category}
-                onChange={(e) => set("category", e.target.value)}
+                onChange={(e) => { set("category", e.target.value); if (e.target.value !== "Other") setCustomCategory(""); }}
                 className={selectCls}
               >
                 <option value="">Select a category…</option>
                 {BUSINESS_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
+              {form.category === "Other" && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Describe your business type e.g. Car Wash, Laundry…"
+                    className="w-full px-4 py-3.5 bg-white/[0.08] border border-kazi-orange/50 rounded-2xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:ring-2 focus:ring-kazi-orange transition-all"
+                    maxLength={60}
+                  />
+                  <p className="text-xs text-white/30 mt-1 ml-0.5">{customCategory.length}/60 characters</p>
+                </div>
+              )}
             </Field>
 
             <Field label="Business Description" required hint="Minimum 20 characters — describe your services clearly">
@@ -569,7 +585,7 @@ const handleSubmit = async () => {
               <h4 className="text-sm font-bold text-white mb-3">Business Summary</h4>
               {[
                 { label: "Business Name", value: form.businessName || "—" },
-                { label: "Category", value: form.category || "—" },
+                { label: "Category", value: form.category === "Other" && customCategory.trim() ? `Other — ${customCategory.trim()}` : form.category || "—" },
                 { label: "Services", value: `${form.services.length} service${form.services.length !== 1 ? "s" : ""}` },
                 { label: "Hours", value: form.openTime && form.closeTime ? `${form.openTime}–${form.closeTime}` : "—" },
                 { label: "Photos", value: `${form.businessPhotos.length} uploaded` },
