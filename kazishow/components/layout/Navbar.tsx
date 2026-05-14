@@ -134,7 +134,7 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/discover", label: "Discover" },
     { href: "/feed", label: "Feed" },
-    { href: "/videos", label: "🎬 Kazi Videos" },
+    { href: "/videos", label: "🎬 ShowReel" },
     { href: "/about", label: "About" },
     { href: "/tips", label: "Tips & Guides" },
     { href: "/deals", label: "🔥 Deals" },

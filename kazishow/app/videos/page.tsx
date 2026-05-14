@@ -39,7 +39,7 @@ function CardSkeleton() {
   );
 }
 
-export default function KaziVideosPage() {
+export default function ShowReelPage() {
   const [videos, setVideos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -97,7 +97,7 @@ export default function KaziVideosPage() {
                 <Video className="w-5 h-5 text-white" fill="white" />
               </div>
               <div>
-                <h1 className="text-white font-black text-xl leading-tight">Kazi Videos</h1>
+                <h1 className="text-white font-black text-xl leading-tight">ShowReel</h1>
                 <p className="text-gray-400 text-xs">Real videos from real people</p>
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function KaziVideosPage() {
             <p className="text-gray-400 text-sm mb-6">
               {filter !== "all"
                 ? "No videos found for this filter. Try a different one."
-                : "Be the first to share a video on Kazi Videos!"}
+                : "Be the first to share a video on ShowReel!"}
             </p>
             {currentUser && (
               <button

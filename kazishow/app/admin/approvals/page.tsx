@@ -28,7 +28,7 @@ const TABS = [
   { id: "testimonials", label: "Testimonials", icon: MessageSquare},
   { id: "tips",         label: "Tips & Guides",icon: FileText     },
   { id: "withdrawals",  label: "Withdrawals",  icon: Wallet       },
-  { id: "kazivideos",   label: "Kazi Videos",  icon: Video        },
+  { id: "kazivideos",   label: "ShowReel",  icon: Video        },
 ];
 
 export default function ApprovalsPage() {
@@ -118,7 +118,7 @@ export default function ApprovalsPage() {
       });
       const data = await res.json();
       if (data.success) setKaziVideos(data.data);
-    } catch { toast.error("Failed to load Kazi Videos"); }
+    } catch { toast.error("Failed to load ShowReel"); }
   }, [ready, token]);
 
   const fetchWithdrawals = useCallback(async () => {

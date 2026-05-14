@@ -170,7 +170,7 @@ export default function VideoUploadModal({ isOpen, onClose, userRole, onPosted }
       });
       const data = await res.json();
       if (data.success) {
-        toast.success("Your video is now live on Kazi Videos!");
+        toast.success("Your video is now live on ShowReel!");
         onPosted(data.data);
         handleClose();
       } else {
