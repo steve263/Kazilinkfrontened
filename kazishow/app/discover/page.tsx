@@ -1,6 +1,7 @@
 "use client";
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { Suspense, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Search, SlidersHorizontal, X, Star, Grid, List,
   Navigation, MapPin, Bookmark, BookmarkCheck, Zap,
@@ -393,12 +394,13 @@ function FeaturedCard({ provider }: { provider: ReturnType<typeof mapProvider> }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function DiscoverPage() {
+function DiscoverContent() {
+  const searchParams = useSearchParams();
   const [providers, setProviders] = useState<ReturnType<typeof mapProvider>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
@@ -968,5 +970,13 @@ export default function DiscoverPage() {
       <div className="pb-20 md:pb-0" />
       <BottomNav />
     </div>
+  );
+}
+
+export default function DiscoverPage() {
+  return (
+    <Suspense>
+      <DiscoverContent />
+    </Suspense>
   );
 }

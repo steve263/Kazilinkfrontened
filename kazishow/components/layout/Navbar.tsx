@@ -21,6 +21,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -284,15 +285,34 @@ export default function Navbar() {
         {/* Search bar dropdown */}
         {searchOpen && (
           <div className="py-3 pb-4 animate-slide-up">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                autoFocus
-                type="text"
-                placeholder="Search businesses, services, products..."
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-kazi-orange focus:border-transparent"
-              />
-            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const q = searchQuery.trim();
+                setSearchOpen(false);
+                setSearchQuery("");
+                router.push(q ? `/discover?q=${encodeURIComponent(q)}` : "/discover");
+              }}
+              className="relative flex gap-2"
+            >
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search businesses, services, locations..."
+                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-kazi-orange focus:border-transparent"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-5 py-3 bg-kazi-orange text-white text-sm font-bold rounded-xl hover:bg-orange-600 transition-colors"
+              >
+                Search
+              </button>
+            </form>
           </div>
         )}
 
