@@ -41,14 +41,14 @@ interface VideoData {
 }
 
 const ROLE_BADGE: Record<string, { label: string; color: string }> = {
-  FUNDI:        { label: "Fundi",    color: "bg-orange-500 text-white" },
-  SHOP:         { label: "Shop",     color: "bg-blue-500 text-white" },
-  HOTEL:        { label: "Hotel",    color: "bg-amber-500 text-white" },
-  RESTAURANT:   { label: "Restaurant", color: "bg-red-500 text-white" },
-  TECH:         { label: "Tech",     color: "bg-purple-500 text-white" },
+  FUNDI:        { label: "Fundi",        color: "bg-orange-500 text-white" },
+  SHOP:         { label: "Shop",         color: "bg-blue-500 text-white" },
+  HOTEL:        { label: "Hotel",        color: "bg-amber-500 text-white" },
+  RESTAURANT:   { label: "Restaurant",   color: "bg-red-500 text-white" },
+  TECH:         { label: "Tech",         color: "bg-purple-500 text-white" },
   PROFESSIONAL: { label: "Professional", color: "bg-teal-500 text-white" },
-  BUSINESS:     { label: "Business", color: "bg-blue-500 text-white" },
-  CUSTOMER:     { label: "Customer", color: "bg-green-500 text-white" },
+  BUSINESS:     { label: "Business",     color: "bg-blue-500 text-white" },
+  CUSTOMER:     { label: "Customer",     color: "bg-green-500 text-white" },
 };
 
 function timeAgo(dateStr: string) {
@@ -59,15 +59,6 @@ function timeAgo(dateStr: string) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
   return `${Math.floor(h / 24)}d`;
-}
-
-function getProviderType(video: VideoData) {
-  if (video.user.role !== "PROVIDER") return null;
-  return video.user.provider?.category || null;
-}
-
-function isFundi(video: VideoData) {
-  return getProviderType(video) === "FUNDI";
 }
 
 const REPORT_REASONS = ["Inappropriate", "Spam", "Fake", "Misleading"];
@@ -89,7 +80,7 @@ export default function VideoCard({
   const [reportOpen, setReportOpen] = useState(false);
 
   const isOwn = currentUserId === video.user.id;
-  const providerCategory = getProviderType(video);
+  const providerCategory = video.user.role === "PROVIDER" ? video.user.provider?.category || null : null;
   const badge = providerCategory
     ? ROLE_BADGE[providerCategory]
     : video.user.role === "CUSTOMER"
@@ -131,9 +122,7 @@ export default function VideoCard({
       const data = await res.json();
       if (data.success) toast.success("Video reported. Thank you!");
       else toast.error(data.message || "Already reported");
-    } catch {
-      toast.error("Network error");
-    }
+    } catch { toast.error("Network error"); }
   }
 
   async function handleDelete() {
@@ -147,15 +136,9 @@ export default function VideoCard({
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) {
-        toast.success("Video deleted");
-        onDelete?.(video.id);
-      } else {
-        toast.error(data.message || "Failed to delete");
-      }
-    } catch {
-      toast.error("Network error");
-    }
+      if (data.success) { toast.success("Video deleted"); onDelete?.(video.id); }
+      else toast.error(data.message || "Failed to delete");
+    } catch { toast.error("Network error"); }
   }
 
   async function handleDownload() {
@@ -168,9 +151,7 @@ export default function VideoCard({
       a.download = `kazishow-video-${video.id}.mp4`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      window.open(video.videoUrl, "_blank");
-    }
+    } catch { window.open(video.videoUrl, "_blank"); }
   }
 
   function share() {
@@ -185,42 +166,56 @@ export default function VideoCard({
 
   return (
     <>
-      <div className="bg-gray-900 rounded-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-kazi-orange flex-shrink-0 flex items-center justify-center text-white text-sm font-black overflow-hidden">
+      {/* Portrait card — 9:16 like Instagram Reels / WhatsApp Status */}
+      <div className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-black shadow-xl">
+
+        {/* Video fills the full card */}
+        <VideoPlayer
+          src={video.videoUrl}
+          thumbnail={video.thumbnailUrl}
+          className="absolute inset-0 w-full h-full"
+        />
+
+        {/* Gradient overlays: dark top + dark bottom for readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent via-40% to-black/80 pointer-events-none" />
+
+        {/* ── Top bar: avatar + name + badge + menu ── */}
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 pt-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-kazi-orange flex-shrink-0 flex items-center justify-center text-white text-sm font-black overflow-hidden ring-2 ring-white/30">
               {video.user.profilePhoto
                 ? <img src={video.user.profilePhoto} className="w-full h-full object-cover" alt="" />
                 : video.user.name.charAt(0).toUpperCase()
               }
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-white text-sm font-black">{video.user.name}</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-white text-sm font-black drop-shadow truncate max-w-[120px]">
+                  {video.user.name}
+                </span>
                 {badge && (
-                  <span className={`px-2 py-0.5 text-[10px] font-black rounded-full ${badge.color}`}>
+                  <span className={`px-1.5 py-0.5 text-[9px] font-black rounded-full flex-shrink-0 ${badge.color}`}>
                     {badge.label}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400 text-[10px]">{timeAgo(video.createdAt)} ago</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-white/60 text-[10px]">{timeAgo(video.createdAt)} ago</span>
                 {video.expiresAt && <ExpiryBadge expiresAt={video.expiresAt} />}
               </div>
             </div>
           </div>
 
           {/* Three-dot menu */}
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <button
               onClick={() => { setMenuOpen(!menuOpen); setReportOpen(false); }}
-              className="text-gray-400 hover:text-white p-1 transition-colors"
+              className="text-white/80 hover:text-white p-1.5 transition-colors"
             >
-              <MoreVertical className="w-5 h-5" />
+              <MoreVertical className="w-5 h-5 drop-shadow" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-8 z-30 bg-gray-800 rounded-xl shadow-xl border border-white/10 py-1 min-w-[140px]">
+              <div className="absolute right-0 top-8 z-30 bg-gray-900/95 backdrop-blur-sm rounded-xl shadow-xl border border-white/10 py-1 min-w-[140px]">
                 {isOwn ? (
                   <button
                     onClick={handleDelete}
@@ -238,9 +233,8 @@ export default function VideoCard({
                 )}
               </div>
             )}
-            {/* Report reasons */}
             {reportOpen && (
-              <div className="absolute right-0 top-8 z-30 bg-gray-800 rounded-xl shadow-xl border border-white/10 py-1 min-w-[160px]">
+              <div className="absolute right-0 top-8 z-30 bg-gray-900/95 backdrop-blur-sm rounded-xl shadow-xl border border-white/10 py-1 min-w-[160px]">
                 <p className="px-4 py-2 text-[10px] text-gray-500 uppercase font-black tracking-wider border-b border-white/10">
                   Report reason
                 </p>
@@ -264,25 +258,60 @@ export default function VideoCard({
           </div>
         </div>
 
-        {/* Video */}
-        <VideoPlayer
-          src={video.videoUrl}
-          thumbnail={video.thumbnailUrl}
-          className="w-full aspect-[9/16] sm:aspect-video max-h-[480px]"
-        />
+        {/* ── Right side actions (TikTok / Reels style) ── */}
+        <div className="absolute right-3 bottom-28 flex flex-col items-center gap-5">
+          {/* Like */}
+          <button
+            onClick={toggleLike}
+            className={`flex flex-col items-center gap-1 transition-all active:scale-90 ${liked ? "text-red-500" : "text-white"}`}
+          >
+            <Heart className="w-7 h-7 drop-shadow" fill={liked ? "currentColor" : "none"} />
+            <span className="text-xs font-bold drop-shadow">{likes}</span>
+          </button>
 
-        {/* Caption */}
-        <div className="px-4 pt-3 pb-1">
-          <p className="text-white text-sm leading-relaxed">{video.caption}</p>
+          {/* Comments */}
+          <button
+            onClick={() => setCommentsOpen(true)}
+            className="flex flex-col items-center gap-1 text-white transition-all active:scale-90"
+          >
+            <MessageCircle className="w-7 h-7 drop-shadow" />
+            <span className="text-xs font-bold drop-shadow">{video._count?.comments ?? 0}</span>
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={share}
+            className="flex flex-col items-center gap-1 text-white transition-all active:scale-90"
+          >
+            <Share2 className="w-7 h-7 drop-shadow" />
+            <span className="text-xs font-bold drop-shadow">Share</span>
+          </button>
+
+          {/* Download */}
+          <button
+            onClick={handleDownload}
+            className="flex flex-col items-center gap-1 text-white transition-all active:scale-90"
+          >
+            <Download className="w-7 h-7 drop-shadow" />
+            <span className="text-xs font-bold drop-shadow">Save</span>
+          </button>
+        </div>
+
+        {/* ── Bottom overlay: caption + hashtags + CTA ── */}
+        <div className="absolute bottom-0 left-0 right-14 px-4 pb-5">
+          {/* Caption */}
+          <p className="text-white text-sm leading-relaxed drop-shadow line-clamp-3">{video.caption}</p>
+
+          {/* Hashtags */}
           {video.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
               {video.hashtags.map((h) => (
-                <span key={h} className="text-kazi-orange text-xs font-semibold">#{h}</span>
+                <span key={h} className="text-kazi-orange text-xs font-semibold drop-shadow">#{h}</span>
               ))}
             </div>
           )}
 
-          {/* Customer review info */}
+          {/* Customer review stars + provider ref */}
           {video.user.role === "CUSTOMER" && (video.rating || video.provider) && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {video.rating && (
@@ -293,58 +322,18 @@ export default function VideoCard({
                 </div>
               )}
               {video.provider && (
-                <span className="text-gray-400 text-xs">Re: <span className="text-white font-semibold">{video.provider.businessName}</span></span>
+                <span className="text-white/60 text-xs">Re: <span className="text-white font-semibold">{video.provider.businessName}</span></span>
               )}
             </div>
           )}
-        </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-4 px-4 py-3">
-          {/* Like */}
-          <button
-            onClick={toggleLike}
-            className={`flex items-center gap-1.5 text-sm font-semibold transition-all active:scale-90 ${liked ? "text-red-500" : "text-gray-400 hover:text-red-400"}`}
-          >
-            <Heart className="w-5 h-5" fill={liked ? "currentColor" : "none"} />
-            <span>{likes}</span>
-          </button>
-
-          {/* Comments */}
-          <button
-            onClick={() => setCommentsOpen(true)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span>{video._count?.comments ?? 0}</span>
-          </button>
-
-          {/* Share */}
-          <button
-            onClick={share}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
-          >
-            <Share2 className="w-5 h-5" />
-            <span>Share</span>
-          </button>
-
-          {/* Download */}
-          <button
-            onClick={handleDownload}
-            title="Download video"
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
-          >
-            <Download className="w-5 h-5" />
-            <span>Download</span>
-          </button>
-
-          {/* CTA button */}
+          {/* Book Now CTA */}
           {video.user.role === "PROVIDER" && ctaProviderId && (
             <button
               onClick={() => router.push(`/business/${ctaProviderId}`)}
-              className={`ml-auto flex items-center gap-1.5 px-4 py-2 bg-kazi-orange text-white text-sm font-black rounded-xl hover:bg-orange-600 transition-all active:scale-95`}
+              className="mt-3 flex items-center gap-1.5 px-4 py-2 bg-kazi-orange text-white text-sm font-black rounded-xl hover:bg-orange-600 transition-all active:scale-95 shadow-lg"
             >
-              <><Calendar className="w-4 h-4" /> Book Now</>
+              <Calendar className="w-4 h-4" /> Book Now
             </button>
           )}
         </div>

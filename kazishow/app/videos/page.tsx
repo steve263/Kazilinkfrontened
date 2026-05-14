@@ -18,24 +18,7 @@ const FILTERS = [
 
 function CardSkeleton() {
   return (
-    <div className="bg-gray-800 rounded-2xl overflow-hidden animate-pulse">
-      <div className="aspect-video bg-gray-700" />
-      <div className="p-4 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gray-700" />
-          <div className="space-y-1.5 flex-1">
-            <div className="h-3 bg-gray-700 rounded w-1/2" />
-            <div className="h-2 bg-gray-700 rounded w-1/3" />
-          </div>
-        </div>
-        <div className="h-3 bg-gray-700 rounded w-3/4" />
-        <div className="flex gap-4 pt-1">
-          <div className="h-6 w-12 bg-gray-700 rounded-lg" />
-          <div className="h-6 w-12 bg-gray-700 rounded-lg" />
-          <div className="h-6 w-16 bg-gray-700 rounded-lg" />
-        </div>
-      </div>
-    </div>
+    <div className="bg-gray-800 rounded-2xl overflow-hidden animate-pulse aspect-[9/16]" />
   );
 }
 
@@ -90,7 +73,7 @@ export default function ShowReelPage() {
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="bg-gray-900 border-b border-white/10 sticky top-16 z-30">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
+        <div className="max-w-sm mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-kazi-orange flex items-center justify-center">
@@ -139,7 +122,7 @@ export default function ShowReelPage() {
       </div>
 
       {/* ── Feed ────────────────────────────────────────────────────────── */}
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-sm mx-auto px-4 py-6">
         {loading && (
           <div className="space-y-6">
             {[...Array(3)].map((_, i) => <CardSkeleton key={i} />)}
