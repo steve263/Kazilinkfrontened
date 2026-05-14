@@ -120,6 +120,16 @@ export default function ProviderProfilePage() {
       }
     };
     fetchProvider();
+
+    // Record view interaction for recommendations
+    const token = localStorage.getItem("kazishow_token");
+    if (token && params.id) {
+      fetch(`${API_URL}/api/recommendations/interaction`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ providerId: params.id, type: "view" }),
+      }).catch(() => {});
+    }
   }, [params.id]);
 
   useEffect(() => {

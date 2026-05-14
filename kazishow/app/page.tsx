@@ -2,6 +2,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search, MapPin, ArrowRight, Star, Zap, TrendingUp, Shield,
   Smartphone, ChevronRight, Play, CheckCircle, HardHat, Store,
@@ -91,7 +92,13 @@ const STATIC_TESTIMONIALS = [
   { id: "t3", name: "Fatuma Hassan", location: "South B, Nairobi", provider: "CleanPro Kenya", rating: 5, comment: "My whole house was spotless in 3 hours. The team was respectful, thorough, and very hardworking. Booked them again the following week!" },
 ];
 
+const CATEGORY_EMOJI: Record<string, string> = {
+  FUNDI: "🔧", SHOP: "🏪", HOTEL: "🏨", RESTAURANT: "🍽️",
+  TECH: "💻", PROFESSIONAL: "💼", BUSINESS: "🏢",
+};
+
 export default function HomePage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showExitPopup, setShowExitPopup] = useState(false);
@@ -103,6 +110,10 @@ export default function HomePage() {
   const bookingCountRef = useRef<HTMLDivElement>(null);
   const [counterStarted, setCounterStarted] = useState(false);
   const animatedBookings = useCountUp(totalBookings, 2000, counterStarted && bookingsLoaded);
+
+  // Smart recommendations
+  const [recommendations, setRecommendations] = useState<any>(null);
+  const [trending, setTrending] = useState<any[]>([]);
 
 
 
@@ -129,6 +140,21 @@ export default function HomePage() {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setCounterStarted(true); }, { threshold: 0.3 });
     if (bookingCountRef.current) obs.observe(bookingCountRef.current);
     return () => obs.disconnect();
+  }, []);
+
+  // Load recommendations for logged-in customers
+  useEffect(() => {
+    const token = localStorage.getItem("kazishow_token");
+    if (token) {
+      fetch(`${API}/api/recommendations`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => { if (d.success) setRecommendations(d.data); })
+        .catch(() => {});
+    }
+    fetch(`${API}/api/recommendations/trending`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setTrending(d.data); })
+      .catch(() => {});
   }, []);
 
 
@@ -290,6 +316,123 @@ export default function HomePage() {
       </section>
 
       <SocialProofSection />
+
+      {/* ── Book Again ── */}
+      {recommendations?.bookAgain?.length > 0 && (
+        <section className="px-4 py-6 max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-black text-kazi-dark">🔄 Book Again</h2>
+              <p className="text-gray-400 text-sm">Providers you loved</p>
+            </div>
+            <Link href="/discover" className="text-kazi-orange text-sm font-bold">See All →</Link>
+          </div>
+          <div className="space-y-3">
+            {recommendations.bookAgain.slice(0, 3).map((item: any) => (
+              <div key={item.provider.id}
+                className="bg-white rounded-2xl p-4 card-shadow flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-2xl flex-shrink-0">
+                    {CATEGORY_EMOJI[item.provider.category] || "💼"}
+                  </div>
+                  <div>
+                    <p className="font-bold text-kazi-dark text-sm">{item.provider.businessName}</p>
+                    <p className="text-xs text-gray-400">{item.lastService} · KSh {item.lastAmount?.toLocaleString()}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span className="text-xs text-gray-400">{item.provider.rating?.toFixed(1)}</span>
+                      {item.bookingCount > 1 && (
+                        <span className="text-xs text-kazi-orange font-semibold ml-1">· Booked {item.bookingCount}×</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <Link href={`/business/${item.provider.id}`}
+                  className="px-4 py-2 bg-kazi-orange text-white text-xs font-bold rounded-xl flex items-center gap-1 flex-shrink-0">
+                  🔄 Book
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Trending This Week ── */}
+      {trending.length > 0 && (
+        <section className="px-4 py-6 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-4">
+              <h2 className="text-xl font-black text-kazi-dark">🔥 Trending</h2>
+              <p className="text-gray-400 text-sm">Most booked this week</p>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+              {trending.slice(0, 6).map((item: any) => (
+                <Link key={item.provider.id} href={`/business/${item.provider.id}`}
+                  className="flex-shrink-0 w-36 bg-kazi-cream rounded-2xl overflow-hidden hover:shadow-md transition-all text-left">
+                  <div className={`h-20 flex items-center justify-center text-4xl ${
+                    item.provider.category === "RESTAURANT" ? "bg-red-100" :
+                    item.provider.category === "HOTEL" ? "bg-amber-100" :
+                    item.provider.category === "FUNDI" ? "bg-orange-100" : "bg-blue-100"
+                  }`}>
+                    {CATEGORY_EMOJI[item.provider.category] || "💼"}
+                  </div>
+                  <div className="p-2.5">
+                    <p className="text-xs font-bold text-kazi-dark truncate">{item.provider.businessName}</p>
+                    <p className="text-xs text-kazi-orange font-semibold mt-0.5">🔥 {item.bookingsThisWeek} bookings</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Top Rated ── */}
+      {recommendations?.topRated?.length > 0 && (
+        <section className="px-4 py-6 max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-black text-kazi-dark">⭐ Top Rated</h2>
+              <p className="text-gray-400 text-sm">Loved by customers</p>
+            </div>
+            <Link href="/discover" className="text-kazi-orange text-sm font-bold">See All →</Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {recommendations.topRated.slice(0, 4).map((item: any) => (
+              <Link key={item.provider.id} href={`/business/${item.provider.id}`}
+                className="bg-white rounded-2xl p-3 card-shadow text-left hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-xl mb-2">
+                  {CATEGORY_EMOJI[item.provider.category] || "💼"}
+                </div>
+                <p className="text-xs font-bold text-kazi-dark truncate mb-1">{item.provider.businessName}</p>
+                <p className="text-xs text-amber-500 font-bold">⭐ {item.provider.rating?.toFixed(1)}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{item.provider.category}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── New Near You ── */}
+      {recommendations?.newInArea?.length > 0 && (
+        <section className="px-4 py-6 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-xl font-black text-kazi-dark mb-1">🆕 New Near You</h2>
+            <p className="text-gray-400 text-sm mb-4">Just joined KaziShow</p>
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+              {recommendations.newInArea.map((item: any) => (
+                <Link key={item.provider.id} href={`/business/${item.provider.id}`}
+                  className="flex-shrink-0 w-44 bg-white border-2 border-kazi-orange/20 rounded-2xl p-3 text-left hover:border-kazi-orange transition-all">
+                  <span className="text-xs bg-kazi-orange text-white font-bold px-2 py-0.5 rounded-full">NEW</span>
+                  <p className="text-sm font-bold text-kazi-dark mt-2 truncate">{item.provider.businessName}</p>
+                  <p className="text-xs text-gray-400">{item.provider.category}</p>
+                  <p className="text-xs text-gray-300 mt-1">{item.provider.user?.location || "Nairobi"}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Who do you need? */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-10">
