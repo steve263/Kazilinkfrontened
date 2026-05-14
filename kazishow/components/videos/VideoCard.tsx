@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, Flag, Trash2, Download } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, Flag, Trash2, Download, Zap } from "lucide-react";
 import toast from "react-hot-toast";
 import VideoPlayer from "./VideoPlayer";
 import CommentsSheet from "./CommentsSheet";
@@ -178,6 +178,16 @@ export default function VideoCard({
 
         {/* Gradient overlays: dark top + dark bottom for readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent via-40% to-black/80 pointer-events-none" />
+
+        {/* KaziShow watermark — bottom-right corner */}
+        <div className="absolute bottom-4 right-3 flex items-center gap-1 opacity-60 pointer-events-none">
+          <div className="w-4 h-4 rounded-md bg-kazi-orange flex items-center justify-center">
+            <Zap className="w-2.5 h-2.5 text-white" fill="white" />
+          </div>
+          <span className="text-white text-[10px] font-black tracking-tight drop-shadow">
+            Kazi<span className="text-kazi-orange">Show</span>
+          </span>
+        </div>
 
         {/* ── Top bar: avatar + name + badge + menu ── */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 pt-4">
