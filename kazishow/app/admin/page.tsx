@@ -30,6 +30,7 @@ const NAV = [
   { label: "Bookings",   href: "/admin/bookings",    icon: ShoppingBag },
   { label: "Analytics",  href: "/admin/analytics",   icon: Activity },
   { label: "Withdrawals", href: "/admin/withdrawals", icon: Wallet },
+  { label: "Payouts",     href: "/admin/payouts",     icon: DollarSign },
   { label: "Trust & Safety", href: "/admin/trust",    icon: Shield },
   { label: "Appeals",        href: "/admin/appeals",  icon: Scale  },
 ];

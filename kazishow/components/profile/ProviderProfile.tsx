@@ -7,7 +7,7 @@ import {
   Star, Trash2, Edit3, Camera, MessageSquare, Calendar, CheckCircle,
   XCircle, Clock, Loader2, Settings, CreditCard, Image,
   FileText, Plus, Bell, AlertTriangle, Lock, MapPin, Phone,
-  Zap, ToggleLeft, ToggleRight, Tag, X, Music,
+  Zap, ToggleLeft, ToggleRight, Tag, X, Music, CalendarDays,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -684,6 +684,13 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                   Busy · Mark Free
                 </button>
               )}
+              <Link
+                href="/provider/availability"
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-all"
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                Availability
+              </Link>
             </div>
           </div>
 
