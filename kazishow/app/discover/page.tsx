@@ -10,6 +10,7 @@ import {
 import toast from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
+import LiveBookingToast from "@/components/ui/LiveBookingToast";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -968,6 +969,7 @@ function DiscoverContent() {
       </div>
 
       <div className="pb-20 md:pb-0" />
+      <LiveBookingToast />
       <BottomNav />
     </div>
   );
