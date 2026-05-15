@@ -121,9 +121,9 @@ function ProviderCard({
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group flex flex-col">
       {/* Cover */}
-      <div className={`relative h-48 bg-gradient-to-br ${m.gradient} flex-shrink-0`}>
+      <div className={`relative h-52 overflow-hidden bg-gradient-to-br ${m.gradient} flex-shrink-0`}>
         {provider.coverImage ? (
-          <img src={provider.coverImage} alt={provider.name} className="w-full h-full object-cover" />
+          <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover object-center" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-6xl select-none">
             {m.emoji}
@@ -270,9 +270,9 @@ function ProviderCardHorizontal({
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex gap-0 group">
       {/* Cover */}
-      <div className={`relative w-28 sm:w-36 flex-shrink-0 bg-gradient-to-br ${m.gradient} flex items-center justify-center`}>
+      <div className={`relative w-28 sm:w-36 flex-shrink-0 overflow-hidden bg-gradient-to-br ${m.gradient} flex items-center justify-center`}>
         {provider.coverImage
-          ? <img src={provider.coverImage} alt={provider.name} className="w-full h-full object-cover absolute inset-0" />
+          ? <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover object-center" />
           : <span className="text-5xl">{m.emoji}</span>
         }
         {distLabel && (
@@ -365,9 +365,9 @@ function FeaturedCard({ provider }: { provider: ReturnType<typeof mapProvider> }
   const m = meta(provider.category);
   return (
     <Link href={`/business/${provider.id}`} className="flex-shrink-0 w-56 bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group">
-      <div className={`relative h-32 bg-gradient-to-br ${m.gradient} flex items-center justify-center`}>
+      <div className={`relative h-32 overflow-hidden bg-gradient-to-br ${m.gradient} flex items-center justify-center`}>
         {provider.coverImage
-          ? <img src={provider.coverImage} alt={provider.name} className="w-full h-full object-cover" />
+          ? <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover object-center" />
           : <span className="text-5xl">{m.emoji}</span>
         }
         <div className="absolute top-2 left-2 flex gap-1 flex-wrap">
