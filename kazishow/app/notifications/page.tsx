@@ -253,7 +253,7 @@ function NotifCard({
         )}
 
         {/* Track Provider shortcut for active bookings */}
-        {!isProvider && n.bookingId && ["ACCEPTED", "EN_ROUTE", "ARRIVED", "IN_PROGRESS"].includes(n.booking?.status ?? "") && (
+        {!isProvider && n.bookingId && ["EN_ROUTE", "ARRIVED", "IN_PROGRESS"].includes(n.booking?.status ?? "") && (
           <Link
             href={`/tracking/${n.bookingId}`}
             onClick={(e) => e.stopPropagation()}
@@ -375,11 +375,28 @@ export default function NotificationsPage() {
         p.customer?.name ? `${p.customer.name} wants to book you` : "A customer sent you a request",
         p.booking?.id, p.booking?.totalAmount)
     );
-    socket.on("booking_accepted", (p: any) =>
-      push("BOOKING_ACCEPTED", "Booking Accepted! ✅",
-        p.providerName ? `${p.providerName} accepted and is on the way` : "Your booking was accepted",
-        p.booking?.id)
-    );
+    socket.on("booking_accepted", (p: any) => {
+      const pName = p.providerName || "Your provider";
+      const schDate = p.booking?.scheduledDate;
+      const schTime = p.booking?.scheduledTime || "";
+      let body = `${pName} accepted your booking`;
+      if (schDate && schTime) {
+        const bd = new Date(schDate);
+        const n = new Date();
+        const todayMid = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+        const bookMid = new Date(bd.getFullYear(), bd.getMonth(), bd.getDate());
+        const daysUntil = Math.round((bookMid.getTime() - todayMid.getTime()) / 86400000);
+        if (daysUntil === 0) {
+          body = `${pName} accepted! They will arrive at ${schTime} today`;
+        } else if (daysUntil === 1) {
+          body = `${pName} confirmed for tomorrow at ${schTime}`;
+        } else {
+          const fmt = bd.toLocaleDateString("en-KE", { weekday: "long", month: "long", day: "numeric" });
+          body = `${pName} confirmed for ${fmt} at ${schTime}`;
+        }
+      }
+      push("BOOKING_ACCEPTED", "Booking Accepted! ✅", body, p.booking?.id);
+    });
     socket.on("booking_declined", (p: any) =>
       push("BOOKING_DECLINED", "Booking Declined ❌",
         "Your request was declined. Try another provider.",

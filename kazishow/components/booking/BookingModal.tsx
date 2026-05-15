@@ -909,28 +909,62 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
                 const desc = (business?.description || "").toLowerCase();
                 const isMobile = business?.category === "FUNDI" ||
                   desc.includes("catering") || desc.includes("security") || desc.includes("cleaning");
+                const now = new Date();
+                const bd = selectedDate ? new Date(selectedDate) : now;
+                const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const bookMid = new Date(bd.getFullYear(), bd.getMonth(), bd.getDate());
+                const daysUntil = Math.round((bookMid.getTime() - todayMid.getTime()) / 86400000);
+                const isToday = daysUntil === 0;
+                const fmtDate = bd.toLocaleDateString("en-KE", { weekday: "long", month: "long", day: "numeric" });
+                const dayLabel = daysUntil === 1 ? "tomorrow" : fmtDate;
+
+                let emoji: string, title: string, body: string, bg: string, color: string;
+                if (isMobile && isToday) {
+                  emoji = "🚗"; title = "Provider will be on the way!"; bg = "bg-orange-50 border-orange-200"; color = "text-orange-700";
+                  body = `${business?.businessName} will arrive at your location at ${selectedTime}`;
+                } else if (isMobile) {
+                  emoji = "📅"; title = `Confirmed for ${daysUntil === 1 ? "Tomorrow" : fmtDate}!`; bg = "bg-green-50 border-green-200"; color = "text-green-700";
+                  body = `${business?.businessName} will come to you ${dayLabel} at ${selectedTime}`;
+                } else if (isToday) {
+                  emoji = "📍"; title = "Appointment confirmed for today!"; bg = "bg-green-50 border-green-200"; color = "text-green-700";
+                  body = `Please visit ${business?.businessName} at ${selectedTime} today`;
+                } else {
+                  emoji = "📅"; title = `Confirmed for ${daysUntil === 1 ? "Tomorrow" : fmtDate}!`; bg = "bg-green-50 border-green-200"; color = "text-green-700";
+                  body = `Please visit ${business?.businessName} ${dayLabel} at ${selectedTime}`;
+                }
                 return (
-                  <div className={`w-full rounded-2xl p-4 border ${isMobile ? "bg-orange-50 border-orange-200" : "bg-green-50 border-green-200"}`}>
+                  <div className={`w-full rounded-2xl p-4 border ${bg}`}>
                     <div className="flex items-start gap-3">
-                      <span className="text-xl">{isMobile ? "🚗" : "📍"}</span>
+                      <span className="text-xl">{emoji}</span>
                       <div>
-                        <p className={`font-bold text-sm ${isMobile ? "text-orange-700" : "text-green-700"}`}>
-                          {isMobile ? "Provider is on the way!" : "Your appointment is confirmed!"}
-                        </p>
-                        <p className={`text-xs mt-0.5 ${isMobile ? "text-orange-600" : "text-green-600"}`}>
-                          {isMobile
-                            ? `${business?.businessName} will arrive at your location at ${selectedTime}`
-                            : `Please visit ${business?.businessName} at ${selectedTime}`}
-                        </p>
+                        <p className={`font-bold text-sm ${color}`}>{title}</p>
+                        <p className={`text-xs mt-0.5 ${color.replace("700", "600")}`}>{body}</p>
                       </div>
                     </div>
                   </div>
                 );
               })()}
 
-              <div className="w-full bg-gray-50 rounded-2xl p-3 text-center">
-                <p className="text-xs text-gray-400">📱 You will receive an SMS confirmation shortly</p>
-              </div>
+              {/* What happens next */}
+              {(() => {
+                const desc = (business?.description || "").toLowerCase();
+                const isMobile = business?.category === "FUNDI" ||
+                  desc.includes("catering") || desc.includes("security") || desc.includes("cleaning");
+                const steps = isMobile
+                  ? ["You'll receive an SMS confirmation shortly", "Get a reminder before the appointment", "Track your provider on the map when they're en route", "Pay and rate after the job is done"]
+                  : ["You'll receive an SMS confirmation shortly", "Get a reminder before your appointment", "Visit at your scheduled time", "Rate your experience after"];
+                return (
+                  <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-2">
+                    <p className="text-xs font-bold text-gray-500 mb-1">What happens next:</p>
+                    {steps.map((s, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-kazi-orange/20 text-kazi-orange text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                        <p className="text-xs text-gray-500">{s}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
 
               <button
                 onClick={onClose}
