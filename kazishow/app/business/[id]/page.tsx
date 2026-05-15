@@ -259,7 +259,7 @@ export default function ProviderProfilePage() {
       {/* Cover */}
       <div className="relative h-56 sm:h-72 overflow-hidden bg-gradient-to-br from-kazi-dark to-gray-800">
         {provider.coverImage ? (
-          <img src={provider.coverImage} alt="Cover" className="absolute inset-0 w-full h-full object-cover object-center" />
+          <img src={provider.coverImage} alt="Cover" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "top center" }} />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-9xl opacity-10">{categoryEmoji()}</span>

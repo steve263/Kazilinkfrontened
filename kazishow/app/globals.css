@@ -3,12 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fix provider card images — full fit, no cropping */
+/* Fix provider card images — show top of photo so faces are visible */
 .provider-card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center center;
+  object-position: top center;
   display: block;
 }
 
@@ -16,7 +16,17 @@
 .provider-card-image-container {
   overflow: hidden;
   position: relative;
-  border-radius: 16px 16px 0 0;
+}
+
+/* Global override — all provider cover images anchor to top */
+.provider-image-container {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.provider-image-container img {
+  object-fit: cover !important;
+  object-position: top center !important;
 }
 
 :root {

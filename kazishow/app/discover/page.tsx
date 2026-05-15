@@ -123,7 +123,7 @@ function ProviderCard({
       {/* Cover */}
       <div className={`relative h-52 overflow-hidden bg-gradient-to-br ${m.gradient} flex-shrink-0`}>
         {provider.coverImage ? (
-          <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover object-center" />
+          <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "top center" }} />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-6xl select-none">
             {m.emoji}
@@ -272,7 +272,7 @@ function ProviderCardHorizontal({
       {/* Cover */}
       <div className={`relative w-28 sm:w-36 flex-shrink-0 overflow-hidden bg-gradient-to-br ${m.gradient} flex items-center justify-center`}>
         {provider.coverImage
-          ? <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover object-center" />
+          ? <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "top center" }} />
           : <span className="text-5xl">{m.emoji}</span>
         }
         {distLabel && (
@@ -367,7 +367,7 @@ function FeaturedCard({ provider }: { provider: ReturnType<typeof mapProvider> }
     <Link href={`/business/${provider.id}`} className="flex-shrink-0 w-56 bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group">
       <div className={`relative h-32 overflow-hidden bg-gradient-to-br ${m.gradient} flex items-center justify-center`}>
         {provider.coverImage
-          ? <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover object-center" />
+          ? <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "top center" }} />
           : <span className="text-5xl">{m.emoji}</span>
         }
         <div className="absolute top-2 left-2 flex gap-1 flex-wrap">
