@@ -100,7 +100,19 @@ export default function VideoPlayer({ src, thumbnail, className = "" }: VideoPla
         )}
       </div>
 
-      {/* Controls bar */}
+      {/* Always-visible mute / unmute button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setMuted((m) => !m); }}
+        className="absolute bottom-28 left-4 z-20 flex items-center gap-1.5 px-3 py-2 bg-black/60 backdrop-blur-sm rounded-full border border-white/20 active:scale-95 transition-all"
+      >
+        {muted
+          ? <VolumeX className="w-4 h-4 text-white" />
+          : <Volume2 className="w-4 h-4 text-white" />
+        }
+        <span className="text-white text-xs font-bold">{muted ? "Unmute" : "Mute"}</span>
+      </button>
+
+      {/* Controls bar — hover/tap only (progress + time) */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
         {/* Progress */}
         <div
