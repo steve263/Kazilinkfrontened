@@ -166,8 +166,8 @@ export default function VideoCard({
 
   return (
     <>
-      {/* Portrait card — 9:16 like Instagram Reels / WhatsApp Status */}
-      <div className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-black shadow-xl">
+      {/* Full-screen — fills the parent 100dvh snap slot exactly */}
+      <div className="relative w-full h-full overflow-hidden bg-black">
 
         {/* Video fills the full card */}
         <VideoPlayer
@@ -269,7 +269,7 @@ export default function VideoCard({
         </div>
 
         {/* ── Right side actions (TikTok / Reels style) ── */}
-        <div className="absolute right-3 bottom-28 flex flex-col items-center gap-5">
+        <div className="absolute right-3 bottom-36 flex flex-col items-center gap-5">
           {/* Like */}
           <button
             onClick={toggleLike}
@@ -308,7 +308,7 @@ export default function VideoCard({
         </div>
 
         {/* ── Bottom overlay: caption + hashtags + CTA ── */}
-        <div className="absolute bottom-0 left-0 right-14 px-4 pb-5">
+        <div className="absolute bottom-0 left-0 right-14 px-4 pb-24">
           {/* Caption */}
           <p className="text-white text-sm leading-relaxed drop-shadow line-clamp-3">{video.caption}</p>
 
