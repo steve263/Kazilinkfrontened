@@ -32,14 +32,7 @@ interface BookingModalProps {
   originalPrice?: number;
 }
 
-const TIMES = [
-  "08:00", "08:30", "09:00", "09:30",
-  "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30",
-  "14:00", "14:30", "15:00", "15:30",
-  "16:00", "16:30", "17:00", "17:30",
-  "18:00",
-];
+type Slot = { time: string; label: string; available: boolean };
 
 type Step =
   | "service"
@@ -76,6 +69,9 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
   const [checkoutRequestId, setCheckoutRequestId] = useState("");
   const [providerBusy, setProviderBusy] = useState(false);
   const [busyProviderData, setBusyProviderData] = useState<any>(null);
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [dayUnavailable, setDayUnavailable] = useState(false);
 
   const timerRef = useRef<any>(null);
   const socketRef = useRef<any>(null);
@@ -90,6 +86,26 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
       if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
     };
   }, []);
+
+  // Fetch real availability slots whenever the selected date changes
+  useEffect(() => {
+    if (!selectedDate) return;
+    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    setSlotsLoading(true);
+    setSlots([]);
+    setDayUnavailable(false);
+    setSelectedTime("");
+    fetch(`${API}/api/providers/${business.id}/available-slots?date=${selectedDate}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          if (!d.data.available) { setDayUnavailable(true); setSlots([]); }
+          else setSlots(d.data.slots || []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSlotsLoading(false));
+  }, [selectedDate, business.id]);
 
   const today = new Date();
   const dates = Array.from({ length: 7 }, (_, i) => {
@@ -466,26 +482,45 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
                 </div>
               </div>
 
-              {/* Time grid */}
+              {/* Time grid — loaded from provider's real availability */}
               <div>
                 <h3 className="font-semibold text-kazi-dark text-sm mb-2">
                   Select Time
                 </h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {TIMES.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={`py-2 rounded-xl text-xs font-semibold transition-all ${
-                        selectedTime === time
-                          ? "bg-kazi-orange text-white shadow-md shadow-orange-200"
-                          : "bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-kazi-orange"
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
-                </div>
+                {!selectedDate ? (
+                  <p className="text-xs text-gray-400 text-center py-3">Select a date first</p>
+                ) : slotsLoading ? (
+                  <div className="flex items-center gap-2 py-3">
+                    <Loader2 className="w-4 h-4 text-kazi-orange animate-spin" />
+                    <span className="text-xs text-gray-400">Checking availability…</span>
+                  </div>
+                ) : dayUnavailable ? (
+                  <div className="text-center py-4 bg-red-50 rounded-xl">
+                    <p className="text-sm font-semibold text-red-500">Not available on this day</p>
+                    <p className="text-xs text-gray-400 mt-1">Please choose another date</p>
+                  </div>
+                ) : slots.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-3">No slots available for this date</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2">
+                    {slots.map(({ time, label, available }) => (
+                      <button
+                        key={time}
+                        onClick={() => available && setSelectedTime(time)}
+                        disabled={!available}
+                        className={`py-2 rounded-xl text-xs font-semibold transition-all ${
+                          !available
+                            ? "bg-gray-100 text-gray-300 line-through cursor-not-allowed"
+                            : selectedTime === time
+                            ? "bg-kazi-orange text-white shadow-md shadow-orange-200"
+                            : "bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-kazi-orange"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Location row */}

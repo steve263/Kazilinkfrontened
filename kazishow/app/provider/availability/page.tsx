@@ -233,7 +233,7 @@ export default function AvailabilityPage() {
                 <div key={exc.id} className="flex items-center justify-between p-3 bg-red-50 rounded-xl">
                   <div>
                     <p className="text-sm font-bold text-kazi-dark">
-                      {new Date(exc.date).toLocaleDateString("en-KE", { weekday: "long", month: "long", day: "numeric" })}
+                      {new Date(exc.date).toLocaleDateString("en-KE", { weekday: "long", month: "long", day: "numeric", timeZone: "Africa/Nairobi" })}
                     </p>
                     {exc.reason && <p className="text-xs text-gray-400">{exc.reason}</p>}
                   </div>
