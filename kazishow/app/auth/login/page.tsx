@@ -19,9 +19,12 @@ export default function LoginPage() {
   function handleLoginSuccess(userData: any) {
     localStorage.setItem("kazishow_token", userData.token);
     localStorage.setItem("kazishow_user", JSON.stringify(userData.user));
-    sessionStorage.setItem("kazishow_session", "1");
-    if (!rememberMe) localStorage.setItem("kazishow_forget", "1");
-    else localStorage.removeItem("kazishow_forget");
+    if (rememberMe) {
+      localStorage.removeItem("kazishow_session_expires");
+    } else {
+      // Session expires in 24 hours — AuthGuard enforces this on every page load
+      localStorage.setItem("kazishow_session_expires", String(Date.now() + 24 * 60 * 60 * 1000));
+    }
     const user = userData.user;
     if (user.role === "ADMIN") router.push("/admin");
     else if (user.role === "PROVIDER") router.push("/provider/notifications");
