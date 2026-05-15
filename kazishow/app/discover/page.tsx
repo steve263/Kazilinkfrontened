@@ -86,7 +86,7 @@ function mapProvider(p: any) {
 function CardSkeleton() {
   return (
     <div className="bg-white rounded-2xl overflow-hidden animate-pulse">
-      <div className="h-48 bg-gray-200" />
+      <div className="w-full aspect-square bg-gray-200" />
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gray-200" />
@@ -121,7 +121,7 @@ function ProviderCard({
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group flex flex-col">
       {/* Cover */}
-      <div className={`relative h-52 overflow-hidden bg-gradient-to-br ${m.gradient} flex-shrink-0`}>
+      <div className={`relative w-full aspect-square overflow-hidden bg-gradient-to-br ${m.gradient} flex-shrink-0`}>
         {provider.coverImage ? (
           <img src={provider.coverImage} alt={provider.name} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "top center" }} />
         ) : (
