@@ -15,7 +15,6 @@ import ScrollProgress from "@/components/ui/ScrollProgress";
 import WhatsAppBubble from "@/components/ui/WhatsAppBubble";
 import LiveBookingToast from "@/components/ui/LiveBookingToast";
 import TrustBar from "@/components/home/TrustBar";
-import SocialProofSection from "@/components/home/SocialProofSection";
 import BookingDemo from "@/components/home/BookingDemo";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import KaziPromise from "@/components/home/KaziPromise";
@@ -113,7 +112,6 @@ export default function HomePage() {
 
   // Smart recommendations
   const [recommendations, setRecommendations] = useState<any>(null);
-  const [trending, setTrending] = useState<any[]>([]);
 
 
 
@@ -151,10 +149,6 @@ export default function HomePage() {
         .then(d => { if (d.success) setRecommendations(d.data); })
         .catch(() => {});
     }
-    fetch(`${API}/api/recommendations/trending`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setTrending(d.data); })
-      .catch(() => {});
   }, []);
 
 
@@ -315,8 +309,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <SocialProofSection />
-
       {/* ── Book Again ── */}
       {recommendations?.bookAgain?.length > 0 && (
         <section className="px-4 py-6 max-w-7xl mx-auto">
@@ -353,36 +345,6 @@ export default function HomePage() {
                 </Link>
               </div>
             ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Trending This Week ── */}
-      {trending.length > 0 && (
-        <section className="px-4 py-6 bg-white">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-4">
-              <h2 className="text-xl font-black text-kazi-dark">🔥 Trending</h2>
-              <p className="text-gray-400 text-sm">Most booked this week</p>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-              {trending.slice(0, 6).map((item: any) => (
-                <Link key={item.provider.id} href={`/business/${item.provider.id}`}
-                  className="flex-shrink-0 w-36 bg-kazi-cream rounded-2xl overflow-hidden hover:shadow-md transition-all text-left">
-                  <div className={`h-20 flex items-center justify-center text-4xl ${
-                    item.provider.category === "RESTAURANT" ? "bg-red-100" :
-                    item.provider.category === "HOTEL" ? "bg-amber-100" :
-                    item.provider.category === "FUNDI" ? "bg-orange-100" : "bg-blue-100"
-                  }`}>
-                    {CATEGORY_EMOJI[item.provider.category] || "💼"}
-                  </div>
-                  <div className="p-2.5">
-                    <p className="text-xs font-bold text-kazi-dark truncate">{item.provider.businessName}</p>
-                    <p className="text-xs text-kazi-orange font-semibold mt-0.5">🔥 {item.bookingsThisWeek} bookings</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
           </div>
         </section>
       )}
