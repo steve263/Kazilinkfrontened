@@ -10,6 +10,7 @@ import NotificationPermissionBanner from "@/components/notifications/Notificatio
 import WhatsAppFloat from "@/components/support/WhatsAppFloat";
 import AISupportChat from "@/components/support/AISupportChat";
 import GoogleAuthProvider from "@/components/auth/GoogleAuthProvider";
+import LiveBookingToast from "@/components/ui/LiveBookingToast";
 
 export const metadata: Metadata = {
   title: "KaziShow — Discover Local Businesses in Kenya",
@@ -44,6 +45,7 @@ export default function RootLayout({
           <NotificationPermissionBanner />
           <ScrollProgress />
           {children}
+          <LiveBookingToast />
           <WhatsAppFloat />
           <AISupportChat />
         </SuspensionGate>

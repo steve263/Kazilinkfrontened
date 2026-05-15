@@ -13,7 +13,6 @@ import BottomNav from "@/components/layout/BottomNav";
 import PostCard from "@/components/feed/PostCard";
 import ScrollProgress from "@/components/ui/ScrollProgress";
 import WhatsAppBubble from "@/components/ui/WhatsAppBubble";
-import LiveBookingToast from "@/components/ui/LiveBookingToast";
 import TrustBar from "@/components/home/TrustBar";
 import SocialProofSection from "@/components/home/SocialProofSection";
 import BookingDemo from "@/components/home/BookingDemo";
@@ -165,7 +164,6 @@ export default function HomePage() {
     <div className="min-h-screen bg-kazi-cream">
       <ScrollProgress />
       <Navbar />
-      <LiveBookingToast />
 
       {/* Exit-intent popup */}
       {showExitPopup && !exitDismissed && (
