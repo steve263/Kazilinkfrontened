@@ -46,13 +46,18 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Recenter map when provider moves
-function MapController({ center }: { center: [number, number] }) {
-  const { useMap } = require("react-leaflet");
-  const map = useMap();
-  useEffect(() => { map.panTo(center, { animate: true, duration: 0.8 }); }, [center]);
-  return null;
-}
+// Recenter map when provider moves — must be a child of MapContainer
+const MapController = dynamic(
+  () => import("react-leaflet").then((m) => {
+    function Controller({ center }: { center: [number, number] }) {
+      const map = m.useMap();
+      useEffect(() => { map.panTo(center, { animate: true, duration: 0.8 }); }, [center, map]);
+      return null;
+    }
+    return Controller;
+  }),
+  { ssr: false }
+);
 
 export default function TrackingPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -62,6 +67,7 @@ export default function TrackingPage() {
   const [loading, setLoading]     = useState(true);
   const [providerLoc, setProviderLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [now, setNow]             = useState(Date.now());
   const [status, setStatus]       = useState("");
   const [providerIcon, setProviderIcon] = useState<any>(null);
   const [customerIcon, setCustomerIcon] = useState<any>(null);
@@ -172,6 +178,12 @@ export default function TrackingPage() {
     return () => clearInterval(interval);
   }, [fetchTracking]);
 
+  // Tick every second so "Last ping" counter stays live
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-kazi-cream flex items-center justify-center">
@@ -277,7 +289,7 @@ export default function TrackingPage() {
                   <div className="text-xs font-semibold">{provider.businessName}</div>
                   <div className="text-xs text-gray-400">
                     {lastUpdated
-                      ? `Updated ${Math.round((Date.now() - lastUpdated.getTime()) / 1000)}s ago`
+                      ? `Updated ${Math.round((now - lastUpdated.getTime()) / 1000)}s ago`
                       : "Live location"}
                   </div>
                 </Popup>
@@ -341,7 +353,7 @@ export default function TrackingPage() {
             {lastUpdated && (
               <div className="flex-1 bg-green-50 rounded-2xl p-3 text-center">
                 <p className="text-xl font-black text-kazi-green">
-                  {Math.round((Date.now() - lastUpdated.getTime()) / 1000)}s
+                  {Math.round((now - lastUpdated.getTime()) / 1000)}s
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">Last ping</p>
               </div>

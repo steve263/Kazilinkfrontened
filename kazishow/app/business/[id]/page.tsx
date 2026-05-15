@@ -112,6 +112,15 @@ export default function ProviderProfilePage() {
               .then((ts) => { if (ts.success) setTrustScore(ts.data); })
               .catch(() => {});
           }
+          // Record this view for "Recently Viewed" recommendations
+          const token = localStorage.getItem("kazishow_token");
+          if (token && params.id) {
+            fetch(`${API_URL}/api/recommendations/interaction`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ providerId: params.id, type: "view" }),
+            }).catch(() => {});
+          }
         }
       } catch {
         console.error("Failed to fetch provider");
