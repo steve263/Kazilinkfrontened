@@ -882,95 +882,74 @@ export default function BookingModal({ business, service, onClose, dealId, dealP
               STEP 6a: Success
           ───────────────────────────────────────── */}
           {step === "success" && (
-            <div className="flex flex-col items-center py-8 space-y-4">
-              <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-kazi-green" fill="currentColor" />
+            <div className="flex flex-col items-center py-6 space-y-4">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <span className="text-4xl">✅</span>
               </div>
+
               <div className="text-center">
                 <h3 className="font-black text-kazi-dark text-2xl mb-1">
-                  Booking Confirmed! 🎉
+                  Booking Submitted!
                 </h3>
-                <p className="text-sm text-gray-600 font-medium">
-                  {business.businessName || business.name}
-                </p>
+                <p className="text-gray-400 text-sm">{business?.businessName || business?.name}</p>
                 {selectedService && (
-                  <p className="text-xs text-kazi-orange font-semibold mt-1">
-                    {selectedService.name}
-                  </p>
-                )}
-                {selectedDate && selectedTime && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {selectedDate} at {selectedTime}
-                  </p>
+                  <p className="text-xs text-kazi-orange font-semibold mt-1">{selectedService.name}</p>
                 )}
               </div>
 
+              {/* Smart date message */}
               {(() => {
-                const desc = (business?.description || "").toLowerCase();
-                const isMobile = business?.category === "FUNDI" ||
-                  desc.includes("catering") || desc.includes("security") || desc.includes("cleaning");
                 const now = new Date();
                 const bd = selectedDate ? new Date(selectedDate) : now;
-                const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const bookMid = new Date(bd.getFullYear(), bd.getMonth(), bd.getDate());
-                const daysUntil = Math.round((bookMid.getTime() - todayMid.getTime()) / 86400000);
-                const isToday = daysUntil === 0;
-                const fmtDate = bd.toLocaleDateString("en-KE", { weekday: "long", month: "long", day: "numeric" });
-                const dayLabel = daysUntil === 1 ? "tomorrow" : fmtDate;
-
-                let emoji: string, title: string, body: string, bg: string, color: string;
-                if (isMobile && isToday) {
-                  emoji = "🚗"; title = "Provider will be on the way!"; bg = "bg-orange-50 border-orange-200"; color = "text-orange-700";
-                  body = `${business?.businessName} will arrive at your location at ${selectedTime}`;
-                } else if (isMobile) {
-                  emoji = "📅"; title = `Confirmed for ${daysUntil === 1 ? "Tomorrow" : fmtDate}!`; bg = "bg-green-50 border-green-200"; color = "text-green-700";
-                  body = `${business?.businessName} will come to you ${dayLabel} at ${selectedTime}`;
-                } else if (isToday) {
-                  emoji = "📍"; title = "Appointment confirmed for today!"; bg = "bg-green-50 border-green-200"; color = "text-green-700";
-                  body = `Please visit ${business?.businessName} at ${selectedTime} today`;
-                } else {
-                  emoji = "📅"; title = `Confirmed for ${daysUntil === 1 ? "Tomorrow" : fmtDate}!`; bg = "bg-green-50 border-green-200"; color = "text-green-700";
-                  body = `Please visit ${business?.businessName} ${dayLabel} at ${selectedTime}`;
-                }
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const bookingStart = new Date(bd.getFullYear(), bd.getMonth(), bd.getDate());
+                const daysLeft = Math.round((bookingStart.getTime() - todayStart.getTime()) / 86400000);
+                const isToday = daysLeft === 0;
+                const niceDate = bd.toLocaleDateString("en-KE", { weekday: "long", month: "long", day: "numeric" });
+                const dateLabel = isToday ? `Today at ${selectedTime}` : daysLeft === 1 ? `Tomorrow at ${selectedTime}` : `${niceDate} at ${selectedTime}`;
+                const bodyText = isToday
+                  ? `Waiting for ${business?.businessName} to confirm your booking for today.`
+                  : daysLeft === 1
+                  ? `${business?.businessName} will confirm your booking for tomorrow. You will get an SMS.`
+                  : `${business?.businessName} will confirm your booking for ${niceDate}. You will get an SMS.`;
                 return (
-                  <div className={`w-full rounded-2xl p-4 border ${bg}`}>
-                    <div className="flex items-start gap-3">
-                      <span className="text-xl">{emoji}</span>
-                      <div>
-                        <p className={`font-bold text-sm ${color}`}>{title}</p>
-                        <p className={`text-xs mt-0.5 ${color.replace("700", "600")}`}>{body}</p>
-                      </div>
+                  <div className={`w-full rounded-2xl p-4 ${isToday ? "bg-green-50 border border-green-200" : "bg-blue-50 border border-blue-200"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">{isToday ? "⏰" : "📅"}</span>
+                      <p className={`font-black text-sm ${isToday ? "text-green-700" : "text-blue-700"}`}>{dateLabel}</p>
                     </div>
+                    <p className={`text-xs ${isToday ? "text-green-600" : "text-blue-600"}`}>{bodyText}</p>
                   </div>
                 );
               })()}
 
               {/* What happens next */}
-              {(() => {
-                const desc = (business?.description || "").toLowerCase();
-                const isMobile = business?.category === "FUNDI" ||
-                  desc.includes("catering") || desc.includes("security") || desc.includes("cleaning");
-                const steps = isMobile
-                  ? ["You'll receive an SMS confirmation shortly", "Get a reminder before the appointment", "Track your provider on the map when they're en route", "Pay and rate after the job is done"]
-                  : ["You'll receive an SMS confirmation shortly", "Get a reminder before your appointment", "Visit at your scheduled time", "Rate your experience after"];
-                return (
-                  <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-2">
-                    <p className="text-xs font-bold text-gray-500 mb-1">What happens next:</p>
-                    {steps.map((s, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <span className="w-4 h-4 rounded-full bg-kazi-orange/20 text-kazi-orange text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
-                        <p className="text-xs text-gray-500">{s}</p>
-                      </div>
-                    ))}
+              <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-2.5">
+                <p className="font-bold text-kazi-dark text-sm">What happens next:</p>
+                {[
+                  { step: "1️⃣", text: `${business?.businessName} accepts your booking` },
+                  { step: "2️⃣", text: "You get an SMS confirmation" },
+                  { step: "3️⃣", text: "You get a reminder before the service" },
+                  {
+                    step: "4️⃣",
+                    text: business?.category === "FUNDI"
+                      ? "Provider heads to your location on the day"
+                      : "Visit the provider on the scheduled day",
+                  },
+                  { step: "5️⃣", text: "Rate your experience after the service" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-sm">{item.step}</span>
+                    <p className="text-xs text-gray-500">{item.text}</p>
                   </div>
-                );
-              })()}
+                ))}
+              </div>
 
               <button
                 onClick={onClose}
-                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98]"
+                className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98]"
               >
-                Done
+                Done 🎉
               </button>
             </div>
           )}

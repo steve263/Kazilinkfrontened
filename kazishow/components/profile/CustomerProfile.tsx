@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
-import { getBookingStatusMessage } from "@/lib/bookingStatus";
+import { getCustomerStatusMessage, getStatusBadgeStyle, getStatusTextColor } from "@/lib/bookingStatus";
 import TrustScoreCard from "@/components/trust/TrustScoreCard";
 import ReviewModal from "@/components/trust/ReviewModal";
 
@@ -454,7 +454,12 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                     </Link>
                   </div>
                 ) : (
-                  upcomingBookings.map((b) => (
+                  upcomingBookings.map((b) => {
+                    const info = getCustomerStatusMessage(
+                      b.status, b.scheduledDate, b.scheduledTime,
+                      b.provider?.businessName || "Provider", b.provider?.category
+                    );
+                    return (
                     <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
@@ -477,26 +482,13 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                         </span>
                         <span className="font-bold text-kazi-orange">{formatCurrency(b.totalAmount)}</span>
                       </div>
-                      {(() => {
-                        const sm = getBookingStatusMessage(
-                          b.status, b.scheduledDate, b.scheduledTime,
-                          b.provider?.businessName, b.provider?.category
-                        );
-                        const cls: Record<string, string> = {
-                          amber:  "bg-amber-50 text-amber-700 border-amber-200",
-                          green:  "bg-green-50 text-green-700 border-green-200",
-                          blue:   "bg-blue-50 text-blue-700 border-blue-200",
-                          orange: "bg-orange-50 text-orange-700 border-orange-200",
-                          red:    "bg-red-50 text-red-600 border-red-200",
-                          gray:   "bg-gray-50 text-gray-500 border-gray-200",
-                        };
-                        return (
-                          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium ${cls[sm.color] ?? cls.gray}`}>
-                            <span>{sm.emoji}</span>
-                            <span>{sm.message}</span>
-                          </div>
-                        );
-                      })()}
+                      <div className={`rounded-xl p-3 flex items-start gap-2.5 ${getStatusBadgeStyle(info.color)}`}>
+                        <span className="text-xl flex-shrink-0 mt-0.5">{info.emoji}</span>
+                        <div>
+                          <p className={`font-bold text-sm ${getStatusTextColor(info.color)}`}>{info.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{info.message}</p>
+                        </div>
+                      </div>
                       <div className="flex gap-2">
                         {["PENDING", "ACCEPTED"].includes(b.status) && (
                           <button
@@ -506,12 +498,12 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                             Cancel
                           </button>
                         )}
-                        {["EN_ROUTE", "ARRIVED", "IN_PROGRESS"].includes(b.status) && (
+                        {info.showTrackButton && (
                           <Link
                             href={`/tracking/${b.id}`}
                             className="flex-1 py-2 rounded-xl bg-cyan-500 text-white text-xs font-bold text-center hover:bg-cyan-600 transition-colors flex items-center justify-center gap-1"
                           >
-                            <Navigation className="w-3 h-3" /> Track Provider
+                            <Navigation className="w-3 h-3" /> Track Live
                           </Link>
                         )}
                         {b.provider?.user?.id && (
@@ -524,7 +516,8 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                         )}
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
 
                 {/* Completed */}
