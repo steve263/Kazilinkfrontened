@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Star, Users, Eye } from "lucide-react";
+import { Star } from "lucide-react";
 
 const TICKER_EVENTS = [
   { user: "Wanjiku M.", service: "Plumber", area: "Westlands", ago: "just now" },
@@ -24,7 +24,6 @@ const RATING_BARS = [
 export default function SocialProofSection() {
   const [tickerIdx, setTickerIdx] = useState(0);
   const [tickerVisible, setTickerVisible] = useState(true);
-  const [viewers, setViewers] = useState(47);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -37,35 +36,14 @@ export default function SocialProofSection() {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    const t = setInterval(() => {
-      setViewers((v) => v + Math.floor(Math.random() * 3) - 1);
-    }, 6000);
-    return () => clearInterval(t);
-  }, []);
-
   const ev = TICKER_EVENTS[tickerIdx];
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-        {/* Viewing nudge + ticker */}
+        {/* Live booking ticker */}
         <div className="md:col-span-1 flex flex-col gap-4">
-          {/* Viewers nudge */}
-          <div className="bg-white rounded-2xl p-4 card-shadow flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-kazi-orange/10 flex items-center justify-center flex-shrink-0">
-              <Eye className="w-5 h-5 text-kazi-orange" />
-            </div>
-            <div>
-              <p className="text-sm font-black text-kazi-dark">
-                <span className="text-kazi-orange">{viewers}</span> people
-              </p>
-              <p className="text-xs text-gray-400">viewing this page right now</p>
-            </div>
-          </div>
-
-          {/* Live booking ticker */}
           <div className="bg-white rounded-2xl p-4 card-shadow flex-1">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 rounded-full bg-kazi-green animate-pulse" />

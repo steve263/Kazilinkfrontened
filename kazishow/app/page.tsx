@@ -15,6 +15,7 @@ import ScrollProgress from "@/components/ui/ScrollProgress";
 import WhatsAppBubble from "@/components/ui/WhatsAppBubble";
 import LiveBookingToast from "@/components/ui/LiveBookingToast";
 import TrustBar from "@/components/home/TrustBar";
+import SocialProofSection from "@/components/home/SocialProofSection";
 import BookingDemo from "@/components/home/BookingDemo";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import KaziPromise from "@/components/home/KaziPromise";
@@ -308,6 +309,8 @@ export default function HomePage() {
           </svg>
         </div>
       </section>
+
+      <SocialProofSection />
 
       {/* ── Book Again ── */}
       {recommendations?.bookAgain?.length > 0 && (
