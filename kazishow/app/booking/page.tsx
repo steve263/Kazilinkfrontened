@@ -286,7 +286,16 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
           </div>
         )}
 
-        {booking.provider?.id && (
+        {booking.status === "COMPLETED" && booking.provider?.id && (
+          <Link
+            href={`/business/${booking.provider.id}`}
+            className="flex items-center gap-1.5 text-sm text-kazi-dark border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors px-3 py-1.5 rounded-lg font-semibold"
+          >
+            Book Again
+          </Link>
+        )}
+
+        {booking.provider?.id && booking.status !== "COMPLETED" && (
           <Link
             href={`/business/${booking.provider.id}`}
             className="ml-auto text-sm text-kazi-dark font-medium flex items-center gap-1 hover:underline"

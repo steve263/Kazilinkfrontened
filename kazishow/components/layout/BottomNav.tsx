@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, LayoutGrid, MessageSquare, User, CalendarCheck, ClipboardList, Wallet } from "lucide-react";
+import { Home, Compass, MessageSquare, User, CalendarCheck, ClipboardList, Wallet } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -10,7 +10,6 @@ export default function BottomNav() {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [providerCategory, setProviderCategory] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -18,7 +17,6 @@ export default function BottomNav() {
       if (stored) {
         const u = JSON.parse(stored);
         setUserRole(u.role || null);
-        if (u.provider?.category) setProviderCategory(u.provider.category);
       }
     } catch {}
   }, [pathname]);
@@ -38,11 +36,7 @@ export default function BottomNav() {
   const navItems = userRole === "PROVIDER"
     ? [
         { href: "/", icon: Home, label: "Home" },
-        {
-          href: providerCategory === "FUNDI" ? "/provider/requests" : "/provider/orders",
-          icon: ClipboardList,
-          label: "Jobs",
-        },
+        { href: "/provider/notifications", icon: ClipboardList, label: "Jobs" },
         { href: "/provider/earnings", icon: Wallet, label: "Wallet" },
         { href: "/chat", icon: MessageSquare, label: "Chat" },
         { href: "/profile", icon: User, label: "Profile" },
