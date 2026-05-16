@@ -186,6 +186,17 @@ export default function ChatRoomPage() {
       setIncomingCallData(null);
     });
 
+    socket.on("audio_call_ended", () => {
+      cleanupCall(false);
+      setIncomingCallData(null);
+    });
+
+    socket.on("audio_call_rejected", () => {
+      cleanupCall(false);
+      setIncomingCallData(null);
+      toast.error("Audio call was declined");
+    });
+
     // ── Video call signaling events ──
     socket.on("incoming_video_call", (data: any) => {
       setIncomingVideoCallData(data);
@@ -193,11 +204,15 @@ export default function ChatRoomPage() {
 
     socket.on("video_call_rejected", () => {
       setShowVideoCall(false);
+      setIncomingVideoCallData(null);
+      setVideoCallSignal(null);
       toast.error("Video call was declined");
     });
 
     socket.on("video_call_ended", () => {
       setShowVideoCall(false);
+      setIncomingVideoCallData(null);
+      setVideoCallSignal(null);
     });
 
     return () => {
@@ -233,6 +248,27 @@ export default function ChatRoomPage() {
     }
     return () => clearInterval(callTimerRef.current);
   }, [callState]);
+
+  // ── 30-second auto-dismiss for incoming video call ──────────────────────────
+  useEffect(() => {
+    if (!incomingVideoCallData) return;
+    const t = setTimeout(() => {
+      socketRef.current?.emit("video_call_missed", { to: incomingVideoCallData.from });
+      setIncomingVideoCallData(null);
+      setVideoCallSignal(null);
+    }, 30000);
+    return () => clearTimeout(t);
+  }, [incomingVideoCallData]);
+
+  // ── 30-second auto-dismiss for incoming audio call ───────────────────────────
+  useEffect(() => {
+    if (!incomingCallData) return;
+    const t = setTimeout(() => {
+      socketRef.current?.emit("audio_call_missed", { to: incomingCallData.from });
+      setIncomingCallData(null);
+    }, 30000);
+    return () => clearTimeout(t);
+  }, [incomingCallData]);
 
   // ── Chat helpers ─────────────────────────────────────────────────────────────
   const fetchUserInfo = async () => {

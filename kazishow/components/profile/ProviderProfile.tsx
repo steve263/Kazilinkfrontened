@@ -7,7 +7,7 @@ import {
   Star, Trash2, Edit3, Camera, MessageSquare, Calendar, CheckCircle,
   XCircle, Clock, Loader2, Settings, CreditCard, Image,
   FileText, Plus, Bell, AlertTriangle, Lock, MapPin, Phone,
-  Zap, ToggleLeft, ToggleRight, Tag, X, Music, CalendarDays,
+  Zap, ToggleLeft, ToggleRight, Tag, X, Music, CalendarDays, ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -1522,6 +1522,27 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                 Save Changes
               </button>
             </div>
+
+            {/* Subscription (non-FUNDI only) */}
+            {!isFundi && (
+              <Link
+                href="/provider/subscription"
+                className="block bg-white rounded-2xl shadow-sm p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                      <span className="text-xl">💳</span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-kazi-dark text-sm">My Subscription</p>
+                      <p className="text-xs text-gray-400">Manage your business plan</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </Link>
+            )}
 
             {/* Change Password */}
             <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">

@@ -49,6 +49,7 @@ const BOOKING_STATUS_COLOR: Record<string, string> = {
 export default function AdminDashboard() {
   const ready = useAdminGuard();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [subStats, setSubStats] = useState<any>(null);
   const [pending, setPending] = useState<any[]>([]);
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -69,14 +70,16 @@ export default function AdminDashboard() {
     setLoadingStats(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [s, p, b] = await Promise.all([
+      const [s, p, b, sub] = await Promise.all([
         fetch(`${API}/api/admin/stats`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/providers/pending`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/bookings?limit=5`, { headers }).then((r) => r.json()),
+        fetch(`${API}/api/subscriptions/admin/stats`, { headers }).then((r) => r.json()),
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setPending(p.data);
       if (b.success) setRecentBookings(b.data.bookings);
+      if (sub.success) setSubStats(sub.data);
     } catch {
       toast.error("Failed to load dashboard");
     } finally {
@@ -178,6 +181,33 @@ export default function AdminDashboard() {
             <StatCard label="Active Bookings" value={stats?.activeBookings.value ?? 0} icon={<Activity className="w-4 h-4" />} color="purple" loading={loadingStats} />
             <StatCard label="Total Reviews" value={stats?.totalReviews.value ?? 0} change={stats?.totalReviews.change} icon={<Star className="w-4 h-4" />} color="orange" loading={loadingStats} />
           </div>
+
+          {/* Subscription stats */}
+          {subStats && (
+            <div>
+              <h2 className="text-sm font-black text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="text-base">💳</span> Business Subscriptions
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-2xl font-black text-kazi-orange">{subStats.totalActive}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Active Subscriptions</p>
+                </div>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-2xl font-black text-green-600">KSh {(subStats.monthlyRevenue || 0).toLocaleString()}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Sub Revenue This Month</p>
+                </div>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-2xl font-black text-blue-600">{subStats.totalTrial}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">On Free Trial</p>
+                </div>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-2xl font-black text-red-500">{subStats.totalExpired}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Expired</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Pending Approvals */}

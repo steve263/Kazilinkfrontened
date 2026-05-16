@@ -85,6 +85,16 @@ export default function IncomingCallHandler() {
       cleanupCall(false);
     });
 
+    socket.on("audio_call_ended", () => {
+      stopRingtone();
+      cleanupCall(false);
+    });
+
+    socket.on("audio_call_rejected", () => {
+      stopRingtone();
+      setIncomingCall(null);
+    });
+
     // Video call events
     socket.on("incoming_video_call", (data: any) => {
       setIncomingVideoCall(data);
@@ -125,6 +135,30 @@ export default function IncomingCallHandler() {
     }
     return () => clearInterval(callTimerRef.current);
   }, [callState]);
+
+  // ── 30-second auto-dismiss for incoming video call ──────────────────────────
+  useEffect(() => {
+    if (!incomingVideoCall) return;
+    const t = setTimeout(() => {
+      stopRingtone();
+      socketRef.current?.emit("video_call_missed", { to: incomingVideoCall.from });
+      setIncomingVideoCall(null);
+    }, 30000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingVideoCall]);
+
+  // ── 30-second auto-dismiss for incoming audio call ───────────────────────────
+  useEffect(() => {
+    if (!incomingCall) return;
+    const t = setTimeout(() => {
+      stopRingtone();
+      socketRef.current?.emit("audio_call_missed", { to: incomingCall.from });
+      setIncomingCall(null);
+    }, 30000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingCall]);
 
   // ── STUN / TURN servers ────────────────────────────────────────────────────
   const ICE_SERVERS = {

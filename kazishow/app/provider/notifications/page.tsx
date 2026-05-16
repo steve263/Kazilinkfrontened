@@ -2,9 +2,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { io } from "socket.io-client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Bell, CheckCircle, XCircle, MapPin, Clock,
-  Phone, ChevronRight, BellOff, Loader2, RefreshCw, Zap,
+  Phone, ChevronRight, BellOff, Loader2, RefreshCw, Zap, CreditCard,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -465,10 +466,12 @@ function Skeleton() {
 // ─── Page ───────────────────────────────────────────────────────────────────────
 
 export default function ProviderNotificationsPage() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     const t = localStorage.getItem("kazishow_token");
@@ -493,6 +496,19 @@ export default function ProviderNotificationsPage() {
   useEffect(() => {
     if (!token) { setLoading(false); return; }
     fetchBookings(token);
+    // Fetch subscription status for non-FUNDI providers
+    const u = localStorage.getItem("kazishow_user");
+    if (u) {
+      try {
+        const parsed = JSON.parse(u);
+        if (parsed.provider?.category && parsed.provider.category !== "FUNDI") {
+          fetch(`${API}/api/subscriptions/my`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(d => { if (d.success) setSubscription(d.data); })
+            .catch(() => {});
+        }
+      } catch {}
+    }
   }, [token, fetchBookings]);
 
   // Real-time socket
@@ -612,6 +628,39 @@ export default function ProviderNotificationsPage() {
             </button>
           </div>
         </div>
+
+        {/* Subscription status banner (non-FUNDI only) */}
+        {!loading && subscription && category !== "FUNDI" && (
+          <div className={`mb-4 p-3 rounded-2xl flex items-center justify-between border ${
+            subscription.isActive
+              ? "bg-green-900/30 border-green-500/30"
+              : "bg-red-900/30 border-red-500/30"
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{subscription.isActive ? "✅" : "❌"}</span>
+              <div>
+                <p className={`text-xs font-bold ${subscription.isActive ? "text-green-400" : "text-red-400"}`}>
+                  {subscription.subscription?.status === "TRIAL"
+                    ? `Free Trial — ${subscription.daysRemaining} day${subscription.daysRemaining !== 1 ? "s" : ""} left`
+                    : subscription.isActive
+                    ? `${subscription.subscription?.plan} Plan — ${subscription.daysRemaining} days left`
+                    : "Subscription Expired"}
+                </p>
+                {!subscription.isActive && (
+                  <p className="text-xs text-red-400">Renew to receive bookings</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => router.push("/provider/subscription")}
+              className={`text-xs font-bold px-3 py-1.5 rounded-xl ${
+                subscription.isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"
+              }`}
+            >
+              {subscription.isActive ? "Manage" : "Renew Now"}
+            </button>
+          </div>
+        )}
 
         {loading && (
           <div className="space-y-4"><Skeleton /><Skeleton /></div>
