@@ -13,19 +13,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
 
-  function handleLoginSuccess(userData: any) {
-    localStorage.setItem("kazishow_token", userData.token);
-    localStorage.setItem("kazishow_user", JSON.stringify(userData.user));
-    if (rememberMe) {
-      localStorage.removeItem("kazishow_session_expires");
-    } else {
-      // Session expires in 24 hours — AuthGuard enforces this on every page load
-      localStorage.setItem("kazishow_session_expires", String(Date.now() + 24 * 60 * 60 * 1000));
-    }
-    const user = userData.user;
+  function handleLoginSuccess(userData: any, remembered: boolean) {
+    const { token, user } = userData;
+    // Always store in localStorage so protected pages (which read localStorage) work
+    localStorage.setItem("kazishow_token", token);
+    localStorage.setItem("kazishow_user", JSON.stringify(user));
+    localStorage.setItem("kazishow_remember", remembered ? "true" : "false");
+    localStorage.setItem("kazishow_login_time", Date.now().toString());
+    // sessionStorage mirrors — cleared automatically when browser is closed
+    sessionStorage.setItem("kazishow_token", token);
+    sessionStorage.setItem("kazishow_user", JSON.stringify(user));
     if (user.role === "ADMIN") router.push("/admin");
     else if (user.role === "PROVIDER") router.push("/provider/notifications");
     else router.push("/");
@@ -42,7 +42,7 @@ export default function LoginPage() {
         }).then((r) => r.json());
         if (data.success) {
           toast.success("Welcome! 🎉");
-          handleLoginSuccess(data.data);
+          handleLoginSuccess(data.data, rememberMe);
         } else {
           toast.error(data.message || "Google sign-in failed");
         }
@@ -65,15 +65,16 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: phone.replace(/\s/g, ""),
-          password: password,
+          password,
+          rememberMe,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success("Welcome back! 🎉");
-        handleLoginSuccess(data.data);
+        toast.success(`Welcome back, ${data.data.user.name}! 👋`);
+        handleLoginSuccess(data.data, rememberMe);
       } else {
         toast.error(data.message || "Invalid phone or password");
       }
@@ -154,13 +155,18 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded accent-kazi-orange"
-                />
+              <label className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setRememberMe((v) => !v)}>
+                <div
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                    rememberMe ? "bg-kazi-orange border-kazi-orange" : "border-white/30 bg-white/10"
+                  }`}
+                >
+                  {rememberMe && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
                 <span className="text-sm text-white/60">Remember me</span>
               </label>
               <Link href="/auth/forgot-password" className="text-sm text-kazi-orange hover:underline font-medium">

@@ -318,6 +318,11 @@ export default function ApprovalsPage() {
   function logout() {
     localStorage.removeItem("kazishow_token");
     localStorage.removeItem("kazishow_user");
+    localStorage.removeItem("kazishow_remember");
+    localStorage.removeItem("kazishow_login_time");
+    localStorage.removeItem("kazishow_session_expires");
+    sessionStorage.removeItem("kazishow_token");
+    sessionStorage.removeItem("kazishow_user");
     window.location.href = "/auth/login";
   }
 

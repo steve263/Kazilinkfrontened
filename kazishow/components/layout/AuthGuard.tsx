@@ -1,20 +1,33 @@
 "use client";
 import { useEffect } from "react";
 
+function clearAuth() {
+  localStorage.removeItem("kazishow_token");
+  localStorage.removeItem("kazishow_user");
+  localStorage.removeItem("kazishow_remember");
+  localStorage.removeItem("kazishow_login_time");
+  localStorage.removeItem("kazishow_session_expires");
+  sessionStorage.removeItem("kazishow_token");
+  sessionStorage.removeItem("kazishow_user");
+}
+
 // Checks token validity on mount. Suspension is handled by SuspensionGate.
 export default function AuthGuard() {
   useEffect(() => {
-    // Enforce "Remember me" expiry — clears auth if the 24-hour session window has passed
-    const sessionExpires = localStorage.getItem("kazishow_session_expires");
-    if (sessionExpires && Date.now() > parseInt(sessionExpires)) {
-      localStorage.removeItem("kazishow_token");
-      localStorage.removeItem("kazishow_user");
-      localStorage.removeItem("kazishow_session_expires");
-      return;
-    }
-
     const token = localStorage.getItem("kazishow_token");
     if (!token) return;
+
+    // Enforce expiry: 30 days if remembered, 1 day otherwise
+    const loginTime = localStorage.getItem("kazishow_login_time");
+    const remember = localStorage.getItem("kazishow_remember");
+    if (loginTime) {
+      const daysSince = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60 * 24);
+      const maxDays = remember === "true" ? 30 : 1;
+      if (daysSince > maxDays) {
+        clearAuth();
+        return;
+      }
+    }
 
     const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -26,8 +39,7 @@ export default function AuthGuard() {
       .then((data) => {
         // Token invalid or expired — log out
         if (!data.success && data.code !== "ACCOUNT_SUSPENDED") {
-          localStorage.removeItem("kazishow_token");
-          localStorage.removeItem("kazishow_user");
+          clearAuth();
           window.location.href = "/auth/login";
         }
         // ACCOUNT_SUSPENDED is handled by SuspensionGate — do nothing here
