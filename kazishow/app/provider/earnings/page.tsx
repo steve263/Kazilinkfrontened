@@ -7,8 +7,9 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, DollarSign, Wallet,
-  ArrowDownCircle, CheckCircle, ArrowLeft, RefreshCw,
+  ArrowDownCircle, CheckCircle, ArrowLeft, RefreshCw, CreditCard,
 } from "lucide-react";
+import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -40,6 +41,8 @@ export default function EarningsPage() {
   const [payoutPhone, setPayoutPhone]   = useState("");
   const [submitting, setSubmitting]     = useState(false);
   const [chartDays, setChartDays]       = useState(30);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [isFundi, setIsFundi]           = useState(false);
 
   const getToken = () => localStorage.getItem("kazishow_token") || "";
 
@@ -49,7 +52,17 @@ export default function EarningsPage() {
     const user = JSON.parse(raw);
     if (user.role !== "PROVIDER") return router.push("/");
     if (user.phone) setPayoutPhone(user.phone);
+    const category = user.provider?.category;
+    setIsFundi(category === "FUNDI");
     loadAll(chartDays);
+    // Fetch subscription for non-FUNDI providers
+    if (category && category !== "FUNDI") {
+      const token = localStorage.getItem("kazishow_token") || "";
+      fetch(`${API}/api/subscriptions/my`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => { if (d.success) setSubscription(d.data); })
+        .catch(() => {});
+    }
   }, []);
 
   async function loadAll(days = chartDays) {
@@ -134,6 +147,49 @@ export default function EarningsPage() {
             <RefreshCw className="w-4 h-4 text-gray-500" />
           </button>
         </div>
+
+        {/* Subscription card for non-FUNDI providers */}
+        {!isFundi && subscription && (
+          <Link
+            href="/provider/subscription"
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+              !subscription.isActive
+                ? "bg-red-50 border-red-200"
+                : subscription.daysRemaining <= 3
+                ? "bg-amber-50 border-amber-200"
+                : "bg-green-50 border-green-200"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                !subscription.isActive ? "bg-red-100" : subscription.daysRemaining <= 3 ? "bg-amber-100" : "bg-green-100"
+              }`}>
+                <CreditCard className={`w-5 h-5 ${
+                  !subscription.isActive ? "text-red-500" : subscription.daysRemaining <= 3 ? "text-amber-600" : "text-green-600"
+                }`} />
+              </div>
+              <div>
+                <p className={`text-sm font-black ${
+                  !subscription.isActive ? "text-red-700" : subscription.daysRemaining <= 3 ? "text-amber-700" : "text-green-700"
+                }`}>
+                  {!subscription.isActive
+                    ? "Subscription Expired — Renew Now"
+                    : subscription.subscription?.status === "TRIAL"
+                    ? `Free Trial — ${subscription.daysRemaining} day${subscription.daysRemaining !== 1 ? "s" : ""} left`
+                    : `${subscription.subscription?.plan} Plan — ${subscription.daysRemaining} days left`}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {!subscription.isActive ? "Customers cannot book you" : "Tap to manage your plan"}
+                </p>
+              </div>
+            </div>
+            <span className={`text-xs font-black px-3 py-1.5 rounded-xl text-white ${
+              !subscription.isActive ? "bg-red-500" : subscription.daysRemaining <= 3 ? "bg-amber-500" : "bg-green-500"
+            }`}>
+              {!subscription.isActive ? "Renew" : "Manage"}
+            </span>
+          </Link>
+        )}
 
         {/* Balance hero */}
         <div className="bg-gradient-to-br from-kazi-orange to-orange-600 rounded-2xl p-6 text-white">
