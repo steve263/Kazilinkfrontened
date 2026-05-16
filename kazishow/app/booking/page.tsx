@@ -24,6 +24,7 @@ import { io, Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
+import ReviewModal from "@/components/trust/ReviewModal";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -54,6 +55,7 @@ interface Booking {
   provider?: Provider;
   service?: Service;
   createdAt?: string;
+  review?: { id: string } | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -142,9 +144,10 @@ interface BookingCardProps {
   confirmingId: string | null;
   setConfirmingId: (id: string | null) => void;
   onPayNow: (booking: Booking) => void;
+  onReview: (booking: Booking) => void;
 }
 
-function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNow }: BookingCardProps) {
+function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNow, onReview }: BookingCardProps) {
   const statusColor = STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-600 border-gray-200";
   const statusLabel = STATUS_LABELS[booking.status] ?? booking.status;
   const emoji = getCategoryEmoji(booking.provider?.category);
@@ -152,6 +155,7 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
   const isConfirming = confirmingId === booking.id;
   const canCancel = booking.status === "PENDING";
   const canPay = ["ACCEPTED", "IN_PROGRESS", "COMPLETED"].includes(booking.status) && booking.paymentStatus !== "PAID";
+  const canReview = booking.status === "COMPLETED" && !booking.review;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3">
@@ -265,9 +269,26 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
           </Link>
         )}
 
+        {canReview && (
+          <button
+            onClick={() => onReview(booking)}
+            className="flex items-center gap-1.5 text-sm text-white bg-kazi-amber hover:bg-amber-500 transition-colors px-3 py-1.5 rounded-lg font-semibold"
+          >
+            <Star className="w-3.5 h-3.5" fill="white" />
+            Leave a Review
+          </button>
+        )}
+
+        {booking.review && (
+          <div className="flex items-center gap-1.5 text-xs text-kazi-green font-semibold">
+            <CheckCircle className="w-3.5 h-3.5" />
+            Review submitted
+          </div>
+        )}
+
         {booking.provider?.id && (
           <Link
-            href={`/provider/${booking.provider.id}`}
+            href={`/business/${booking.provider.id}`}
             className="ml-auto text-sm text-kazi-dark font-medium flex items-center gap-1 hover:underline"
           >
             View Provider
@@ -337,6 +358,9 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  // Review modal state
+  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
 
   // Payment modal state
   const [payBooking, setPayBooking] = useState<Booking | null>(null);
@@ -508,6 +532,14 @@ export default function BookingsPage() {
     socket.on("booking_completed", (d: any) => {
       updateStatus(d.booking?.id, "COMPLETED");
       toast.success("✅ Service completed!");
+      // Auto-prompt review after a short delay
+      setTimeout(() => {
+        setBookings((prev) => {
+          const b = prev.find((x) => x.id === (d.booking?.id));
+          if (b && !b.review) setReviewBooking(b);
+          return prev;
+        });
+      }, 1500);
     });
     socket.on("booking_cancelled", () => fetchBookings());
     socket.on("order_status_update", (d: any) => {
@@ -618,6 +650,7 @@ export default function BookingsPage() {
                 confirmingId={confirmingId}
                 setConfirmingId={setConfirmingId}
                 onPayNow={openPayModal}
+                onReview={setReviewBooking}
               />
             ))}
           </div>
@@ -625,6 +658,24 @@ export default function BookingsPage() {
       </div>
 
       <BottomNav />
+
+      {/* ── Review modal ── */}
+      {reviewBooking && (
+        <ReviewModal
+          providerName={reviewBooking.provider?.businessName ?? "Provider"}
+          providerCategory={reviewBooking.provider?.category}
+          bookingId={reviewBooking.id}
+          onClose={() => setReviewBooking(null)}
+          onSubmitted={() => {
+            setBookings((prev) =>
+              prev.map((b) =>
+                b.id === reviewBooking.id ? { ...b, review: { id: "submitted" } } : b
+              )
+            );
+            setReviewBooking(null);
+          }}
+        />
+      )}
 
       {/* ── Payment modal ── */}
       {payBooking && (
