@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Video } from "lucide-react";
 import toast from "react-hot-toast";
+import VideoCall from "./VideoCall";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -17,6 +18,15 @@ interface IncomingCallData {
 export default function IncomingCallHandler() {
   const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
   const [callState, setCallState] = useState<"idle" | "connected" | "failed">("idle");
+
+  // Video call state
+  const [incomingVideoCall, setIncomingVideoCall] = useState<{
+    from: string; fromName: string; fromPhoto?: string; signal: any;
+  } | null>(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [videoCallSignal, setVideoCallSignal] = useState<any>(null);
+  const [videoCallTarget, setVideoCallTarget] = useState<{ id: string; name: string; photo?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
   const [callError, setCallError] = useState<string | null>(null);
   const [connectedCaller, setConnectedCaller] = useState<{ name: string; avatar: string } | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -44,6 +54,7 @@ export default function IncomingCallHandler() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("kazishow_user") || "null");
     if (!user) return;
+    setCurrentUser({ id: user.id, name: user.name || "" });
 
     const socket = io(API, {
       transports: ["websocket", "polling"],
@@ -65,7 +76,6 @@ export default function IncomingCallHandler() {
       if (peerRef.current) {
         peerRef.current.signal(data.candidate);
       } else {
-        // Peer not created yet (waiting for Accept) — queue for later
         iceCandidateQueueRef.current.push(data.candidate);
       }
     });
@@ -73,6 +83,22 @@ export default function IncomingCallHandler() {
     socket.on("call_ended", () => {
       stopRingtone();
       cleanupCall(false);
+    });
+
+    // Video call events
+    socket.on("incoming_video_call", (data: any) => {
+      setIncomingVideoCall(data);
+      startRingtone();
+    });
+
+    socket.on("video_call_ended", () => {
+      setShowVideoCall(false);
+      setIncomingVideoCall(null);
+    });
+
+    socket.on("video_call_rejected", () => {
+      setShowVideoCall(false);
+      toast.error("Video call was declined");
     });
 
     return () => {
@@ -318,12 +344,73 @@ export default function IncomingCallHandler() {
   // peer stream arrives. The overlay is shown conditionally inside.
   return (
     <>
-      {/*
-        Keep this <audio> ALWAYS in the DOM (outside any conditional).
-        If it unmounts between setIncomingCall(null) and peer.on("stream"),
-        remoteAudioElRef.current becomes null and neither side hears anything.
-      */}
       <audio ref={remoteAudioElRef} autoPlay playsInline style={{ display: "none" }} />
+
+      {/* ── Incoming video call overlay (global — works on any page) ── */}
+      {incomingVideoCall && !showVideoCall && (
+        <div className="fixed inset-0 bg-[#1A1714]/95 z-[9999] flex flex-col items-center justify-center px-6">
+          <div className="relative mb-8 flex items-center justify-center">
+            <div className="w-28 h-28 rounded-full bg-kazi-orange/10 animate-ping absolute" />
+            <div className="w-28 h-28 rounded-full bg-kazi-orange/20 flex items-center justify-center relative z-10 overflow-hidden">
+              {incomingVideoCall.fromPhoto
+                ? <img src={incomingVideoCall.fromPhoto} className="w-full h-full object-cover" alt="" />
+                : <span className="text-5xl font-black text-white">{incomingVideoCall.fromName?.charAt(0)?.toUpperCase() || "?"}</span>
+              }
+            </div>
+          </div>
+          <h2 className="text-white font-black text-2xl mb-1">{incomingVideoCall.fromName}</h2>
+          <p className="text-white/50 text-sm mb-12">Incoming video call…</p>
+          <div className="flex items-center gap-16">
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => {
+                  stopRingtone();
+                  socketRef.current?.emit("video_call_rejected", { to: incomingVideoCall.from });
+                  setIncomingVideoCall(null);
+                }}
+                className="w-16 h-16 rounded-full bg-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/40 animate-bounce"
+              >
+                <PhoneOff className="w-7 h-7 text-white" />
+              </button>
+              <span className="text-white/50 text-xs">Decline</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => {
+                  stopRingtone();
+                  setVideoCallTarget({ id: incomingVideoCall.from, name: incomingVideoCall.fromName, photo: incomingVideoCall.fromPhoto });
+                  setVideoCallSignal(incomingVideoCall.signal);
+                  setIncomingVideoCall(null);
+                  setShowVideoCall(true);
+                }}
+                className="w-16 h-16 rounded-full bg-kazi-orange flex items-center justify-center shadow-lg shadow-orange-500/40 animate-bounce"
+              >
+                <Video className="w-7 h-7 text-white" />
+              </button>
+              <span className="text-white/50 text-xs">Accept</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Active video call (global) ── */}
+      {showVideoCall && socketRef.current && currentUser && videoCallTarget && (
+        <VideoCall
+          socket={socketRef.current}
+          currentUserId={currentUser.id}
+          currentUserName={currentUser.name}
+          targetUserId={videoCallTarget.id}
+          targetUserName={videoCallTarget.name}
+          targetUserPhoto={videoCallTarget.photo}
+          isInitiator={false}
+          initialSignal={videoCallSignal}
+          onClose={() => {
+            setShowVideoCall(false);
+            setVideoCallTarget(null);
+            setVideoCallSignal(null);
+          }}
+        />
+      )}
 
       {!incomingCall && callState !== "connected" && callState !== "failed" ? null : (
       <div className="fixed inset-0 bg-[#1A1714] z-[9999] flex flex-col items-center justify-center px-6">
