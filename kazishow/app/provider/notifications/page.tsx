@@ -513,6 +513,109 @@ function ActiveCard({
   );
 }
 
+// ─── Cash Pending Card (COMPLETED bookings awaiting cash record) ───────────────
+
+function CashPendingCard({
+  booking,
+  token,
+  bookingLabel,
+  onCashPaid,
+}: {
+  booking: Booking;
+  token: string;
+  bookingLabel: string;
+  onCashPaid: (id: string) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleMarkCashPaid = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/bookings/${booking.id}/mark-cash-paid`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Cash recorded! KSh ${data.data.commissionAmount} commission due — pay now to keep app active`);
+        setDone(true);
+        onCashPaid(booking.id);
+      } else {
+        toast.error(data.message || "Failed to record cash");
+      }
+    } catch { toast.error("Network error"); }
+    finally { setLoading(false); }
+  };
+
+  if (done) {
+    return (
+      <div className="bg-kazi-dark rounded-2xl p-4 border border-emerald-500/30 flex items-center gap-3">
+        <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div>
+          <p className="text-emerald-400 font-bold text-sm">Cash recorded!</p>
+          <p className="text-xs text-gray-400">Commission payment alert will appear shortly</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-kazi-dark rounded-2xl overflow-hidden border border-emerald-500/30">
+      <div className="h-1 bg-emerald-500" />
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-lg font-black text-emerald-400 flex-shrink-0">
+              {booking.customer.name.charAt(0)}
+            </div>
+            <div>
+              <p className="font-black text-white text-sm">{booking.customer.name}</p>
+              <p className="text-xs text-gray-400">
+                {bookingLabel} #{booking.id.slice(0, 6).toUpperCase()}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400">
+            Completed
+          </span>
+        </div>
+
+        <div className="space-y-1.5 mb-3">
+          {booking.service && (
+            <div className="flex items-center gap-2">
+              <Zap className="w-3.5 h-3.5 text-kazi-orange flex-shrink-0" />
+              <span className="text-sm text-white font-semibold flex-1">{booking.service.name}</span>
+              <span className="text-sm font-black text-kazi-orange">{formatCurrency(booking.totalAmount)}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+            <span className="text-xs text-gray-400">{fmtDate(booking.scheduledDate, booking.scheduledTime)}</span>
+          </div>
+        </div>
+
+        <div className="bg-emerald-950/40 border border-emerald-500/20 rounded-xl p-3 mb-3">
+          <p className="text-emerald-400 font-bold text-xs mb-0.5">💵 Did the customer pay cash?</p>
+          <p className="text-emerald-500/70 text-xs">
+            Record it so KaziShow can collect the 10% commission (KSh {Math.round(booking.totalAmount * 0.1).toLocaleString()}).
+            Your app will be blocked if you don't record within 24 hours.
+          </p>
+        </div>
+
+        <button
+          onClick={handleMarkCashPaid}
+          disabled={loading}
+          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95 disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+          Customer Paid Cash — KSh {booking.totalAmount.toLocaleString()}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Skeleton ───────────────────────────────────────────────────────────────────
 
 function Skeleton() {
@@ -620,7 +723,7 @@ export default function ProviderNotificationsPage() {
   }, []);
 
   const handleCashPaid = useCallback((id: string) => {
-    setBookings((prev) => prev.map((b) => b.id === id ? { ...b, cashPaid: true } : b));
+    setBookings((prev) => prev.map((b) => b.id === id ? { ...b, cashPaid: true, paymentStatus: "CASH" } : b));
   }, []);
 
   // ─── Not logged in ─────────────────────────────────────────────────────────
@@ -669,9 +772,12 @@ export default function ProviderNotificationsPage() {
   const pageTitle = getPageTitle(category);
   const bookingLabel = getBookingLabel(category);
 
-  const pendingBookings = bookings.filter((b) => b.status === "PENDING");
-  const activeBookings  = bookings.filter((b) => ACTIVE_STATUSES.includes(b.status));
-  const pendingCount    = pendingBookings.length;
+  const pendingBookings     = bookings.filter((b) => b.status === "PENDING");
+  const activeBookings      = bookings.filter((b) => ACTIVE_STATUSES.includes(b.status));
+  const cashPendingBookings = bookings.filter(
+    (b) => b.status === "COMPLETED" && !b.cashPaid && b.paymentStatus !== "PAID" && b.paymentStatus !== "CASH"
+  );
+  const pendingCount        = pendingBookings.length;
 
   return (
     <div className="min-h-screen bg-kazi-dark">
@@ -797,8 +903,32 @@ export default function ProviderNotificationsPage() {
               </section>
             )}
 
+            {/* ── Awaiting Cash Record ── */}
+            {cashPendingBookings.length > 0 && (
+              <section className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <h2 className="text-sm font-black text-white uppercase tracking-wide">
+                    Awaiting Cash Record
+                  </h2>
+                  <span className="text-xs text-gray-500">— record cash received</span>
+                </div>
+                <div className="space-y-4">
+                  {cashPendingBookings.map((b) => (
+                    <CashPendingCard
+                      key={b.id}
+                      booking={b}
+                      token={token!}
+                      bookingLabel={bookingLabel}
+                      onCashPaid={handleCashPaid}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* ── Empty state ── */}
-            {pendingBookings.length === 0 && activeBookings.length === 0 && (
+            {pendingBookings.length === 0 && activeBookings.length === 0 && cashPendingBookings.length === 0 && (
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
                   <Bell className="w-10 h-10 text-gray-600" />
