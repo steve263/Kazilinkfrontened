@@ -27,6 +27,8 @@ interface Booking {
   totalAmount: number;
   notes?: string;
   createdAt: string;
+  customerConfirmed?: boolean;
+  paymentReleasedAt?: string;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -427,10 +429,24 @@ function ActiveCard({
           </div>
         )}
 
-        {booking.status === "COMPLETED" && (
-          <div className="flex items-center justify-center gap-2 py-2">
-            <CheckCircle className="w-4 h-4 text-kazi-green" />
-            <span className="text-xs text-kazi-green font-bold">{bookingLabel} Completed</span>
+        {booking.status === "COMPLETED" && !booking.customerConfirmed && (
+          <div className="bg-amber-900/30 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-amber-400 font-bold text-xs">Waiting for customer to confirm</p>
+              <p className="text-amber-500/80 text-xs mt-0.5">
+                KSh {Math.round(booking.totalAmount * 0.9).toLocaleString()} releases when customer confirms or auto-releases after 24 hours
+              </p>
+            </div>
+          </div>
+        )}
+
+        {booking.status === "COMPLETED" && booking.customerConfirmed && (
+          <div className="bg-green-900/30 border border-kazi-green/30 rounded-xl p-3 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-kazi-green flex-shrink-0" />
+            <p className="text-kazi-green text-xs font-bold">
+              💰 KSh {Math.round(booking.totalAmount * 0.9).toLocaleString()} released to your earnings!
+            </p>
           </div>
         )}
       </div>

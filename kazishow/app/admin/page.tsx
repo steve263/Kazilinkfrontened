@@ -50,6 +50,7 @@ export default function AdminDashboard() {
   const ready = useAdminGuard();
   const [stats, setStats] = useState<Stats | null>(null);
   const [subStats, setSubStats] = useState<any>(null);
+  const [cancelStats, setCancelStats] = useState<any>(null);
   const [pending, setPending] = useState<any[]>([]);
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -70,16 +71,18 @@ export default function AdminDashboard() {
     setLoadingStats(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [s, p, b, sub] = await Promise.all([
+      const [s, p, b, sub, cancel] = await Promise.all([
         fetch(`${API}/api/admin/stats`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/providers/pending`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/bookings?limit=5`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/subscriptions/admin/stats`, { headers }).then((r) => r.json()),
+        fetch(`${API}/api/bookings/admin/cancellations`, { headers }).then((r) => r.json()),
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setPending(p.data);
       if (b.success) setRecentBookings(b.data.bookings);
       if (sub.success) setSubStats(sub.data);
+      if (cancel.success) setCancelStats(cancel.data);
     } catch {
       toast.error("Failed to load dashboard");
     } finally {
@@ -206,6 +209,53 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-400 mt-0.5">Expired</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Cancellation Stats */}
+          {cancelStats && (
+            <div>
+              <h2 className="text-sm font-black text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="text-base">❌</span> Cancellations &amp; Refunds
+              </h2>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-2xl font-black text-red-500">{cancelStats.pendingRefunds}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Pending Refunds</p>
+                </div>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-2xl font-black text-kazi-orange">KSh {(cancelStats.pendingRefundAmount || 0).toLocaleString()}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Refund Amount Owed</p>
+                </div>
+              </div>
+              {cancelStats.cancellations?.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="font-black text-sm text-kazi-dark">Recent Cancellations</p>
+                  </div>
+                  {cancelStats.cancellations.slice(0, 5).map((c: any) => (
+                    <div key={c.id} className="flex items-start justify-between p-4 border-b border-gray-50 last:border-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-kazi-dark truncate">
+                          {c.booking?.customer?.name} → {c.booking?.provider?.businessName}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{c.reason}</p>
+                        <p className="text-xs text-gray-400">By: {c.user?.name} ({c.user?.role})</p>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-3">
+                        <p className="text-sm font-black text-red-500">KSh {(c.refundAmount || 0).toLocaleString()}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          c.refundStatus === "PENDING" ? "bg-amber-100 text-amber-600"
+                          : c.refundStatus === "NOT_APPLICABLE" ? "bg-gray-100 text-gray-500"
+                          : "bg-green-100 text-green-600"
+                        }`}>
+                          {c.refundStatus}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

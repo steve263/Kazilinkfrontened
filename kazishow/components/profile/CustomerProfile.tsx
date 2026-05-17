@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   User, MapPin, Star, Trash2, Edit3, Camera, ChevronRight,
   MessageSquare, Calendar, CheckCircle, XCircle, Clock, Heart,
-  FileText, CreditCard, Settings, ThumbsUp, ArrowRight,
-  Lock, Bell, AlertTriangle, Loader2, LogOut, Navigation, Gift, Music,
+  FileText, CreditCard, Settings, AlertCircle,
+  Lock, Bell, AlertTriangle, Loader2, Navigation, Gift, Music,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -189,14 +189,57 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
     loadTab("bookings");
   }, []);
 
+  const refreshBookings = useCallback(async () => {
+    setBookingsLoading(true);
+    const d = await authFetch(`${API}/api/bookings?limit=100`);
+    if (d.success) setBookings(d.data.bookings);
+    setBookingsLoading(false);
+  }, [authFetch]);
+
   const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm("Cancel this booking?")) return;
-    const d = await authFetch(`${API}/api/bookings/${bookingId}/cancel`, { method: "PUT" });
+    const reason = prompt("Why are you cancelling? (required)");
+    if (!reason || !reason.trim()) return;
+
+    const booking = bookings.find((b) => b.id === bookingId);
+    const scheduledMs = new Date(booking?.scheduledDate || "").getTime();
+    const hoursLeft = (scheduledMs - Date.now()) / (1000 * 60 * 60);
+    const isPaid = booking?.paymentStatus === "PAID";
+
+    let refundMsg = "No payment was made for this booking";
+    if (isPaid) {
+      if (hoursLeft >= 2) refundMsg = `You will receive a FULL refund of KSh ${booking?.totalAmount}`;
+      else if (hoursLeft > 0) refundMsg = `You will receive a 50% refund of KSh ${Math.round((booking?.totalAmount || 0) * 0.5)} (cancelled less than 2 hours before)`;
+      else refundMsg = "No refund — booking time has already passed";
+    }
+
+    if (!confirm(`Cancel this booking?\n\n${refundMsg}\n\nClick OK to confirm.`)) return;
+
+    const d = await authFetch(`${API}/api/bookings/${bookingId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason: reason.trim() }),
+    });
     if (d.success) {
-      toast.success("Booking cancelled");
+      toast.success(d.data?.refundMessage || "Booking cancelled");
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: "CANCELLED" } : b)));
     } else {
       toast.error(d.message || "Could not cancel");
+    }
+  };
+
+  const handleConfirmComplete = async (bookingId: string) => {
+    if (!confirm("Confirm the job is complete and release payment to the provider?")) return;
+    const d = await authFetch(`${API}/api/bookings/${bookingId}/confirm-complete`, { method: "PUT" });
+    if (d.success) {
+      toast.success("Payment released! Please rate your experience ⭐");
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId
+            ? { ...b, customerConfirmed: true, customerConfirmedAt: new Date().toISOString() }
+            : b
+        )
+      );
+    } else {
+      toast.error(d.message || "Failed to confirm");
     }
   };
 
@@ -520,12 +563,64 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                   })
                 )}
 
-                {/* Completed */}
-                <h3 className="font-bold text-kazi-dark text-sm pt-2">Completed ({completedBookings.length})</h3>
-                {completedBookings.length === 0 ? (
+                {/* Completed — awaiting confirmation */}
+                {completedBookings.filter((b) => !b.customerConfirmed).length > 0 && (
+                  <>
+                    <h3 className="font-bold text-kazi-dark text-sm pt-2 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-500" />
+                      Awaiting Your Confirmation ({completedBookings.filter((b) => !b.customerConfirmed).length})
+                    </h3>
+                    {completedBookings.filter((b) => !b.customerConfirmed).map((b) => (
+                      <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-3 border-2 border-amber-200">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-bold text-kazi-dark text-sm">{b.provider?.businessName}</p>
+                            <p className="text-xs text-gray-500">{b.service?.name || "General Service"}</p>
+                          </div>
+                          <span className="font-bold text-kazi-orange text-sm">{formatCurrency(b.totalAmount)}</span>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+                          <div className="flex items-start gap-2 mb-3">
+                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-bold text-green-700 text-sm">
+                                {b.provider?.businessName} says the job is done!
+                              </p>
+                              <p className="text-green-600 text-xs mt-0.5">
+                                Please confirm to release their payment of {formatCurrency(b.totalAmount)}
+                              </p>
+                              <p className="text-gray-400 text-xs mt-1">
+                                ⏰ Payment auto-releases in 24 hours if not confirmed
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => toast("To dispute, please contact support via chat.")}
+                              className="flex-1 py-2.5 bg-white border border-red-200 text-red-500 font-bold rounded-xl text-xs"
+                            >
+                              ❌ Dispute
+                            </button>
+                            <button
+                              onClick={() => handleConfirmComplete(b.id)}
+                              className="flex-1 py-2.5 bg-green-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              ✅ Yes, Job Done!
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Completed — confirmed */}
+                <h3 className="font-bold text-kazi-dark text-sm pt-2">Completed ({completedBookings.filter((b) => b.customerConfirmed).length})</h3>
+                {completedBookings.filter((b) => b.customerConfirmed).length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-4">No completed bookings yet</p>
                 ) : (
-                  completedBookings.map((b) => (
+                  completedBookings.filter((b) => b.customerConfirmed).map((b) => (
                     <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-2">
                       <div className="flex items-start justify-between">
                         <div>
@@ -534,9 +629,15 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                         </div>
                         <span className="font-bold text-kazi-orange text-sm">{formatCurrency(b.totalAmount)}</span>
                       </div>
-                      <p className="text-xs text-gray-400">
-                        {new Date(b.updatedAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                        <p className="text-xs text-gray-400">
+                          Payment released ·{" "}
+                          {b.customerConfirmedAt
+                            ? new Date(b.customerConfirmedAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" })
+                            : new Date(b.updatedAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                        </p>
+                      </div>
                       {b.review ? (
                         <Stars rating={b.review.rating} />
                       ) : (
