@@ -7,7 +7,7 @@ import {
   Star, Trash2, Edit3, Camera, MessageSquare, Calendar, CheckCircle,
   XCircle, Clock, Loader2, Settings, CreditCard, Image,
   FileText, Plus, Bell, AlertTriangle, Lock, MapPin, Phone,
-  Zap, ToggleLeft, ToggleRight, Tag, X, Music, CalendarDays, ChevronRight,
+  Zap, ToggleLeft, ToggleRight, Tag, X, Music, CalendarDays, ChevronRight, Wallet,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -764,8 +764,29 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
         </div>
       </div>
 
+      {/* ── WALLET QUICK ACCESS ── */}
+      <div className="px-4 pt-3">
+        <Link
+          href="/provider/earnings"
+          className="flex items-center justify-between bg-gradient-to-r from-kazi-orange to-orange-500 rounded-2xl px-4 py-3 shadow-md shadow-orange-200 active:scale-[0.98] transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-white font-black text-sm leading-tight">My Wallet & Withdraw</p>
+              <p className="text-orange-100 text-xs">
+                Earned: {earningsLoading ? "..." : formatCurrency((earnings?.allTime?.amount ?? 0) * 0.9)} · Tap to withdraw
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-white/70" />
+        </Link>
+      </div>
+
       {/* ── TAB BAR ── */}
-      <div className="flex gap-1 px-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+      <div className="flex gap-1 px-4 overflow-x-auto pb-2 pt-3" style={{ scrollbarWidth: "none" }}>
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -1039,9 +1060,9 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                   </div>
                   <p className="text-xs text-gray-400">Total jobs: {earnings?.allTime?.jobs || 0}</p>
                 </div>
-                <button className="w-full py-3 bg-kazi-green text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2">
-                  <CreditCard className="w-4 h-4" /> Request Payout
-                </button>
+                <Link href="/provider/earnings" className="w-full py-3 bg-kazi-green text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2">
+                  <CreditCard className="w-4 h-4" /> Withdraw Earnings
+                </Link>
               </>
             )}
           </div>

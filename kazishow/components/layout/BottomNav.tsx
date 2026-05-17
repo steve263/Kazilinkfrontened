@@ -63,9 +63,7 @@ export default function BottomNav() {
     ? [
         { href: "/", icon: Home, label: "Home" },
         { href: "/provider/notifications", icon: ClipboardList, label: "Jobs" },
-        isFundi
-          ? { href: "/provider/earnings", icon: Wallet, label: "Wallet" }
-          : { href: "/provider/subscription", icon: CreditCard, label: "Plan", badge: subStatus },
+        { href: "/provider/earnings", icon: Wallet, label: "Wallet", badge: isFundi ? null : subStatus },
         { href: "/chat", icon: MessageSquare, label: "Chat" },
         { href: "/profile", icon: User, label: "Profile" },
       ]
