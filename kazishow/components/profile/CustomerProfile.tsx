@@ -563,102 +563,184 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                   })
                 )}
 
-                {/* Completed — awaiting confirmation */}
-                {completedBookings.filter((b) => !b.customerConfirmed).length > 0 && (
-                  <>
-                    <h3 className="font-bold text-kazi-dark text-sm pt-2 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-500" />
-                      Awaiting Your Confirmation ({completedBookings.filter((b) => !b.customerConfirmed).length})
-                    </h3>
-                    {completedBookings.filter((b) => !b.customerConfirmed).map((b) => (
-                      <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-3 border-2 border-amber-200">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-bold text-kazi-dark text-sm">{b.provider?.businessName}</p>
-                            <p className="text-xs text-gray-500">{b.service?.name || "General Service"}</p>
-                          </div>
-                          <span className="font-bold text-kazi-orange text-sm">{formatCurrency(b.totalAmount)}</span>
-                        </div>
-                        <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
-                          <div className="flex items-start gap-2 mb-3">
-                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-bold text-green-700 text-sm">
-                                {b.provider?.businessName} says the job is done!
-                              </p>
-                              <p className="text-green-600 text-xs mt-0.5">
-                                Please confirm to release their payment of {formatCurrency(b.totalAmount)}
-                              </p>
-                              <p className="text-gray-400 text-xs mt-1">
-                                ⏰ Payment auto-releases in 24 hours if not confirmed
+                {/* Completed — awaiting action */}
+                {(() => {
+                  // Escrow: M-Pesa paid, not yet confirmed by customer
+                  const escrowPending = completedBookings.filter(
+                    (b) => (b.paymentMethod === "MPESA" || !b.paymentMethod) && b.paymentStatus === "PAID" && !b.customerConfirmed
+                  );
+                  // Cash: customer still needs to hand cash to fundi
+                  const cashPending = completedBookings.filter(
+                    (b) => b.paymentMethod === "CASH" && !b.cashPaid
+                  );
+                  // Pay after: customer still owes fundi directly
+                  const payAfterPending = completedBookings.filter(
+                    (b) => b.paymentMethod === "PAY_AFTER" && !b.cashPaid
+                  );
+
+                  return (
+                    <>
+                      {/* M-Pesa escrow — confirm to release */}
+                      {escrowPending.length > 0 && (
+                        <>
+                          <h3 className="font-bold text-kazi-dark text-sm pt-2 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-amber-500" />
+                            Awaiting Your Confirmation ({escrowPending.length})
+                          </h3>
+                          {escrowPending.map((b) => (
+                            <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-3 border-2 border-amber-200">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-bold text-kazi-dark text-sm">{b.provider?.businessName}</p>
+                                  <p className="text-xs text-gray-500">{b.service?.name || "General Service"}</p>
+                                </div>
+                                <span className="font-bold text-kazi-orange text-sm">{formatCurrency(b.totalAmount)}</span>
+                              </div>
+                              <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+                                <div className="flex items-start gap-2 mb-3">
+                                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                  <div>
+                                    <p className="font-bold text-green-700 text-sm">
+                                      {b.provider?.businessName} says the job is done!
+                                    </p>
+                                    <p className="text-green-600 text-xs mt-0.5">
+                                      Confirm to release {formatCurrency(b.totalAmount)} payment. Auto-releases in 24 hours.
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => toast("To dispute, please contact support via chat.")}
+                                    className="flex-1 py-2.5 bg-white border border-red-200 text-red-500 font-bold rounded-xl text-xs"
+                                  >
+                                    ❌ Dispute
+                                  </button>
+                                  <button
+                                    onClick={() => handleConfirmComplete(b.id)}
+                                    className="flex-1 py-2.5 bg-green-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" /> ✅ Yes, Done!
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Cash — remind customer to pay fundi */}
+                      {cashPending.length > 0 && (
+                        <>
+                          <h3 className="font-bold text-kazi-dark text-sm pt-2 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-green-500" />
+                            Pay Cash to Provider ({cashPending.length})
+                          </h3>
+                          {cashPending.map((b) => (
+                            <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-3 border-2 border-green-200">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-bold text-kazi-dark text-sm">{b.provider?.businessName}</p>
+                                  <p className="text-xs text-gray-500">{b.service?.name || "General Service"}</p>
+                                </div>
+                                <span className="font-bold text-kazi-orange text-sm">{formatCurrency(b.totalAmount)}</span>
+                              </div>
+                              <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                                <p className="font-bold text-green-700 text-sm">💵 Please Pay the Provider Cash</p>
+                                <p className="text-green-600 text-xs mt-1">
+                                  Pay KSh {b.totalAmount.toLocaleString()} cash directly to {b.provider?.businessName}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Pay after — remind customer payment is due */}
+                      {payAfterPending.length > 0 && (
+                        <>
+                          <h3 className="font-bold text-kazi-dark text-sm pt-2 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-amber-500" />
+                            Payment Due ({payAfterPending.length})
+                          </h3>
+                          {payAfterPending.map((b) => (
+                            <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-3 border-2 border-amber-200">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-bold text-kazi-dark text-sm">{b.provider?.businessName}</p>
+                                  <p className="text-xs text-gray-500">{b.service?.name || "General Service"}</p>
+                                </div>
+                                <span className="font-bold text-kazi-orange text-sm">{formatCurrency(b.totalAmount)}</span>
+                              </div>
+                              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                                <p className="font-bold text-amber-700 text-sm">⏰ Payment Due Now!</p>
+                                <p className="text-amber-600 text-xs mt-1">
+                                  Pay KSh {b.totalAmount.toLocaleString()} to {b.provider?.businessName} as agreed.
+                                </p>
+                                <a
+                                  href={`tel:${b.provider?.user?.phone}`}
+                                  className="block mt-2 py-2 bg-amber-500 text-white font-bold rounded-xl text-xs text-center"
+                                >
+                                  📞 Call Provider to Pay
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
+
+                {/* Completed — done */}
+                {(() => {
+                  const doneBookings = completedBookings.filter(
+                    (b) => b.customerConfirmed || b.cashPaid ||
+                      ((b.paymentMethod === "CASH" || b.paymentMethod === "PAY_AFTER") && !b.cashPaid === false)
+                  );
+                  return (
+                    <>
+                      <h3 className="font-bold text-kazi-dark text-sm pt-2">Completed ({doneBookings.length})</h3>
+                      {doneBookings.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-4">No completed bookings yet</p>
+                      ) : (
+                        doneBookings.map((b) => (
+                          <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="font-bold text-kazi-dark text-sm">{b.provider?.businessName}</p>
+                                <p className="text-xs text-gray-500">{b.service?.name || "General Service"}</p>
+                              </div>
+                              <span className="font-bold text-kazi-orange text-sm">{formatCurrency(b.totalAmount)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                              <p className="text-xs text-gray-400">
+                                {b.paymentMethod === "CASH" ? "Cash paid" : b.paymentMethod === "PAY_AFTER" ? "Payment collected" : "Payment released"} ·{" "}
+                                {new Date(b.updatedAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
                               </p>
                             </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => toast("To dispute, please contact support via chat.")}
-                              className="flex-1 py-2.5 bg-white border border-red-200 text-red-500 font-bold rounded-xl text-xs"
+                            {b.review ? (
+                              <Stars rating={b.review.rating} />
+                            ) : (
+                              <button
+                                onClick={() => setReviewModal({ bookingId: b.id, providerName: b.provider?.businessName || "Provider" })}
+                                className="inline-flex items-center gap-1 text-xs text-kazi-orange font-bold"
+                              >
+                                <Star className="w-3 h-3" /> Write Review
+                              </button>
+                            )}
+                            <Link
+                              href={`/business/${b.provider?.id}`}
+                              className="block py-2 rounded-xl bg-orange-50 text-kazi-orange text-xs font-bold text-center hover:bg-orange-100 transition-colors"
                             >
-                              ❌ Dispute
-                            </button>
-                            <button
-                              onClick={() => handleConfirmComplete(b.id)}
-                              className="flex-1 py-2.5 bg-green-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              ✅ Yes, Job Done!
-                            </button>
+                              Rebook
+                            </Link>
                           </div>
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                )}
-
-                {/* Completed — confirmed */}
-                <h3 className="font-bold text-kazi-dark text-sm pt-2">Completed ({completedBookings.filter((b) => b.customerConfirmed).length})</h3>
-                {completedBookings.filter((b) => b.customerConfirmed).length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-4">No completed bookings yet</p>
-                ) : (
-                  completedBookings.filter((b) => b.customerConfirmed).map((b) => (
-                    <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-bold text-kazi-dark text-sm">{b.provider?.businessName}</p>
-                          <p className="text-xs text-gray-500">{b.service?.name || "General Service"}</p>
-                        </div>
-                        <span className="font-bold text-kazi-orange text-sm">{formatCurrency(b.totalAmount)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-                        <p className="text-xs text-gray-400">
-                          Payment released ·{" "}
-                          {b.customerConfirmedAt
-                            ? new Date(b.customerConfirmedAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" })
-                            : new Date(b.updatedAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                        </p>
-                      </div>
-                      {b.review ? (
-                        <Stars rating={b.review.rating} />
-                      ) : (
-                        <button
-                          onClick={() => setReviewModal({ bookingId: b.id, providerName: b.provider?.businessName || "Provider" })}
-                          className="inline-flex items-center gap-1 text-xs text-kazi-orange font-bold"
-                        >
-                          <Star className="w-3 h-3" /> Write Review
-                        </button>
+                        ))
                       )}
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/business/${b.provider?.id}`}
-                          className="flex-1 py-2 rounded-xl bg-orange-50 text-kazi-orange text-xs font-bold text-center hover:bg-orange-100 transition-colors"
-                        >
-                          Rebook
-                        </Link>
-                      </div>
-                    </div>
-                  ))
-                )}
+                    </>
+                  );
+                })()}
 
                 {/* Cancelled */}
                 {cancelledBookings.length > 0 && (

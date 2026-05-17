@@ -31,6 +31,36 @@ interface Booking {
   paymentReleasedAt?: string;
   cashPaid?: boolean;
   paymentStatus?: string;
+  paymentMethod?: "MPESA" | "CASH" | "PAY_AFTER";
+}
+
+function getPaymentInfo(booking: Booking) {
+  const method = booking.paymentMethod || "MPESA";
+  const amount = booking.totalAmount;
+  const providerAmount = Math.round(amount * 0.9);
+  const name = booking.customer.name;
+  const phone = booking.customer.phone;
+
+  if (method === "CASH") {
+    if (booking.cashPaid) {
+      return { type: "cash_done", title: "✅ Cash Recorded", message: "Commission payment required — check the commission alert.", color: "border-emerald-500/30 bg-emerald-900/20", titleColor: "text-emerald-400", showCashBtn: false, showCallBtn: false };
+    }
+    return { type: "cash", title: "💵 Collect Cash from Customer", message: `Ask ${name} to pay KSh ${amount.toLocaleString()} cash directly to you. Tap below once collected.`, color: "border-green-500/40 bg-green-900/20", titleColor: "text-green-400", showCashBtn: true, showCallBtn: true };
+  }
+
+  if (method === "PAY_AFTER") {
+    if (booking.cashPaid) {
+      return { type: "pay_after_done", title: "✅ Payment Collected", message: "Commission payment required — check the commission alert.", color: "border-emerald-500/30 bg-emerald-900/20", titleColor: "text-emerald-400", showCashBtn: false, showCallBtn: false };
+    }
+    return { type: "pay_after", title: "⏰ Collect Payment from Customer", message: `Remind ${name} to pay KSh ${amount.toLocaleString()}. Payment is due now. Call them if needed.`, color: "border-amber-500/40 bg-amber-900/20", titleColor: "text-amber-400", showCashBtn: true, showCallBtn: true };
+  }
+
+  // MPESA escrow
+  if (booking.customerConfirmed || booking.paymentReleasedAt) {
+    return { type: "escrow_released", title: "💰 Payment Released!", message: `KSh ${providerAmount.toLocaleString()} added to your earnings. Commission: KSh ${(amount - providerAmount).toLocaleString()}`, color: "border-kazi-green/30 bg-green-900/20", titleColor: "text-kazi-green", showCashBtn: false, showCallBtn: false };
+  }
+
+  return { type: "escrow_waiting", title: "⏳ Waiting for Customer Confirmation", message: `KSh ${providerAmount.toLocaleString()} releases when ${name} confirms. Auto-releases in 24 hours.`, color: "border-amber-500/30 bg-amber-900/30", titleColor: "text-amber-400", showCashBtn: false, showCallBtn: false };
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -290,7 +320,8 @@ function ActiveCard({
   const [loading, setLoading] = useState(false);
   const [cashLoading, setCashLoading] = useState(false);
   const canMove = isMobileProvider(category, description);
-  const isCashPayment = booking.paymentStatus !== 'PAID';
+  const paymentMethod = booking.paymentMethod || "MPESA";
+  const isNonEscrow = paymentMethod === "CASH" || paymentMethod === "PAY_AFTER";
 
   const handleMarkCashPaid = async () => {
     setCashLoading(true);
@@ -451,63 +482,39 @@ function ActiveCard({
               </button>
             )}
 
-            {/* Cash payment button — only for non-M-Pesa bookings in progress */}
-            {booking.status === "IN_PROGRESS" && isCashPayment && !booking.cashPaid && (
+            {/* Record payment button — cash / pay-after only, while in progress */}
+            {booking.status === "IN_PROGRESS" && isNonEscrow && !booking.cashPaid && (
               <button onClick={handleMarkCashPaid} disabled={cashLoading}
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95 disabled:opacity-50">
                 {cashLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                Customer Paid Cash
+                {paymentMethod === "CASH" ? "✅ Cash Received" : "✅ Payment Collected"}
               </button>
             )}
           </div>
         )}
 
-        {booking.status === "COMPLETED" && !booking.cashPaid && isCashPayment && (
-          <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-3">
-            <p className="text-emerald-400 font-bold text-xs mb-2">Awaiting Cash Payment Record</p>
-            <p className="text-emerald-500/80 text-xs mb-2">
-              If customer paid cash, record it to maintain your account
-            </p>
-            <button onClick={handleMarkCashPaid} disabled={cashLoading}
-              className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs transition-all active:scale-95 disabled:opacity-50">
-              {cashLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <CreditCard className="w-3 h-3" />}
-              Customer Paid Cash
-            </button>
-          </div>
-        )}
-
-        {booking.status === "COMPLETED" && booking.cashPaid && (
-          <div className="bg-emerald-900/20 border border-emerald-500/20 rounded-xl p-3 flex items-start gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-emerald-400 font-bold text-xs">Cash recorded — pay your commission</p>
-              <p className="text-emerald-500/80 text-xs mt-0.5">
-                Check your commission status in the commission alert
-              </p>
+        {booking.status === "COMPLETED" && (() => {
+          const info = getPaymentInfo(booking);
+          return (
+            <div className={`rounded-xl border p-3 ${info.color}`}>
+              <p className={`font-bold text-xs mb-1 ${info.titleColor}`}>{info.title}</p>
+              <p className="text-gray-400 text-xs">{info.message}</p>
+              {info.showCashBtn && (
+                <button onClick={handleMarkCashPaid} disabled={cashLoading}
+                  className="w-full py-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs transition-all active:scale-95 disabled:opacity-50">
+                  {cashLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <CreditCard className="w-3 h-3" />}
+                  {info.type === "pay_after" ? "✅ Payment Collected" : "✅ Cash Received"}
+                </button>
+              )}
+              {info.showCallBtn && (
+                <a href={`tel:${booking.customer.phone}`}
+                  className="w-full py-2 mt-1.5 bg-white/10 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs hover:bg-white/20 transition-all">
+                  <Phone className="w-3 h-3" /> Call {booking.customer.name}
+                </a>
+              )}
             </div>
-          </div>
-        )}
-
-        {booking.status === "COMPLETED" && !booking.customerConfirmed && !booking.cashPaid && !isCashPayment && (
-          <div className="bg-amber-900/30 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
-            <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-amber-400 font-bold text-xs">Waiting for customer to confirm</p>
-              <p className="text-amber-500/80 text-xs mt-0.5">
-                KSh {Math.round(booking.totalAmount * 0.9).toLocaleString()} releases when customer confirms or auto-releases after 24 hours
-              </p>
-            </div>
-          </div>
-        )}
-
-        {booking.status === "COMPLETED" && booking.customerConfirmed && !booking.cashPaid && (
-          <div className="bg-green-900/30 border border-kazi-green/30 rounded-xl p-3 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-kazi-green flex-shrink-0" />
-            <p className="text-kazi-green text-xs font-bold">
-              💰 KSh {Math.round(booking.totalAmount * 0.9).toLocaleString()} released to your earnings!
-            </p>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
@@ -775,7 +782,8 @@ export default function ProviderNotificationsPage() {
   const pendingBookings     = bookings.filter((b) => b.status === "PENDING");
   const activeBookings      = bookings.filter((b) => ACTIVE_STATUSES.includes(b.status));
   const cashPendingBookings = bookings.filter(
-    (b) => b.status === "COMPLETED" && !b.cashPaid && b.paymentStatus !== "PAID" && b.paymentStatus !== "CASH"
+    (b) => b.status === "COMPLETED" && !b.cashPaid &&
+      (b.paymentMethod === "CASH" || b.paymentMethod === "PAY_AFTER")
   );
   const pendingCount        = pendingBookings.length;
 
