@@ -26,15 +26,14 @@ const CATEGORY_META: Record<string, { emoji: string; gradient: string; label: st
   BUSINESS:     { emoji: "💼", gradient: "from-pink-400 to-rose-600",      label: "Business"     },
 };
 
-const CATEGORIES = [
-  { id: "all",          label: "All",          emoji: "✨" },
-  { id: "FUNDI",        label: "Fundis",       emoji: "🔧" },
-  { id: "SHOP",         label: "Shops",        emoji: "🛒" },
-  { id: "HOTEL",        label: "Hotels",       emoji: "🏨" },
-  { id: "RESTAURANT",   label: "Restaurants",  emoji: "🍲" },
-  { id: "TECH",         label: "Tech",         emoji: "💻" },
-  { id: "PROFESSIONAL", label: "Professional", emoji: "⚖️" },
-  { id: "BUSINESS",     label: "Business",     emoji: "💼" },
+const BUSINESS_CATEGORIES = [
+  { id: "all",          label: "All Businesses", emoji: "✨" },
+  { id: "SHOP",         label: "Shops",          emoji: "🛒" },
+  { id: "HOTEL",        label: "Hotels",         emoji: "🏨" },
+  { id: "RESTAURANT",   label: "Restaurants",    emoji: "🍲" },
+  { id: "TECH",         label: "Tech",           emoji: "💻" },
+  { id: "PROFESSIONAL", label: "Professional",   emoji: "⚖️" },
+  { id: "BUSINESS",     label: "Business",       emoji: "💼" },
 ];
 
 const SORT_OPTIONS = ["Top Rated", "Most Reviewed", "Nearest", "Newest", "Price: Low to High", "Price: High to Low"];
@@ -402,7 +401,8 @@ function DiscoverContent() {
   const [error, setError] = useState("");
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [mainTab, setMainTab] = useState<"fundi" | "business">("fundi");
+  const [subCategory, setSubCategory] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -517,7 +517,12 @@ function DiscoverContent() {
           p.services?.some((s: any) => s.name?.toLowerCase().includes(q))
       );
     }
-    if (selectedCategory !== "all") result = result.filter((p) => p.category === selectedCategory);
+    if (mainTab === "fundi") {
+      result = result.filter((p) => p.category === "FUNDI");
+    } else {
+      result = result.filter((p) => p.category !== "FUNDI");
+      if (subCategory !== "all") result = result.filter((p) => p.category === subCategory);
+    }
     if (minRating > 0) result = result.filter((p) => p.rating >= minRating);
     if (verifiedOnly) result = result.filter((p) => p.isVerified);
     if (minPrice > 0) result = result.filter((p) => p.price >= minPrice);
@@ -537,7 +542,7 @@ function DiscoverContent() {
     }
 
     return result;
-  }, [providers, query, selectedCategory, minRating, verifiedOnly, minPrice, maxPrice, openNow, sortBy, userLocation]);
+  }, [providers, query, mainTab, subCategory, minRating, verifiedOnly, minPrice, maxPrice, openNow, sortBy, userLocation]);
 
   const getDistKm = useCallback((p: ReturnType<typeof mapProvider>) => {
     if (!userLocation || !p.lat || !p.lng) return undefined;
@@ -581,7 +586,7 @@ function DiscoverContent() {
     setMaxPrice(0);
     setOpenNow(false);
     setQuery("");
-    setSelectedCategory("all");
+    setSubCategory("all");
   };
 
   // ─── Render ──────────────────────────────────────────────────────────────────
@@ -626,25 +631,59 @@ function DiscoverContent() {
         </div>
       </div>
 
-      {/* ── 2. Category Chips ──────────────────────────────────────────────── */}
+      {/* ── 2. Fundi / Business Tabs ───────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100 sticky top-16 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex gap-2 overflow-x-auto hide-scrollbar py-3">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                  selectedCategory === cat.id
-                    ? "bg-kazi-orange text-white shadow-md shadow-orange-200"
-                    : "bg-gray-50 text-gray-700 hover:bg-orange-50 hover:text-kazi-orange border border-gray-200"
-                }`}
-              >
-                <span>{cat.emoji}</span>
-                <span>{cat.label}</span>
-              </button>
-            ))}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3">
+          {/* Primary tabs */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <button
+              onClick={() => { setMainTab("fundi"); setSubCategory("all"); }}
+              className={`flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm transition-all ${
+                mainTab === "fundi"
+                  ? "bg-kazi-orange text-white shadow-md shadow-orange-200"
+                  : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-orange-50 hover:text-kazi-orange"
+              }`}
+            >
+              🔧 Fundis
+            </button>
+            <button
+              onClick={() => { setMainTab("business"); setSubCategory("all"); }}
+              className={`flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm transition-all ${
+                mainTab === "business"
+                  ? "bg-kazi-dark text-white shadow-md"
+                  : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100"
+              }`}
+            >
+              🏪 Businesses
+            </button>
           </div>
+
+          {/* Business sub-category chips */}
+          {mainTab === "business" && (
+            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-3">
+              {BUSINESS_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSubCategory(cat.id)}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                    subCategory === cat.id
+                      ? "bg-kazi-dark text-white shadow-md"
+                      : "bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200"
+                  }`}
+                >
+                  <span>{cat.emoji}</span>
+                  <span>{cat.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Fundi sub-label */}
+          {mainTab === "fundi" && (
+            <p className="text-xs text-gray-400 font-medium pb-3">
+              Plumbers, electricians, painters, carpenters & more
+            </p>
+          )}
         </div>
       </div>
 
