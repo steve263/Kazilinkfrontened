@@ -39,7 +39,8 @@ const BOOKING_STATUS_COLOR: Record<string, string> = {
   PENDING:     "bg-yellow-100 text-yellow-700",
   ACCEPTED:    "bg-blue-100 text-blue-700",
   COMPLETED:   "bg-green-100 text-green-700",
-  CANCELLED:   "bg-red-100 text-red-700",
+  DISPUTED:    "bg-red-100 text-red-700",
+  CANCELLED:   "bg-gray-100 text-gray-600",
   EN_ROUTE:    "bg-cyan-100 text-cyan-700",
   IN_PROGRESS: "bg-purple-100 text-purple-700",
   PREPARING:   "bg-orange-100 text-orange-700",
@@ -52,6 +53,7 @@ export default function AdminDashboard() {
   const [subStats, setSubStats] = useState<any>(null);
   const [cancelStats, setCancelStats] = useState<any>(null);
   const [commissionStats, setCommissionStats] = useState<any>(null);
+  const [disputes, setDisputes] = useState<any[]>([]);
   const [waivingId, setWaivingId] = useState<string | null>(null);
   const [pending, setPending] = useState<any[]>([]);
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
@@ -73,13 +75,14 @@ export default function AdminDashboard() {
     setLoadingStats(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [s, p, b, sub, cancel, comm] = await Promise.all([
+      const [s, p, b, sub, cancel, comm, disp] = await Promise.all([
         fetch(`${API}/api/admin/stats`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/providers/pending`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/bookings?limit=5`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/subscriptions/admin/stats`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/bookings/admin/cancellations`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/bookings/admin/commissions?limit=10`, { headers }).then((r) => r.json()),
+        fetch(`${API}/api/bookings?status=DISPUTED`, { headers }).then((r) => r.json()),
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setPending(p.data);
@@ -87,6 +90,7 @@ export default function AdminDashboard() {
       if (sub.success) setSubStats(sub.data);
       if (cancel.success) setCancelStats(cancel.data);
       if (comm.success) setCommissionStats(comm.data);
+      if (disp.success) setDisputes(disp.data.bookings || []);
     } catch {
       toast.error("Failed to load dashboard");
     } finally {
@@ -106,6 +110,41 @@ export default function AdminDashboard() {
     sessionStorage.removeItem("kazishow_user");
     window.location.href = "/auth/login";
   }
+
+  const handleReleaseToProvider = async (bookingId: string) => {
+    if (!confirm("Release payment to provider? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`${API}/api/bookings/${bookingId}/confirm-complete`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Payment released to provider");
+        fetchDashboard();
+      } else {
+        toast.error(data.message || "Failed to release");
+      }
+    } catch { toast.error("Network error"); }
+  };
+
+  const handleRefundCustomer = async (bookingId: string) => {
+    if (!confirm("Refund customer? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`${API}/api/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Admin refund after dispute resolution" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Customer refund initiated");
+        fetchDashboard();
+      } else {
+        toast.error(data.message || "Failed to refund");
+      }
+    } catch { toast.error("Network error"); }
+  };
 
   const handleWaiveCommission = async (commissionId: string) => {
     const reason = prompt("Enter reason for waiving this commission:");
@@ -281,6 +320,57 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Active Disputes */}
+          {disputes.length > 0 && (
+            <div>
+              <h2 className="text-sm font-black text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="text-base">🚨</span> Active Disputes
+                <span className="bg-red-500 text-white text-xs font-black px-1.5 py-0.5 rounded-full">{disputes.length}</span>
+              </h2>
+              <div className="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden">
+                <div className="px-4 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
+                  <span className="text-lg">🚨</span>
+                  <div>
+                    <p className="font-black text-red-700 text-sm">Requires Immediate Attention</p>
+                    <p className="text-red-500 text-xs">{disputes.length} dispute{disputes.length !== 1 ? "s" : ""} awaiting review</p>
+                  </div>
+                </div>
+                {disputes.map((booking: any) => (
+                  <div key={booking.id} className="p-4 border-b border-gray-50 last:border-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-bold text-kazi-dark text-sm">
+                          {booking.customer?.name}
+                          <span className="text-gray-400 font-normal"> vs </span>
+                          {booking.provider?.businessName}
+                        </p>
+                        <p className="text-xs text-gray-400">{booking.service?.name} • KSh {booking.totalAmount?.toLocaleString()}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          📅 {new Date(booking.createdAt).toLocaleDateString("en-KE")}
+                        </p>
+                      </div>
+                      <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full flex-shrink-0">DISPUTED</span>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleReleaseToProvider(booking.id)}
+                        className="flex-1 py-2 bg-green-500 text-white font-bold rounded-xl text-xs"
+                      >
+                        ✅ Release to Provider
+                      </button>
+                      <button
+                        onClick={() => handleRefundCustomer(booking.id)}
+                        className="flex-1 py-2 bg-blue-500 text-white font-bold rounded-xl text-xs"
+                      >
+                        💰 Refund Customer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
