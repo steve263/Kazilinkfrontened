@@ -11,6 +11,7 @@ import WhatsAppFloat from "@/components/support/WhatsAppFloat";
 import AISupportChat from "@/components/support/AISupportChat";
 import GoogleAuthProvider from "@/components/auth/GoogleAuthProvider";
 import BookingNotificationManager from "@/components/notifications/BookingNotificationManager";
+import CommissionGuard from "@/components/commission/CommissionGuard";
 
 export const metadata: Metadata = {
   title: "KaziShow — Discover Local Businesses in Kenya",
@@ -46,6 +47,7 @@ export default function RootLayout({
           <ScrollProgress />
           {children}
           <BookingNotificationManager />
+          <CommissionGuard />
           <WhatsAppFloat />
           <AISupportChat />
         </SuspensionGate>

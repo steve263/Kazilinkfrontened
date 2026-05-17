@@ -51,6 +51,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [subStats, setSubStats] = useState<any>(null);
   const [cancelStats, setCancelStats] = useState<any>(null);
+  const [commissionStats, setCommissionStats] = useState<any>(null);
+  const [waivingId, setWaivingId] = useState<string | null>(null);
   const [pending, setPending] = useState<any[]>([]);
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -71,18 +73,20 @@ export default function AdminDashboard() {
     setLoadingStats(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [s, p, b, sub, cancel] = await Promise.all([
+      const [s, p, b, sub, cancel, comm] = await Promise.all([
         fetch(`${API}/api/admin/stats`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/providers/pending`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/bookings?limit=5`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/subscriptions/admin/stats`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/bookings/admin/cancellations`, { headers }).then((r) => r.json()),
+        fetch(`${API}/api/bookings/admin/commissions?limit=10`, { headers }).then((r) => r.json()),
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setPending(p.data);
       if (b.success) setRecentBookings(b.data.bookings);
       if (sub.success) setSubStats(sub.data);
       if (cancel.success) setCancelStats(cancel.data);
+      if (comm.success) setCommissionStats(comm.data);
     } catch {
       toast.error("Failed to load dashboard");
     } finally {
@@ -102,6 +106,27 @@ export default function AdminDashboard() {
     sessionStorage.removeItem("kazishow_user");
     window.location.href = "/auth/login";
   }
+
+  const handleWaiveCommission = async (commissionId: string) => {
+    const reason = prompt("Enter reason for waiving this commission:");
+    if (!reason) return;
+    setWaivingId(commissionId);
+    try {
+      const res = await fetch(`${API}/api/bookings/commissions/${commissionId}/waive`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Commission waived");
+        fetchDashboard();
+      } else {
+        toast.error(data.message || "Failed to waive");
+      }
+    } catch { toast.error("Network error"); }
+    finally { setWaivingId(null); }
+  };
 
   if (!ready) {
     return (
@@ -251,6 +276,70 @@ export default function AdminDashboard() {
                         }`}>
                           {c.refundStatus}
                         </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Commission Stats */}
+          {commissionStats && (
+            <div>
+              <h2 className="text-sm font-black text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="text-base">💵</span> Cash Commissions
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                {commissionStats.stats.map((s: any) => (
+                  <div key={s.status} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                    <p className={`text-2xl font-black ${
+                      s.status === "OVERDUE" ? "text-red-500"
+                      : s.status === "PAID" ? "text-green-600"
+                      : s.status === "WAIVED" ? "text-gray-400"
+                      : "text-kazi-orange"
+                    }`}>
+                      KSh {(s._sum.amount || 0).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{s.status} ({s._count})</p>
+                  </div>
+                ))}
+              </div>
+              {commissionStats.commissions?.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="font-black text-sm text-kazi-dark">Recent Commissions</p>
+                  </div>
+                  {commissionStats.commissions.map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between p-4 border-b border-gray-50 last:border-0 gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-kazi-dark truncate">
+                          {c.provider?.businessName}
+                        </p>
+                        <p className="text-xs text-gray-400">{c.provider?.user?.phone}</p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {c.booking?.service?.name || "Service"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <p className="text-sm font-black text-kazi-dark">KSh {c.amount.toLocaleString()}</p>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            c.status === "OVERDUE" ? "bg-red-100 text-red-600"
+                            : c.status === "PAID" ? "bg-green-100 text-green-600"
+                            : c.status === "WAIVED" ? "bg-gray-100 text-gray-500"
+                            : "bg-amber-100 text-amber-600"
+                          }`}>{c.status}</span>
+                        </div>
+                        {["PENDING", "OVERDUE"].includes(c.status) && (
+                          <button
+                            onClick={() => handleWaiveCommission(c.id)}
+                            disabled={waivingId === c.id}
+                            className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold rounded-xl transition-colors disabled:opacity-50"
+                          >
+                            {waivingId === c.id ? "..." : "Waive"}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

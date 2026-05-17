@@ -29,6 +29,8 @@ interface Booking {
   createdAt: string;
   customerConfirmed?: boolean;
   paymentReleasedAt?: string;
+  cashPaid?: boolean;
+  paymentStatus?: string;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -275,6 +277,7 @@ function ActiveCard({
   description,
   bookingLabel,
   onUpdated,
+  onCashPaid,
 }: {
   booking: Booking;
   token: string;
@@ -282,9 +285,30 @@ function ActiveCard({
   description?: string;
   bookingLabel: string;
   onUpdated: (id: string, status: string) => void;
+  onCashPaid: (id: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [cashLoading, setCashLoading] = useState(false);
   const canMove = isMobileProvider(category, description);
+  const isCashPayment = booking.paymentStatus !== 'PAID';
+
+  const handleMarkCashPaid = async () => {
+    setCashLoading(true);
+    try {
+      const res = await fetch(`${API}/api/bookings/${booking.id}/mark-cash-paid`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Cash recorded! KSh ${data.data.commissionAmount} commission due`);
+        onCashPaid(booking.id);
+      } else {
+        toast.error(data.message || 'Failed to mark cash paid');
+      }
+    } catch { toast.error('Network error'); }
+    finally { setCashLoading(false); }
+  };
   const when = dayStatus(booking.scheduledDate);
   const days = daysUntil(booking.scheduledDate);
 
@@ -426,10 +450,45 @@ function ActiveCard({
                 {canMove ? "Job Complete" : "Service Complete"}
               </button>
             )}
+
+            {/* Cash payment button — only for non-M-Pesa bookings in progress */}
+            {booking.status === "IN_PROGRESS" && isCashPayment && !booking.cashPaid && (
+              <button onClick={handleMarkCashPaid} disabled={cashLoading}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95 disabled:opacity-50">
+                {cashLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Customer Paid Cash
+              </button>
+            )}
           </div>
         )}
 
-        {booking.status === "COMPLETED" && !booking.customerConfirmed && (
+        {booking.status === "COMPLETED" && !booking.cashPaid && isCashPayment && (
+          <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-3">
+            <p className="text-emerald-400 font-bold text-xs mb-2">Awaiting Cash Payment Record</p>
+            <p className="text-emerald-500/80 text-xs mb-2">
+              If customer paid cash, record it to maintain your account
+            </p>
+            <button onClick={handleMarkCashPaid} disabled={cashLoading}
+              className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs transition-all active:scale-95 disabled:opacity-50">
+              {cashLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <CreditCard className="w-3 h-3" />}
+              Customer Paid Cash
+            </button>
+          </div>
+        )}
+
+        {booking.status === "COMPLETED" && booking.cashPaid && (
+          <div className="bg-emerald-900/20 border border-emerald-500/20 rounded-xl p-3 flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-emerald-400 font-bold text-xs">Cash recorded — pay your commission</p>
+              <p className="text-emerald-500/80 text-xs mt-0.5">
+                Check your commission status in the commission alert
+              </p>
+            </div>
+          </div>
+        )}
+
+        {booking.status === "COMPLETED" && !booking.customerConfirmed && !booking.cashPaid && !isCashPayment && (
           <div className="bg-amber-900/30 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
             <CheckCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
@@ -441,7 +500,7 @@ function ActiveCard({
           </div>
         )}
 
-        {booking.status === "COMPLETED" && booking.customerConfirmed && (
+        {booking.status === "COMPLETED" && booking.customerConfirmed && !booking.cashPaid && (
           <div className="bg-green-900/30 border border-kazi-green/30 rounded-xl p-3 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-kazi-green flex-shrink-0" />
             <p className="text-kazi-green text-xs font-bold">
@@ -558,6 +617,10 @@ export default function ProviderNotificationsPage() {
 
   const handleStatusUpdated = useCallback((id: string, status: string) => {
     setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status } : b));
+  }, []);
+
+  const handleCashPaid = useCallback((id: string) => {
+    setBookings((prev) => prev.map((b) => b.id === id ? { ...b, cashPaid: true } : b));
   }, []);
 
   // ─── Not logged in ─────────────────────────────────────────────────────────
@@ -727,6 +790,7 @@ export default function ProviderNotificationsPage() {
                       description={description}
                       bookingLabel={bookingLabel}
                       onUpdated={handleStatusUpdated}
+                      onCashPaid={handleCashPaid}
                     />
                   ))}
                 </div>
