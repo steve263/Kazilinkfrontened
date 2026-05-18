@@ -47,9 +47,11 @@ type Step =
   | "declined"
   | "timeout";
 
-const PROGRESS_STEPS: Step[] = ["service", "datetime", "payment", "confirm"];
-
 export default function BookingModal({ business, service, onClose, onBookingSuccess, dealId, dealPrice, dealTitle, discount, discountType, originalPrice }: BookingModalProps) {
+  const isFundi = business.category === "FUNDI";
+  const progressSteps: Step[] = isFundi
+    ? ["service", "datetime", "payment", "confirm"]
+    : ["service", "datetime", "confirm"];
   const hasDeal = !!dealId;
   const [step, setStep] = useState<Step>(service ? "datetime" : "service");
   const [selectedService, setSelectedService] = useState<any>(service || null);
@@ -253,6 +255,10 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
 
     const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+    const paymentMethodValue = isFundi
+      ? (selectedPayment === "mpesa_before" ? "MPESA" : selectedPayment === "cash" ? "CASH" : "PAY_AFTER")
+      : "BUSINESS_DIRECT";
+
     try {
       const res = await fetch(`${API}/api/bookings`, {
         method: "POST",
@@ -271,6 +277,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
           totalAmount: hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0),
           notes,
           dealId: dealId || null,
+          paymentMethod: paymentMethodValue,
         }),
       });
       const data = await res.json();
@@ -289,9 +296,14 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
       const booking = data.data;
       setBookingId(booking.id);
 
-      console.log("[BookingModal] booking.status =", booking.status, "| provider category =", business.category);
+      // Business booking: go straight to success — no payment, no countdown
+      if (!isFundi) {
+        onBookingSuccess?.(booking.id);
+        setStep("success");
+        return;
+      }
 
-      // Business provider (auto-accepted by backend)
+      // FUNDI: handle M-Pesa or wait for provider acceptance
       if (booking.status !== "PENDING") {
         if (selectedPayment === "mpesa_before") {
           setWaitingForPayment(true);
@@ -303,7 +315,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
         return;
       }
 
-      // Provider pending: start countdown then wait for socket events
+      // FUNDI pending: start countdown then wait for socket events
       setWaitingForProvider(true);
       let count = countdownMax;
       setCountdown(countdownMax);
@@ -331,7 +343,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
 
       const acceptedBookingId = booking.id;
       socket.on("booking_accepted", async () => {
-        console.log("[BookingModal] booking_accepted received");
         clearInterval(timerRef.current);
         socket.disconnect();
         socketRef.current = null;
@@ -345,7 +356,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
       });
 
       socket.on("booking_declined", () => {
-        console.log("[BookingModal] booking_declined received");
         clearInterval(timerRef.current);
         socket.disconnect();
         socketRef.current = null;
@@ -480,7 +490,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
     return "Cash";
   };
 
-  const progressIndex = PROGRESS_STEPS.indexOf(step);
+  const progressIndex = progressSteps.indexOf(step);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
@@ -519,7 +529,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
         {progressIndex >= 0 && (
           <div className="px-5 pt-3 pb-1">
             <div className="flex gap-1.5">
-              {PROGRESS_STEPS.map((s, i) => (
+              {progressSteps.map((s, i) => (
                 <div
                   key={s}
                   className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
@@ -996,12 +1006,14 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
                     {locationAddress.length > 40 ? "…" : ""}
                   </span>
                 </div>
-                <div className="flex justify-between items-start text-sm">
-                  <span className="text-gray-500">Payment</span>
-                  <span className="font-semibold text-kazi-dark">
-                    {paymentLabel(selectedPayment)}
-                  </span>
-                </div>
+                {isFundi && (
+                  <div className="flex justify-between items-start text-sm">
+                    <span className="text-gray-500">Payment</span>
+                    <span className="font-semibold text-kazi-dark">
+                      {paymentLabel(selectedPayment)}
+                    </span>
+                  </div>
+                )}
                 {hasDeal && dealPrice !== undefined && originalPrice !== undefined && (
                   <>
                     <div className="flex justify-between items-center text-sm">
@@ -1025,13 +1037,26 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
               </div>
 
               {/* Info box */}
-              <div className="flex items-start gap-2.5 p-3.5 bg-blue-50 border border-blue-100 rounded-2xl">
-                <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-800 leading-relaxed">
-                  Provider notified instantly.{" "}
-                  <strong>{countdownMax} seconds to respond.</strong>
-                </p>
-              </div>
+              {isFundi ? (
+                <div className="flex items-start gap-2.5 p-3.5 bg-blue-50 border border-blue-100 rounded-2xl">
+                  <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    Provider notified instantly.{" "}
+                    <strong>{countdownMax} seconds to respond.</strong>
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2.5 p-3.5 bg-blue-50 border border-blue-100 rounded-2xl">
+                  <span className="text-base flex-shrink-0">ℹ️</span>
+                  <div>
+                    <p className="text-xs font-bold text-blue-700 mb-0.5">Payment at the venue</p>
+                    <p className="text-xs text-blue-600 leading-relaxed">
+                      You will pay directly at{" "}
+                      <strong>{business.businessName || business.name}</strong> on the day of your booking. They accept M-Pesa and cash.
+                    </p>
+                  </div>
+                </div>
+              )}
 
             </div>
           )}
@@ -1175,30 +1200,48 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
               })()}
 
               {/* What happens next */}
-              <div className="w-full bg-gray-50 rounded-2xl p-4 space-y-2.5">
-                <p className="font-bold text-kazi-dark text-sm">What happens next:</p>
-                {[
-                  { step: "1️⃣", text: `${business?.businessName} accepts your booking` },
-                  { step: "2️⃣", text: "You get an SMS confirmation" },
-                  { step: "3️⃣", text: "You get a reminder before the service" },
-                  {
-                    step: "4️⃣",
-                    text: business?.category === "FUNDI"
-                      ? "Provider heads to your location on the day"
-                      : "Visit the provider on the scheduled day",
-                  },
-                  { step: "5️⃣", text: "Rate your experience after the service" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-sm">{item.step}</span>
-                    <p className="text-xs text-gray-500">{item.text}</p>
-                  </div>
-                ))}
-              </div>
+              {isFundi ? (
+                <div className="w-full bg-orange-50 rounded-2xl p-4 space-y-2.5">
+                  <p className="font-bold text-kazi-orange text-sm">What happens next:</p>
+                  {[
+                    { step: "1️⃣", text: `${business?.businessName} accepts your booking` },
+                    { step: "2️⃣", text: "You get an SMS confirmation" },
+                    { step: "3️⃣", text: "Provider arrives at your location on the scheduled day" },
+                    { step: "4️⃣", text: "Job is completed — you confirm to release payment" },
+                    { step: "5️⃣", text: "Rate your experience after the service" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-sm flex-shrink-0">{item.step}</span>
+                      <p className="text-xs text-gray-500">{item.text}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full bg-blue-50 rounded-2xl p-4 space-y-2.5">
+                  <p className="font-bold text-blue-700 text-sm">What happens next:</p>
+                  {[
+                    { step: "1️⃣", text: `${business?.businessName} confirms your booking` },
+                    { step: "2️⃣", text: "You get an SMS confirmation" },
+                    {
+                      step: "3️⃣",
+                      text: `Visit ${business?.businessName || business?.name}${selectedDate ? ` on ${new Date(selectedDate).toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}` : ""} at ${selectedTime}`,
+                    },
+                    { step: "4️⃣", text: "Pay directly at the venue — M-Pesa or cash" },
+                    { step: "5️⃣", text: "Rate your experience after your visit" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-sm flex-shrink-0">{item.step}</span>
+                      <p className="text-xs text-gray-500">{item.text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <button
                 onClick={onClose}
-                className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98]"
+                className={`w-full py-4 text-white font-black rounded-2xl transition-all active:scale-[0.98] ${
+                  isFundi ? "bg-kazi-orange hover:bg-orange-600" : "bg-kazi-dark hover:bg-gray-800"
+                }`}
               >
                 Done 🎉
               </button>
@@ -1278,13 +1321,13 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
             {step === "datetime" && (
               <button
                 disabled={!selectedDate || !selectedTime}
-                onClick={() => setStep("payment")}
+                onClick={() => setStep(isFundi ? "payment" : "confirm")}
                 className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 transition-all active:scale-[0.98]"
               >
-                Continue
+                {isFundi ? "Continue" : "Review Booking"}
               </button>
             )}
-            {step === "payment" && (
+            {step === "payment" && isFundi && (
               <button
                 onClick={() => {
                   if (selectedPayment === "mpesa_before") {
@@ -1304,10 +1347,12 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
             {step === "confirm" && (
               <button
                 onClick={handleConfirm}
-                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                className={`w-full py-3.5 text-white font-bold text-sm rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                  isFundi ? "bg-kazi-orange hover:bg-orange-600" : "bg-kazi-dark hover:bg-gray-800"
+                }`}
               >
                 <Calendar className="w-5 h-5" />
-                {business.category === "FUNDI" ? "Confirm & Send Request" : "Confirm & Place Order"}
+                {isFundi ? "Confirm & Send Request" : "📅 Book Now"}
               </button>
             )}
           </div>
