@@ -153,8 +153,9 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
   const emoji = getCategoryEmoji(booking.provider?.category);
   const serviceName = booking.service?.name || "General Service";
   const isConfirming = confirmingId === booking.id;
+  const isFundi = booking.provider?.category === "FUNDI";
   const canCancel = booking.status === "PENDING";
-  const canPay = ["ACCEPTED", "IN_PROGRESS", "COMPLETED"].includes(booking.status) && booking.paymentStatus !== "PAID";
+  const canPay = isFundi && ["ACCEPTED", "IN_PROGRESS", "COMPLETED"].includes(booking.status) && booking.paymentStatus !== "PAID";
   const canReview = booking.status === "COMPLETED" && !booking.review;
 
   return (
