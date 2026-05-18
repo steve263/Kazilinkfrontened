@@ -8,6 +8,7 @@ import BottomNav from "@/components/layout/BottomNav";
 import PostCard, { FeedPost } from "@/components/feed/PostCard";
 import CreatePostModal from "@/components/feed/CreatePostModal";
 import CommentsSheet from "@/components/feed/CommentsSheet";
+import BroadcastBanner from "@/components/notifications/BroadcastBanner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -111,6 +112,7 @@ export default function FeedPage() {
   return (
     <div className="min-h-screen bg-kazi-cream">
       <Navbar />
+      <BroadcastBanner />
 
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-24">
         {/* Hashtag search bar */}

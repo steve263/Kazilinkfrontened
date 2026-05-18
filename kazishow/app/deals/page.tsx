@@ -8,6 +8,7 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import ScrollProgress from "@/components/ui/ScrollProgress";
 import WhatsAppBubble from "@/components/ui/WhatsAppBubble";
+import BroadcastBanner from "@/components/notifications/BroadcastBanner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -412,6 +413,7 @@ export default function DealsPage() {
     <div className="min-h-screen bg-kazi-cream">
       <ScrollProgress />
       <Navbar />
+      <BroadcastBanner />
 
       {/* Hero */}
       <section className="relative overflow-hidden py-12 sm:py-16" style={{ background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)" }}>

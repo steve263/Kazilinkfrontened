@@ -4,6 +4,7 @@ import { Video, RefreshCw, Plus } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
 import VideoCard from "@/components/videos/VideoCard";
 import VideoUploadModal from "@/components/videos/VideoUploadModal";
+import BroadcastBanner from "@/components/notifications/BroadcastBanner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -55,6 +56,7 @@ export default function ShowReelPage() {
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
+      <div className="absolute top-0 left-0 right-0 z-50"><BroadcastBanner /></div>
 
       {/* Portrait rectangle — full screen on mobile, 9/16 centered on desktop */}
       <div className="relative w-full h-full md:w-auto md:aspect-[9/16] overflow-hidden">

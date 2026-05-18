@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import LiveBookingToast from "@/components/ui/LiveBookingToast";
+import BroadcastBanner from "@/components/notifications/BroadcastBanner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -593,6 +594,7 @@ function DiscoverContent() {
   return (
     <div className="min-h-screen bg-kazi-cream">
       <Navbar />
+      <BroadcastBanner />
 
       {/* ── 1. Dark Header ─────────────────────────────────────────────────── */}
       <div className="bg-kazi-dark pb-6 pt-8">
