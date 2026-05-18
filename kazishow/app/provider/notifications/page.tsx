@@ -822,38 +822,75 @@ export default function ProviderNotificationsPage() {
           </div>
         </div>
 
-        {/* Subscription status banner (non-FUNDI only) */}
-        {!loading && subscription && category !== "FUNDI" && (
-          <div className={`mb-4 p-3 rounded-2xl flex items-center justify-between border ${
-            subscription.isActive
-              ? "bg-green-900/30 border-green-500/30"
-              : "bg-red-900/30 border-red-500/30"
-          }`}>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{subscription.isActive ? "✅" : "❌"}</span>
-              <div>
-                <p className={`text-xs font-bold ${subscription.isActive ? "text-green-400" : "text-red-400"}`}>
-                  {subscription.subscription?.status === "TRIAL"
-                    ? `Free Trial — ${subscription.daysRemaining} day${subscription.daysRemaining !== 1 ? "s" : ""} left`
-                    : subscription.isActive
-                    ? `${subscription.subscription?.plan} Plan — ${subscription.daysRemaining} days left`
-                    : "Subscription Expired"}
-                </p>
-                {!subscription.isActive && (
-                  <p className="text-xs text-red-400">Renew to receive bookings</p>
-                )}
+        {/* Subscription countdown card (non-FUNDI only) */}
+        {!loading && subscription && category !== "FUNDI" && (() => {
+          const sub = subscription.subscription;
+          const days: number = subscription.daysRemaining ?? 0;
+          const isTrial = sub?.status === "TRIAL";
+          const isExpired = sub?.status === "EXPIRED" || !subscription.isActive;
+
+          if (isExpired) return null; // global SubscriptionBanner popup handles expired state
+
+          const planName =
+            sub?.plan === "STARTER" ? "Starter"
+            : sub?.plan === "GROWTH" ? "Growth"
+            : sub?.plan === "PREMIUM" ? "Premium"
+            : "Trial";
+
+          const totalDays = isTrial ? 14 : 30;
+          const barPct = Math.max(5, Math.min(100, (days / totalDays) * 100));
+
+          const colors = days <= 2
+            ? { card: "bg-red-950/40 border-red-500/30", bar: "bg-red-500", text: "text-red-400", sub: "text-red-500/70", btn: "bg-red-500" }
+            : days <= 4
+            ? { card: "bg-amber-950/40 border-amber-500/30", bar: "bg-amber-500", text: "text-amber-400", sub: "text-amber-500/70", btn: "bg-amber-500" }
+            : { card: "bg-green-950/40 border-green-500/30", bar: "bg-kazi-green", text: "text-green-400", sub: "text-green-500/70", btn: "bg-kazi-green" };
+
+          const daysLabel =
+            days === 0 ? "Expires today!"
+            : days === 1 ? "1 day remaining — renew today!"
+            : `${days} days remaining`;
+
+          const footerMsg = isTrial && days > 4
+            ? "Enjoying your free trial! Subscribe before it ends to keep receiving bookings."
+            : isTrial && days <= 4
+            ? "⚠️ Trial ending soon! Subscribe now to avoid losing customers."
+            : days > 7
+            ? "✅ Subscription active. Would you like to renew early?"
+            : "⚠️ Subscription ending soon! Renew now to avoid interruption.";
+
+          return (
+            <div className={`rounded-2xl p-4 mb-4 border ${colors.card}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{isTrial ? "🎁" : "💳"}</span>
+                  <div>
+                    <p className={`font-black text-sm ${colors.text}`}>
+                      {isTrial ? "Free Trial" : `${planName} Plan`}
+                    </p>
+                    <p className={`text-xs ${colors.sub}`}>{daysLabel}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push("/provider/subscription")}
+                  className={`text-xs font-black px-3 py-1.5 rounded-full text-white ${colors.btn}`}
+                >
+                  {isTrial ? "Subscribe" : days <= 7 ? "Renew" : "Manage"}
+                </button>
               </div>
+
+              {/* Progress bar */}
+              <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-2">
+                <div
+                  className={`h-2 rounded-full transition-all ${colors.bar}`}
+                  style={{ width: `${barPct}%` }}
+                />
+              </div>
+
+              <p className={`text-xs ${colors.sub}`}>{footerMsg}</p>
             </div>
-            <button
-              onClick={() => router.push("/provider/subscription")}
-              className={`text-xs font-bold px-3 py-1.5 rounded-xl ${
-                subscription.isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"
-              }`}
-            >
-              {subscription.isActive ? "Manage" : "Renew Now"}
-            </button>
-          </div>
-        )}
+          );
+        })()}
 
         {loading && (
           <div className="space-y-4"><Skeleton /><Skeleton /></div>

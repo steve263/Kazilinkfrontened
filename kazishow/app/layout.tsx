@@ -13,6 +13,7 @@ import GoogleAuthProvider from "@/components/auth/GoogleAuthProvider";
 import BookingNotificationManager from "@/components/notifications/BookingNotificationManager";
 import JobCompletionManager from "@/components/notifications/JobCompletionManager";
 import CommissionGuard from "@/components/commission/CommissionGuard";
+import SubscriptionBanner from "@/components/subscription/SubscriptionBanner";
 
 export const metadata: Metadata = {
   title: "KaziShow — Discover Local Businesses in Kenya",
@@ -46,6 +47,7 @@ export default function RootLayout({
           <PushNotificationInit />
           <NotificationPermissionBanner />
           <ScrollProgress />
+          <SubscriptionBanner />
           {children}
           <BookingNotificationManager />
           <JobCompletionManager />
