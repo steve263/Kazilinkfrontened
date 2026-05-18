@@ -9,6 +9,7 @@ import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
 import StatCard from "@/components/admin/StatCard";
 import ApprovalCard from "@/components/admin/ApprovalCard";
+import AdminSearchBar from "@/components/admin/AdminSearchBar";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
   const [disputes, setDisputes] = useState<any[]>([]);
   const [waivingId, setWaivingId] = useState<string | null>(null);
   const [pending, setPending] = useState<any[]>([]);
+  const [badges, setBadges] = useState<Record<string, number>>({});
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -75,7 +77,7 @@ export default function AdminDashboard() {
     setLoadingStats(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [s, p, b, sub, cancel, comm, disp] = await Promise.all([
+      const [s, p, b, sub, cancel, comm, disp, bdg] = await Promise.all([
         fetch(`${API}/api/admin/stats`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/providers/pending`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/admin/bookings?limit=5`, { headers }).then((r) => r.json()),
@@ -83,6 +85,7 @@ export default function AdminDashboard() {
         fetch(`${API}/api/bookings/admin/cancellations`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/bookings/admin/commissions?limit=10`, { headers }).then((r) => r.json()),
         fetch(`${API}/api/bookings?status=DISPUTED`, { headers }).then((r) => r.json()),
+        fetch(`${API}/api/admin/badges`, { headers }).then((r) => r.json()),
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setPending(p.data);
@@ -91,6 +94,7 @@ export default function AdminDashboard() {
       if (cancel.success) setCancelStats(cancel.data);
       if (comm.success) setCommissionStats(comm.data);
       if (disp.success) setDisputes(disp.data.bookings || []);
+      if (bdg.success) setBadges(bdg.data);
     } catch {
       toast.error("Failed to load dashboard");
     } finally {
@@ -191,18 +195,25 @@ export default function AdminDashboard() {
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {NAV.map(({ label, href, icon: Icon }) => (
-            <Link key={href} href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${href === "/admin" ? "bg-kazi-orange text-white" : "text-white/60 hover:text-white hover:bg-white/10"}`}>
-              <Icon className="w-4 h-4" />
-              {label}
-              {label === "Approvals" && pending.length > 0 && (
-                <span className="ml-auto w-5 h-5 bg-red-500 text-white text-xs font-black rounded-full flex items-center justify-center">
-                  {pending.length}
-                </span>
-              )}
-            </Link>
-          ))}
+          {NAV.map(({ label, href, icon: Icon }) => {
+            const badgeCount =
+              label === "Approvals"    ? badges.approvals   :
+              label === "Bookings"     ? badges.bookings    :
+              label === "Withdrawals"  ? badges.withdrawals :
+              label === "Appeals"      ? badges.appeals     : 0;
+            return (
+              <Link key={href} href={href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${href === "/admin" ? "bg-kazi-orange text-white" : "text-white/60 hover:text-white hover:bg-white/10"}`}>
+                <Icon className="w-4 h-4" />
+                {label}
+                {badgeCount > 0 && (
+                  <span className="ml-auto min-w-[20px] h-5 bg-red-500 text-white text-xs font-black rounded-full flex items-center justify-center px-1">
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
         <div className="p-4 border-t border-white/10">
           <button onClick={logout} className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/10 transition-colors">
@@ -216,24 +227,25 @@ export default function AdminDashboard() {
       {/* Main content */}
       <main className="flex-1 min-w-0 lg:ml-64 overflow-auto">
         {/* Top bar */}
-        <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-1.5 rounded-xl hover:bg-gray-100">
-              <Menu className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-lg font-black text-kazi-dark">Dashboard Overview</h1>
-              <p className="text-xs text-gray-400">{new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-            </div>
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-5 py-3 flex items-center gap-3">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-1.5 rounded-xl hover:bg-gray-100 shrink-0">
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="hidden sm:block shrink-0">
+            <h1 className="text-base font-black text-kazi-dark leading-tight">Dashboard Overview</h1>
+            <p className="text-xs text-gray-400">{new Date().toLocaleDateString("en-KE", { weekday: "long", month: "short", day: "numeric" })}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
+          <div className="flex-1 min-w-0">
+            <AdminSearchBar token={token} />
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <Users className="w-3.5 h-3.5 text-green-600" />
               <span className="text-sm font-bold text-green-700">{liveVisitors} live</span>
             </div>
             <button onClick={fetchDashboard} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-xl transition-colors">
-              <RefreshCw className="w-3.5 h-3.5" />Refresh
+              <RefreshCw className="w-3.5 h-3.5" /><span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
         </div>
