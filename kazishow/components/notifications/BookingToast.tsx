@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Check, XCircle, User, MapPin, Calendar, Clock } from "lucide-react";
 
-const COUNTDOWN_SECONDS = 30;
+const COUNTDOWN_SECONDS = 60;
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export interface BookingRequest {

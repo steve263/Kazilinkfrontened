@@ -32,7 +32,7 @@ const FUNDI_CATEGORIES = [
   "WELDER", "MASON", "CLEANER", "GARDENER", "FUNDI", "HANDYMAN",
 ];
 
-const COUNTDOWN_SECONDS = 30;
+const COUNTDOWN_SECONDS = 60;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

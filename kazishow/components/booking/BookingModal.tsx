@@ -66,7 +66,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const countdownMax = business.category === "FUNDI" ? 30 : 20;
+  const countdownMax = 60;
   const [countdown, setCountdown] = useState(countdownMax);
   const [bookingId, setBookingId] = useState("");
   const [waitingForProvider, setWaitingForProvider] = useState(false);

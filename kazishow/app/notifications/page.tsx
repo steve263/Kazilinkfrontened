@@ -10,7 +10,7 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const COUNTDOWN_TOTAL = 30;
+const COUNTDOWN_TOTAL = 60;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
