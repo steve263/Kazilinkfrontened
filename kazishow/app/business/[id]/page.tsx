@@ -16,6 +16,7 @@ import ReportModal from "@/components/trust/ReportModal";
 import TrustBadge from "@/components/trust/TrustBadge";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
+import ResponseTimeBadge from "@/components/provider/ResponseTimeBadge";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -345,6 +346,7 @@ export default function ProviderProfilePage() {
                   </span>
                 </div>
               </div>
+              <ResponseTimeBadge minutes={provider.avgResponseMinutes} />
             </div>
           </div>
 

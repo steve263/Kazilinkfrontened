@@ -12,6 +12,7 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import LiveBookingToast from "@/components/ui/LiveBookingToast";
 import BroadcastBanner from "@/components/notifications/BroadcastBanner";
+import ResponseTimeBadge from "@/components/provider/ResponseTimeBadge";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -79,6 +80,7 @@ function mapProvider(p: any) {
     workingHoursEnd: p.workingHoursEnd || "18:00",
     activePromo,
     isBusy: p.isBusy || false,
+    avgResponseMinutes: p.avgResponseMinutes ?? null,
   };
 }
 
@@ -215,6 +217,9 @@ function ProviderCard({
           <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
           <span className="text-xs text-gray-500 truncate">{provider.location}</span>
         </div>
+        {provider.avgResponseMinutes && (
+          <div className="mb-1.5"><ResponseTimeBadge minutes={provider.avgResponseMinutes} /></div>
+        )}
 
         {/* Price + hours */}
         <div className="flex items-center justify-between mb-2">
