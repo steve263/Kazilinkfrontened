@@ -162,7 +162,7 @@ export default function ApprovalsPage() {
       const res = await fetch(`${API}/api/admin/providers/bulk-approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ providerIds: [...selectedProviders] }),
+        body: JSON.stringify({ providerIds: Array.from(selectedProviders) }),
       });
       const data = await res.json();
       if (data.success) {
@@ -186,7 +186,7 @@ export default function ApprovalsPage() {
       const res = await fetch(`${API}/api/admin/providers/bulk-reject`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ providerIds: [...selectedProviders], reason: bulkRejectionReason }),
+        body: JSON.stringify({ providerIds: Array.from(selectedProviders), reason: bulkRejectionReason }),
       });
       const data = await res.json();
       if (data.success) {

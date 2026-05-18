@@ -101,7 +101,7 @@ export default function AutoSuspensionPage() {
       const res = await fetch(`${API}/api/admin/auto-suspension/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ providerIds: [...selected], action }),
+        body: JSON.stringify({ providerIds: Array.from(selected), action }),
       });
       const data = await res.json();
       if (data.success) {
