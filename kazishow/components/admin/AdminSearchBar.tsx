@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Search, User, Briefcase, ShoppingBag, X,
   BarChart2, ClipboardCheck, CheckSquare, Users, Activity,
-  Wallet, DollarSign, Shield, Scale, LayoutDashboard,
+  Wallet, DollarSign, Shield, Scale, LayoutDashboard, XCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -19,8 +19,9 @@ const PAGES = [
   { label: "Analytics",     href: "/admin/analytics",    icon: Activity,        keywords: ["analytics", "analytic", "revenue", "report", "reports", "chart", "graph"] },
   { label: "Withdrawals",   href: "/admin/withdrawals",  icon: Wallet,          keywords: ["withdrawal", "withdrawals", "withdraw", "cash", "payout", "pay out"] },
   { label: "Payouts",       href: "/admin/payouts",      icon: DollarSign,      keywords: ["payout", "payouts", "pay", "mpesa", "b2c", "send money"] },
-  { label: "Trust & Safety",href: "/admin/trust",        icon: Shield,          keywords: ["trust", "safety", "safe", "report", "reports", "fraud", "ban", "suspend"] },
-  { label: "Appeals",       href: "/admin/appeals",      icon: Scale,           keywords: ["appeal", "appeals", "reinstate", "unsuspend", "review"] },
+  { label: "Trust & Safety",  href: "/admin/trust",          icon: Shield,    keywords: ["trust", "safety", "safe", "report", "reports", "fraud", "ban", "suspend"] },
+  { label: "Appeals",         href: "/admin/appeals",        icon: Scale,     keywords: ["appeal", "appeals", "reinstate", "unsuspend", "review"] },
+  { label: "Cancellations",   href: "/admin/cancellations",  icon: XCircle,   keywords: ["cancellation", "cancellations", "cancel", "cancelled", "refund", "refunds"] },
 ];
 
 const PAGE_COLORS: Record<string, string> = {
@@ -32,8 +33,9 @@ const PAGE_COLORS: Record<string, string> = {
   "/admin/analytics":    "bg-green-100 text-green-600",
   "/admin/withdrawals":  "bg-teal-100 text-teal-600",
   "/admin/payouts":      "bg-emerald-100 text-emerald-600",
-  "/admin/trust":        "bg-red-100 text-red-600",
-  "/admin/appeals":      "bg-indigo-100 text-indigo-600",
+  "/admin/trust":          "bg-red-100 text-red-600",
+  "/admin/appeals":        "bg-indigo-100 text-indigo-600",
+  "/admin/cancellations":  "bg-rose-100 text-rose-600",
 };
 
 const STATUS_COLOR: Record<string, string> = {
