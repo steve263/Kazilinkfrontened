@@ -335,7 +335,7 @@ export default function AnalyticsDashboard() {
                 { label: "Total Processed",       value: formatKES(paymentStats?.totalProcessed || 0),   emoji: "💳", color: "text-blue-600" },
                 { label: "KaziShow Commission",    value: formatKES(paymentStats?.totalCommission || 0),  emoji: "💰", color: "text-kazi-orange" },
                 { label: "Provider Payouts",       value: formatKES(paymentStats?.totalProviderPayout || 0), emoji: "🔧", color: "text-green-600" },
-                { label: "Refunds Given",          value: paymentStats?.refunded ?? 0,                   emoji: "↩️", color: "text-red-500" },
+                { label: "Refunds Given",          value: (paymentStats?.refunded ?? 0) + (paymentStats?.refundRequested ?? 0), emoji: "↩️", color: "text-red-500" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-gray-50 rounded-2xl p-4 text-center">
                   <span className="text-3xl block mb-2">{stat.emoji}</span>
