@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Search, User, Briefcase, ShoppingBag, X,
   BarChart2, ClipboardCheck, CheckSquare, Users, Activity,
-  Wallet, DollarSign, Shield, Scale, LayoutDashboard, XCircle,
+  Wallet, DollarSign, Shield, Scale, LayoutDashboard, XCircle, Megaphone, ShieldAlert,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -21,7 +21,9 @@ const PAGES = [
   { label: "Payouts",       href: "/admin/payouts",      icon: DollarSign,      keywords: ["payout", "payouts", "pay", "mpesa", "b2c", "send money"] },
   { label: "Trust & Safety",  href: "/admin/trust",          icon: Shield,    keywords: ["trust", "safety", "safe", "report", "reports", "fraud", "ban", "suspend"] },
   { label: "Appeals",         href: "/admin/appeals",        icon: Scale,     keywords: ["appeal", "appeals", "reinstate", "unsuspend", "review"] },
-  { label: "Cancellations",   href: "/admin/cancellations",  icon: XCircle,   keywords: ["cancellation", "cancellations", "cancel", "cancelled", "refund", "refunds"] },
+  { label: "Cancellations",   href: "/admin/cancellations",    icon: XCircle,     keywords: ["cancellation", "cancellations", "cancel", "cancelled", "refund", "refunds"] },
+  { label: "Broadcast",       href: "/admin/broadcast",        icon: Megaphone,   keywords: ["broadcast", "announce", "announcement", "notification", "sms", "message", "notify"] },
+  { label: "Auto-Suspension", href: "/admin/auto-suspension",  icon: ShieldAlert, keywords: ["auto-suspension", "suspension", "suspend", "flag", "flagged", "inactive", "dispute", "abuse"] },
 ];
 
 const PAGE_COLORS: Record<string, string> = {
@@ -35,7 +37,9 @@ const PAGE_COLORS: Record<string, string> = {
   "/admin/payouts":      "bg-emerald-100 text-emerald-600",
   "/admin/trust":          "bg-red-100 text-red-600",
   "/admin/appeals":        "bg-indigo-100 text-indigo-600",
-  "/admin/cancellations":  "bg-rose-100 text-rose-600",
+  "/admin/cancellations":    "bg-rose-100 text-rose-600",
+  "/admin/broadcast":        "bg-purple-100 text-purple-600",
+  "/admin/auto-suspension":  "bg-red-100 text-red-600",
 };
 
 const STATUS_COLOR: Record<string, string> = {

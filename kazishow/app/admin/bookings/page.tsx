@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Search, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Search, RefreshCw, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
 
@@ -123,6 +123,30 @@ export default function BookingsPage() {
           <p className="text-xs text-gray-400">{total} bookings total</p>
         </div>
         <button onClick={fetchBookings} className="p-2 rounded-xl hover:bg-gray-100"><RefreshCw className="w-4 h-4 text-gray-500" /></button>
+        <a
+          href={`${API}/api/admin/export?type=bookings${dateFrom ? `&dateFrom=${dateFrom}` : ""}${dateTo ? `&dateTo=${dateTo}` : ""}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.preventDefault();
+            const url = `${API}/api/admin/export?type=bookings${dateFrom ? `&dateFrom=${dateFrom}` : ""}${dateTo ? `&dateTo=${dateTo}` : ""}`;
+            const a = document.createElement("a");
+            a.href = url;
+            (a as any).headers = { Authorization: `Bearer ${token}` };
+            fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+              .then((r) => r.blob())
+              .then((blob) => {
+                const bUrl = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = bUrl;
+                link.download = `kazishow-bookings-${new Date().toISOString().split("T")[0]}.csv`;
+                link.click();
+              });
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 bg-kazi-orange text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+        >
+          <Download className="w-4 h-4" /> Export CSV
+        </a>
       </div>
 
       <div className="p-5 max-w-7xl mx-auto">

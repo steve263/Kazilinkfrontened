@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Search, Trash2, Ban, CheckCircle, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Search, Trash2, Ban, CheckCircle, RefreshCw, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
 
@@ -157,6 +157,22 @@ export default function UsersPage() {
           <p className="text-xs text-gray-400">{total} users total</p>
         </div>
         <button onClick={fetchUsers} className="p-2 rounded-xl hover:bg-gray-100"><RefreshCw className="w-4 h-4 text-gray-500" /></button>
+        <button
+          onClick={() => {
+            fetch(`${API}/api/admin/export?type=users`, { headers: { Authorization: `Bearer ${token}` } })
+              .then((r) => r.blob())
+              .then((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `kazishow-users-${new Date().toISOString().split("T")[0]}.csv`;
+                a.click();
+              });
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 bg-kazi-orange text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+        >
+          <Download className="w-4 h-4" /> Export CSV
+        </button>
       </div>
 
       <div className="p-5 max-w-6xl mx-auto">

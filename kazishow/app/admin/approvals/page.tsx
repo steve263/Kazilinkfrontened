@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Users, ShoppingBag, Activity,
   CheckSquare, BarChart2, LogOut, RefreshCw, Menu, ClipboardCheck, CheckCircle, X, Check, MessageSquare, FileText,
-  Award, Video, ExternalLink, Wallet, Send,
+  Award, Video, ExternalLink, Wallet, Send, Megaphone, ShieldAlert, XCircle,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import ApprovalCard from "@/components/admin/ApprovalCard";
@@ -13,12 +13,15 @@ import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const NAV = [
-  { label: "Overview",   href: "/admin",             icon: BarChart2 },
-  { label: "Approvals",  href: "/admin/approvals",   icon: ClipboardCheck },
-  { label: "Providers",  href: "/admin/providers",   icon: CheckSquare },
-  { label: "Users",      href: "/admin/users",       icon: Users },
-  { label: "Bookings",   href: "/admin/bookings",    icon: ShoppingBag },
-  { label: "Analytics",  href: "/admin/analytics",   icon: Activity },
+  { label: "Overview",        href: "/admin",                  icon: BarChart2 },
+  { label: "Approvals",       href: "/admin/approvals",        icon: ClipboardCheck },
+  { label: "Providers",       href: "/admin/providers",        icon: CheckSquare },
+  { label: "Users",           href: "/admin/users",            icon: Users },
+  { label: "Bookings",        href: "/admin/bookings",         icon: ShoppingBag },
+  { label: "Analytics",       href: "/admin/analytics",        icon: Activity },
+  { label: "Broadcast",       href: "/admin/broadcast",        icon: Megaphone },
+  { label: "Auto-Suspension", href: "/admin/auto-suspension",  icon: ShieldAlert },
+  { label: "Cancellations",   href: "/admin/cancellations",    icon: XCircle },
 ];
 
 const TABS = [
@@ -46,6 +49,10 @@ export default function ApprovalsPage() {
   const [token, setToken] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [selectedProviders, setSelectedProviders] = useState<Set<string>>(new Set());
+  const [bulkRejectionReason, setBulkRejectionReason] = useState("");
+  const [showBulkRejectInput, setShowBulkRejectInput] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
 
@@ -139,6 +146,63 @@ export default function ApprovalsPage() {
   }, [fetchProviders, fetchTestimonials, fetchTips, fetchCertificates, fetchPortfolioVideos, fetchWithdrawals, fetchKaziVideos]);
 
   useEffect(() => { if (ready) fetchAll(); }, [ready, fetchAll]);
+
+  const toggleProvider = (id: string) => {
+    setSelectedProviders((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const bulkApprove = async () => {
+    if (selectedProviders.size === 0) return;
+    setBulkLoading(true);
+    try {
+      const res = await fetch(`${API}/api/admin/providers/bulk-approve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ providerIds: [...selectedProviders] }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Approved ${data.data.approved} providers!`);
+        setProviders((prev) => prev.filter((p) => !selectedProviders.has(p.id)));
+        setSelectedProviders(new Set());
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Bulk approval failed");
+    }
+    setBulkLoading(false);
+  };
+
+  const bulkReject = async () => {
+    if (selectedProviders.size === 0) return;
+    if (!bulkRejectionReason.trim()) { toast.error("Provide a rejection reason"); return; }
+    setBulkLoading(true);
+    try {
+      const res = await fetch(`${API}/api/admin/providers/bulk-reject`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ providerIds: [...selectedProviders], reason: bulkRejectionReason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Rejected ${data.data.rejected} providers`);
+        setProviders((prev) => prev.filter((p) => !selectedProviders.has(p.id)));
+        setSelectedProviders(new Set());
+        setBulkRejectionReason("");
+        setShowBulkRejectInput(false);
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Bulk rejection failed");
+    }
+    setBulkLoading(false);
+  };
 
   const approveTestimonial = async (id: string) => {
     try {
@@ -438,13 +502,94 @@ export default function ApprovalsPage() {
               </div>
             ) : (
               <div className="max-w-2xl mx-auto space-y-4">
+                {/* Bulk action toolbar */}
+                <div className="bg-white rounded-2xl p-4 border border-gray-100 card-shadow">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() =>
+                          setSelectedProviders(
+                            selectedProviders.size === providers.length
+                              ? new Set()
+                              : new Set(providers.map((p) => p.id))
+                          )
+                        }
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors"
+                      >
+                        <CheckSquare className="w-4 h-4" />
+                        {selectedProviders.size === providers.length ? "Deselect All" : "Select All"}
+                      </button>
+                      {selectedProviders.size > 0 && (
+                        <span className="text-sm font-semibold text-kazi-orange">
+                          {selectedProviders.size} selected
+                        </span>
+                      )}
+                    </div>
+                    {selectedProviders.size > 0 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={bulkApprove}
+                          disabled={bulkLoading}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          <Check className="w-4 h-4" />
+                          Approve {selectedProviders.size}
+                        </button>
+                        <button
+                          onClick={() => setShowBulkRejectInput(!showBulkRejectInput)}
+                          disabled={bulkLoading}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          <X className="w-4 h-4" />
+                          Reject {selectedProviders.size}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {showBulkRejectInput && selectedProviders.size > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <textarea
+                        value={bulkRejectionReason}
+                        onChange={(e) => setBulkRejectionReason(e.target.value)}
+                        placeholder="Reason for rejecting selected providers…"
+                        className="w-full p-2 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-red-500"
+                        rows={2}
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={bulkReject} disabled={bulkLoading}
+                          className="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50">
+                          Confirm Bulk Rejection
+                        </button>
+                        <button onClick={() => { setShowBulkRejectInput(false); setBulkRejectionReason(""); }}
+                          className="px-3 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {providers.map((p) => (
-                  <ApprovalCard
-                    key={p.id}
-                    provider={p}
-                    token={token}
-                    onAction={(id) => setProviders((prev) => prev.filter((x) => x.id !== id))}
-                  />
+                  <div key={p.id} className="relative">
+                    <label className="absolute top-4 left-4 z-10 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedProviders.has(p.id)}
+                        onChange={() => toggleProvider(p.id)}
+                        className="w-4 h-4 accent-kazi-orange rounded"
+                      />
+                    </label>
+                    <div className={`ml-8 ${selectedProviders.has(p.id) ? "ring-2 ring-kazi-orange rounded-2xl" : ""}`}>
+                      <ApprovalCard
+                        provider={p}
+                        token={token}
+                        onAction={(id) => {
+                          setProviders((prev) => prev.filter((x) => x.id !== id));
+                          setSelectedProviders((prev) => { const n = new Set(prev); n.delete(id); return n; });
+                        }}
+                      />
+                    </div>
+                  </div>
                 ))}
               </div>
             )
