@@ -288,6 +288,11 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
           setStep("confirm");
           return;
         }
+        if (data.code === "SUBSCRIPTION_EXPIRED") {
+          toast.error("This business is not currently accepting bookings. Please try another provider.");
+          setStep("confirm");
+          return;
+        }
         toast.error(data.message || "Booking failed");
         setStep("confirm");
         return;
@@ -421,6 +426,10 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
             setBusyProviderData(bookingData.data);
             setProviderBusy(true);
             setStep("payment");
+            return;
+          }
+          if (bookingData.code === "SUBSCRIPTION_EXPIRED") {
+            setPaymentError("This provider is not currently accepting bookings. Please try another.");
             return;
           }
           setPaymentError(bookingData.message || "Failed to create booking");
