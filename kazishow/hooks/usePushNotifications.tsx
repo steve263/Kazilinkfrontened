@@ -26,6 +26,12 @@ export default function usePushNotifications() {
 
       // Show foreground push notifications as custom toasts
       onForegroundMessage((payload) => {
+        // Skip customer-only notifications when a provider is logged in
+        const userRaw = localStorage.getItem("kazishow_user");
+        const currentUser = userRaw ? (() => { try { return JSON.parse(userRaw); } catch { return null; } })() : null;
+        const notifRole = payload.data?.role;
+        if (notifRole && currentUser?.role && notifRole !== currentUser.role) return;
+
         const { title, body } = payload.notification || {};
         const emoji = payload.data?.emoji || "🔔";
         const url   = payload.data?.url;
