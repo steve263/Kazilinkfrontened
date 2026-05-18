@@ -39,6 +39,7 @@ export default function CancellationsPage() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [sendingB2CId, setSendingB2CId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"cancellations" | "refund_requests">("cancellations");
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
@@ -81,6 +82,51 @@ export default function CancellationsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success("Refund marked as processed");
+        fetchData();
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Failed to update");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
+  const sendB2CRefund = async (bookingId: string, customerName: string, amount: number) => {
+    if (!confirm(`Send KSh ${amount.toLocaleString()} M-Pesa B2C refund to ${customerName}? This will deduct from your M-Pesa business account.`)) return;
+    setSendingB2CId(bookingId);
+    try {
+      const res = await fetch(`${API}/api/bookings/admin/cancellations/${bookingId}/send-b2c`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`B2C refund sent to ${customerName}!`);
+        fetchData();
+      } else {
+        toast.error(data.message || "B2C failed");
+      }
+    } catch {
+      toast.error("Failed to send B2C refund");
+    } finally {
+      setSendingB2CId(null);
+    }
+  };
+
+  const markRefundRequestDone = async (bookingId: string) => {
+    if (!confirm("Confirm you manually sent the refund via M-Pesa?")) return;
+    setMarkingId(bookingId);
+    try {
+      // Find the cancellation record for this booking, or use the booking id directly
+      const res = await fetch(`${API}/api/bookings/admin/cancellations/${bookingId}/refund-processed`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Marked as refunded");
         fetchData();
       } else {
         toast.error(data.message);
@@ -398,11 +444,39 @@ export default function CancellationsPage() {
                             Ref: {b.id.slice(-10).toUpperCase()} · {new Date(b.updatedAt || b.createdAt).toLocaleDateString("en-KE")}
                           </p>
                         </div>
-                        <div className="shrink-0 text-right">
-                          <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-600 border border-blue-200">
-                            REFUND REQUESTED
-                          </span>
-                          <p className="text-xs text-gray-400 mt-2">Send via M-Pesa B2C</p>
+                        <div className="shrink-0 flex flex-col gap-2 items-end">
+                          {b.paymentStatus === "REFUNDED" ? (
+                            <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-green-100 text-green-700 border border-green-200 flex items-center gap-1">
+                              <CheckCircle className="w-3.5 h-3.5" /> Refunded
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => sendB2CRefund(b.id, b.customer?.name, b.totalAmount)}
+                                disabled={sendingB2CId === b.id || markingId === b.id}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
+                              >
+                                {sendingB2CId === b.id ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Banknote className="w-3.5 h-3.5" />
+                                )}
+                                Send B2C Refund
+                              </button>
+                              <button
+                                onClick={() => markRefundRequestDone(b.id)}
+                                disabled={sendingB2CId === b.id || markingId === b.id}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
+                              >
+                                {markingId === b.id ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                )}
+                                Mark as Refunded
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
