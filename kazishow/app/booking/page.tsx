@@ -274,9 +274,15 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
           </button>
         )}
 
-        {booking.paymentStatus === "REFUNDED" && (
+        {booking.paymentStatus === "REFUND_REQUESTED" && (
           <div className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1 rounded-full w-fit">
             <CheckCircle className="w-3.5 h-3.5" /> Refund Requested
+          </div>
+        )}
+
+        {booking.paymentStatus === "REFUNDED" && (
+          <div className="flex items-center gap-1.5 text-xs text-green-600 font-semibold bg-green-50 px-2.5 py-1 rounded-full w-fit">
+            <CheckCircle className="w-3.5 h-3.5" /> Refunded
           </div>
         )}
 
@@ -563,7 +569,7 @@ export default function BookingsPage() {
       }
       toast.success("Refund request submitted! Expect your M-Pesa payment within 24 hours.");
       setBookings((prev) =>
-        prev.map((b) => b.id === refundBooking.id ? { ...b, paymentStatus: "REFUNDED" } : b)
+        prev.map((b) => b.id === refundBooking.id ? { ...b, paymentStatus: "REFUND_REQUESTED" } : b)
       );
       closeRefundModal();
     } catch {
