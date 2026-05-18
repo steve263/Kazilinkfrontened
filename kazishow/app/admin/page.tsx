@@ -294,6 +294,7 @@ export default function AdminDashboard() {
             <div>
               <h2 className="text-sm font-black text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
                 <span className="text-base">❌</span> Cancellations &amp; Refunds
+                <Link href="/admin/cancellations" className="ml-auto text-xs font-bold text-kazi-orange hover:underline normal-case tracking-normal">View All →</Link>
               </h2>
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -530,12 +531,14 @@ export default function AdminDashboard() {
           </div>
 
           {/* Quick nav cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
-              { label: "Manage Providers", href: "/admin/providers", icon: CheckSquare, cls: "text-kazi-orange border-orange-100 hover:bg-orange-50" },
-              { label: "Manage Users",     href: "/admin/users",     icon: Users,       cls: "text-blue-600 border-blue-100 hover:bg-blue-50" },
-              { label: "All Bookings",     href: "/admin/bookings",  icon: ShoppingBag, cls: "text-purple-600 border-purple-100 hover:bg-purple-50" },
-              { label: "Analytics",        href: "/admin/analytics", icon: BarChart2,   cls: "text-green-600 border-green-100 hover:bg-green-50" },
+              { label: "Manage Providers",   href: "/admin/providers",     icon: CheckSquare, cls: "text-kazi-orange border-orange-100 hover:bg-orange-50" },
+              { label: "Manage Users",        href: "/admin/users",         icon: Users,       cls: "text-blue-600 border-blue-100 hover:bg-blue-50" },
+              { label: "All Bookings",        href: "/admin/bookings",      icon: ShoppingBag, cls: "text-purple-600 border-purple-100 hover:bg-purple-50" },
+              { label: "Analytics",           href: "/admin/analytics",     icon: BarChart2,   cls: "text-green-600 border-green-100 hover:bg-green-50" },
+              { label: "Cancellations",       href: "/admin/cancellations", icon: XCircle,     cls: "text-rose-600 border-rose-100 hover:bg-rose-50" },
+              { label: "Withdrawals",         href: "/admin/withdrawals",   icon: Wallet,      cls: "text-teal-600 border-teal-100 hover:bg-teal-50" },
             ].map(({ label, href, icon: Icon, cls }) => (
               <Link key={href} href={href} className={`flex items-center gap-3 p-4 bg-white rounded-2xl card-shadow border transition-colors ${cls}`}>
                 <Icon className="w-5 h-5 flex-shrink-0" />
