@@ -14,6 +14,7 @@ import { formatCurrency } from "@/lib/utils";
 import { getCustomerStatusMessage, getStatusBadgeStyle, getStatusTextColor } from "@/lib/bookingStatus";
 import TrustScoreCard from "@/components/trust/TrustScoreCard";
 import ReviewModal from "@/components/trust/ReviewModal";
+import JobCompletionPopup from "@/components/notifications/JobCompletionPopup";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -106,6 +107,9 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
   const [savedRingtone, setSavedRingtone] = useState("");
   const [ringtoneFileName, setRingtoneFileName] = useState("");
 
+  // Backup job completion popup — catches any popup the socket missed
+  const [pendingConfirmation, setPendingConfirmation] = useState<any>(null);
+
   const token = typeof window !== "undefined" ? localStorage.getItem("kazishow_token") : null;
 
   const authFetch = useCallback(
@@ -188,6 +192,30 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
   useEffect(() => {
     loadTab("bookings");
   }, []);
+
+  // Backup: when bookings load, show popup for any completed+unconfirmed M-Pesa booking the socket may have missed
+  useEffect(() => {
+    if (!bookings.length || pendingConfirmation) return;
+    const unconfirmed = bookings.find(
+      (b) =>
+        b.status === "COMPLETED" &&
+        !b.customerConfirmed &&
+        b.paymentStatus === "PAID" &&
+        (b.paymentMethod === "MPESA" || !b.paymentMethod) &&
+        b.completedByProvider
+    );
+    if (unconfirmed) {
+      setPendingConfirmation({
+        bookingId: unconfirmed.id,
+        providerName: unconfirmed.provider?.businessName,
+        providerPhoto: unconfirmed.provider?.profilePhoto || unconfirmed.provider?.user?.profilePhoto,
+        serviceName: unconfirmed.service?.name || "Service",
+        amount: unconfirmed.totalAmount,
+        providerAmount: Math.round(unconfirmed.totalAmount * 0.9),
+        message: `${unconfirmed.provider?.businessName} says the job is complete!`,
+      });
+    }
+  }, [bookings]);
 
   const refreshBookings = useCallback(async () => {
     setBookingsLoading(true);
@@ -365,6 +393,14 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
 
   return (
     <div className="min-h-screen bg-kazi-cream pb-24">
+      {/* Backup popup for any completed+unconfirmed booking the socket missed */}
+      {pendingConfirmation && (
+        <JobCompletionPopup
+          data={pendingConfirmation}
+          onClose={() => { setPendingConfirmation(null); refreshBookings(); }}
+        />
+      )}
+
       {/* ── HEADER (centered card, no cover) ───────────────────────── */}
       <div className="bg-white shadow-sm mb-2 px-4 pt-8 pb-5">
         {/* Avatar — centered, large */}

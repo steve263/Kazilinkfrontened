@@ -11,6 +11,7 @@ import WhatsAppFloat from "@/components/support/WhatsAppFloat";
 import AISupportChat from "@/components/support/AISupportChat";
 import GoogleAuthProvider from "@/components/auth/GoogleAuthProvider";
 import BookingNotificationManager from "@/components/notifications/BookingNotificationManager";
+import JobCompletionManager from "@/components/notifications/JobCompletionManager";
 import CommissionGuard from "@/components/commission/CommissionGuard";
 import SubscriptionBanner from "@/components/subscription/SubscriptionBanner";
 
@@ -48,6 +49,7 @@ export default function RootLayout({
           <ScrollProgress />
           <SubscriptionBanner />
           {children}
+          <JobCompletionManager />
           <BookingNotificationManager />
           <CommissionGuard />
           <WhatsAppFloat />

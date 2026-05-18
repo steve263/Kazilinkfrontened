@@ -25,7 +25,6 @@ import { toast } from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import ReviewModal from "@/components/trust/ReviewModal";
-import JobCompletionManager from "@/components/notifications/JobCompletionManager";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -798,9 +797,6 @@ export default function BookingsPage() {
           </div>
         </div>
       )}
-
-      {/* ── Job completion popup (only fires on this page) ── */}
-      <JobCompletionManager />
 
       {/* ── Payment modal ── */}
       {payBooking && (
