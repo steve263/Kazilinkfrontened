@@ -52,6 +52,7 @@ interface Booking {
   location?: string;
   duration?: string;
   paymentStatus?: string;
+  paymentMethod?: string;
   provider?: Provider;
   service?: Service;
   createdAt?: string;
@@ -145,9 +146,10 @@ interface BookingCardProps {
   setConfirmingId: (id: string | null) => void;
   onPayNow: (booking: Booking) => void;
   onReview: (booking: Booking) => void;
+  onRefund: (booking: Booking) => void;
 }
 
-function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNow, onReview }: BookingCardProps) {
+function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNow, onReview, onRefund }: BookingCardProps) {
   const statusColor = STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-600 border-gray-200";
   const statusLabel = STATUS_LABELS[booking.status] ?? booking.status;
   const emoji = getCategoryEmoji(booking.provider?.category);
@@ -157,6 +159,7 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
   const canCancel = booking.status === "PENDING";
   const canPay = isFundi && ["ACCEPTED", "IN_PROGRESS", "COMPLETED"].includes(booking.status) && booking.paymentStatus !== "PAID";
   const canReview = booking.status === "COMPLETED" && !booking.review;
+  const canRefund = ["DECLINED", "CANCELLED"].includes(booking.status) && booking.paymentStatus === "PAID";
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3">
@@ -258,6 +261,22 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
             <CreditCard className="w-3.5 h-3.5" />
             Pay KSh {booking.totalAmount?.toLocaleString()}
           </button>
+        )}
+
+        {canRefund && (
+          <button
+            onClick={() => onRefund(booking)}
+            className="flex items-center gap-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 transition-colors px-3 py-1.5 rounded-lg font-semibold"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Request Refund
+          </button>
+        )}
+
+        {booking.paymentStatus === "REFUNDED" && (
+          <div className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1 rounded-full w-fit">
+            <CheckCircle className="w-3.5 h-3.5" /> Refund Requested
+          </div>
         )}
 
         {ACTIVE_STATUSES.includes(booking.status) && (
@@ -377,6 +396,11 @@ export default function BookingsPage() {
   const [payPhone, setPayPhone] = useState("");
   const [paying, setPaying] = useState(false);
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
+
+  // Refund modal state
+  const [refundBooking, setRefundBooking] = useState<Booking | null>(null);
+  const [refundPhone, setRefundPhone] = useState("");
+  const [refunding, setRefunding] = useState(false);
 
   // ── Auth check ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -506,6 +530,45 @@ export default function BookingsPage() {
       toast.error("Failed to initiate payment");
     } finally {
       setPaying(false);
+    }
+  };
+
+  // ── Refund ─────────────────────────────────────────────────────────────────
+  const openRefundModal = (booking: Booking) => {
+    setRefundBooking(booking);
+    setRefundPhone(user?.phone || "");
+  };
+
+  const closeRefundModal = () => {
+    setRefundBooking(null);
+    setRefundPhone("");
+  };
+
+  const submitRefund = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!refundBooking) return;
+    const token = localStorage.getItem("kazishow_token");
+    setRefunding(true);
+    try {
+      const res = await fetch(`${API}/api/bookings/${refundBooking.id}/refund`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ phone: refundPhone.trim() }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.message || "Failed to submit refund request");
+        return;
+      }
+      toast.success("Refund request submitted! Expect your M-Pesa payment within 24 hours.");
+      setBookings((prev) =>
+        prev.map((b) => b.id === refundBooking.id ? { ...b, paymentStatus: "REFUNDED" } : b)
+      );
+      closeRefundModal();
+    } catch {
+      toast.error("Failed to submit refund request");
+    } finally {
+      setRefunding(false);
     }
   };
 
@@ -661,6 +724,7 @@ export default function BookingsPage() {
                 setConfirmingId={setConfirmingId}
                 onPayNow={openPayModal}
                 onReview={setReviewBooking}
+                onRefund={openRefundModal}
               />
             ))}
           </div>
@@ -685,6 +749,47 @@ export default function BookingsPage() {
             setReviewBooking(null);
           }}
         />
+      )}
+
+      {/* ── Refund modal ── */}
+      {refundBooking && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-black text-kazi-dark text-lg">Request Refund</h2>
+              <button onClick={closeRefundModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div className="bg-blue-50 rounded-2xl p-4 text-center">
+              <p className="text-xs text-gray-500 mb-1">{refundBooking.service?.name || "Service"}</p>
+              <p className="text-3xl font-black text-blue-600">KSh {refundBooking.totalAmount?.toLocaleString()}</p>
+              <p className="text-xs text-gray-500 mt-1">{refundBooking.provider?.businessName}</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+              Enter the M-Pesa number where you want to receive your refund. Processing takes up to 24 hours.
+            </div>
+            <form onSubmit={submitRefund} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">M-Pesa Phone Number</label>
+                <input
+                  type="tel"
+                  value={refundPhone}
+                  onChange={(e) => setRefundPhone(e.target.value)}
+                  placeholder="e.g. 0712345678"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={refunding}
+                className="w-full py-3 bg-blue-600 text-white font-bold text-sm rounded-2xl hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {refunding ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                {refunding ? "Submitting…" : "Submit Refund Request"}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* ── Payment modal ── */}
