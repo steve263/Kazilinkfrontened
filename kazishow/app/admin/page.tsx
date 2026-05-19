@@ -81,26 +81,30 @@ export default function AdminDashboard() {
   const fetchDashboard = useCallback(async () => {
     if (!ready || !token) return;
     setLoadingStats(true);
+    const safe = (url: string) =>
+      fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => (r.ok ? r.json() : { success: false }))
+        .catch(() => ({ success: false }));
     try {
-      const headers = { Authorization: `Bearer ${token}` };
       const [s, p, b, sub, cancel, comm, disp, bdg] = await Promise.all([
-        fetch(`${API}/api/admin/stats`, { headers }).then((r) => r.json()),
-        fetch(`${API}/api/admin/providers/pending`, { headers }).then((r) => r.json()),
-        fetch(`${API}/api/admin/bookings?limit=5`, { headers }).then((r) => r.json()),
-        fetch(`${API}/api/subscriptions/admin/stats`, { headers }).then((r) => r.json()),
-        fetch(`${API}/api/bookings/admin/cancellations`, { headers }).then((r) => r.json()),
-        fetch(`${API}/api/bookings/admin/commissions?limit=10`, { headers }).then((r) => r.json()),
-        fetch(`${API}/api/bookings?status=DISPUTED`, { headers }).then((r) => r.json()),
-        fetch(`${API}/api/admin/badges`, { headers }).then((r) => r.json()),
+        safe(`${API}/api/admin/stats`),
+        safe(`${API}/api/admin/providers/pending`),
+        safe(`${API}/api/admin/bookings?limit=5`),
+        safe(`${API}/api/admin/subscriptions/stats`),
+        safe(`${API}/api/bookings/admin/cancellations`),
+        safe(`${API}/api/bookings/admin/commissions?limit=10`),
+        safe(`${API}/api/bookings?status=DISPUTED`),
+        safe(`${API}/api/admin/badges`),
       ]);
       if (s.success) setStats(s.data);
       if (p.success) setPending(p.data);
-      if (b.success) setRecentBookings(b.data.bookings);
+      if (b.success) setRecentBookings(b.data?.bookings ?? []);
       if (sub.success) setSubStats(sub.data);
       if (cancel.success) setCancelStats(cancel.data);
       if (comm.success) setCommissionStats(comm.data);
-      if (disp.success) setDisputes(disp.data.bookings || []);
+      if (disp.success) setDisputes(disp.data?.bookings ?? []);
       if (bdg.success) setBadges(bdg.data);
+      if (!s.success) toast.error("Could not load some dashboard stats");
     } catch {
       toast.error("Failed to load dashboard");
     } finally {
