@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Users, ShoppingBag, Activity,
   CheckSquare, BarChart2, LogOut, RefreshCw, Menu, ClipboardCheck, CheckCircle, X, Check, MessageSquare, FileText,
-  Award, Video, ExternalLink, Wallet, Send, Megaphone, ShieldAlert, XCircle, CreditCard, BadgeCheck,
+  Award, Video, ExternalLink, Wallet, Send, Megaphone, ShieldAlert, XCircle, CreditCard, BadgeCheck, Settings,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import ApprovalCard from "@/components/admin/ApprovalCard";
@@ -24,6 +24,8 @@ const NAV = [
   { label: "Subscriptions",   href: "/admin/subscriptions",    icon: CreditCard },
   { label: "Broadcast",       href: "/admin/broadcast",        icon: Megaphone },
   { label: "Auto-Suspension", href: "/admin/auto-suspension",  icon: ShieldAlert },
+  { label: "Settings",        href: "/admin/settings",        icon: Settings },
+
 ];
 
 const TABS = [

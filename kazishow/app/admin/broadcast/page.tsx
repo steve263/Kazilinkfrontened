@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Megaphone, Users, ShoppingBag, Activity, CheckSquare,
-  BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, ShieldAlert, Send, CreditCard, BadgeCheck,
+  BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, ShieldAlert, Send, CreditCard, BadgeCheck, Settings,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
@@ -31,6 +31,8 @@ const NAV = [
   { label: "Subscriptions",   href: "/admin/subscriptions",   icon: CreditCard },
   { label: "Broadcast",       href: "/admin/broadcast",       icon: Megaphone },
   { label: "Auto-Suspension", href: "/admin/auto-suspension", icon: ShieldAlert },
+  { label: "Settings",        href: "/admin/settings",        icon: Settings },
+
 ];
 
 interface BroadcastResult {

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ShieldAlert, Users, ShoppingBag, Activity, CheckSquare,
-  BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, CreditCard, BadgeCheck,
+  BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, CreditCard, BadgeCheck, Settings,
   RefreshCw, AlertTriangle, Clock, TrendingUp, Check,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
@@ -26,6 +26,8 @@ const NAV = [
   { label: "Subscriptions",   href: "/admin/subscriptions",   icon: CreditCard },
   { label: "Broadcast",       href: "/admin/broadcast",       icon: Megaphone },
   { label: "Auto-Suspension", href: "/admin/auto-suspension", icon: ShieldAlert },
+  { label: "Settings",        href: "/admin/settings",        icon: Settings },
+
 ];
 
 interface Candidate {

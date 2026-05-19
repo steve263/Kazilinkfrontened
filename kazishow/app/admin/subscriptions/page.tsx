@@ -27,6 +27,8 @@ const NAV = [
   { label: "Subscriptions",   href: "/admin/subscriptions",   icon: CreditCard },
   { label: "Broadcast",       href: "/admin/broadcast",       icon: Megaphone },
   { label: "Auto-Suspension", href: "/admin/auto-suspension", icon: ShieldAlert },
+  { label: "Settings",        href: "/admin/settings",        icon: Settings },
+
 ];
 
 const PLAN_COLORS: Record<string, string> = {

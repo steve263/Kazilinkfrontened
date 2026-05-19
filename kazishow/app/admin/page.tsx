@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Users, ShoppingBag, DollarSign, Clock, Activity, Star,
-  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, ShieldAlert, CreditCard, BadgeCheck,
+  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, ShieldAlert, CreditCard, BadgeCheck, Settings,
 } from "lucide-react";
 import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
@@ -39,6 +39,7 @@ const NAV = [
   { label: "Subscriptions",   href: "/admin/subscriptions",      icon: CreditCard  },
   { label: "Broadcast",       href: "/admin/broadcast",          icon: Megaphone   },
   { label: "Auto-Suspension", href: "/admin/auto-suspension",    icon: ShieldAlert },
+  { label: "Settings",        href: "/admin/settings",           icon: Settings    },
 ];
 
 const BOOKING_STATUS_COLOR: Record<string, string> = {
