@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Users, ShoppingBag, DollarSign, Clock, Activity, Star,
-  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, ShieldAlert,
+  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, ShieldAlert, CreditCard,
 } from "lucide-react";
 import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
@@ -35,6 +35,7 @@ const NAV = [
   { label: "Trust & Safety",  href: "/admin/trust",              icon: Shield      },
   { label: "Appeals",         href: "/admin/appeals",            icon: Scale       },
   { label: "Cancellations",   href: "/admin/cancellations",      icon: XCircle     },
+  { label: "Subscriptions",   href: "/admin/subscriptions",      icon: CreditCard  },
   { label: "Broadcast",       href: "/admin/broadcast",          icon: Megaphone   },
   { label: "Auto-Suspension", href: "/admin/auto-suspension",    icon: ShieldAlert },
 ];
@@ -541,6 +542,7 @@ export default function AdminDashboard() {
               { label: "Analytics",           href: "/admin/analytics",        icon: BarChart2,    cls: "text-green-600 border-green-100 hover:bg-green-50" },
               { label: "Cancellations",       href: "/admin/cancellations",    icon: XCircle,      cls: "text-rose-600 border-rose-100 hover:bg-rose-50" },
               { label: "Withdrawals",         href: "/admin/withdrawals",      icon: Wallet,       cls: "text-teal-600 border-teal-100 hover:bg-teal-50" },
+              { label: "Subscriptions",       href: "/admin/subscriptions",    icon: CreditCard,   cls: "text-green-600 border-green-100 hover:bg-green-50" },
               { label: "Broadcast",           href: "/admin/broadcast",        icon: Megaphone,    cls: "text-purple-600 border-purple-100 hover:bg-purple-50" },
               { label: "Auto-Suspension",     href: "/admin/auto-suspension",  icon: ShieldAlert,  cls: "text-red-600 border-red-100 hover:bg-red-50" },
             ].map(({ label, href, icon: Icon, cls }) => (
