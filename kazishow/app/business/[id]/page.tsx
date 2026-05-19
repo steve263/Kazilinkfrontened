@@ -53,6 +53,7 @@ export default function ProviderProfilePage() {
   const [trustScore, setTrustScore] = useState<any>(null);
   const [showReport, setShowReport] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [workLightboxIndex, setWorkLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("kazishow_user");
@@ -540,6 +541,36 @@ export default function ProviderProfilePage() {
                 </div>
               )}
 
+              {provider.workPhotos?.length > 0 && (
+                <div className="bg-white rounded-2xl p-5 card-shadow">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-kazi-dark">Completed Work</h3>
+                    <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full font-semibold">
+                      {provider.workPhotos.length} photo{provider.workPhotos.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-3">Before & after photos from real jobs</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {provider.workPhotos.map((url: string, i: number) => (
+                      <button
+                        key={i}
+                        onClick={() => setWorkLightboxIndex(i)}
+                        className="aspect-square rounded-xl overflow-hidden bg-gray-100 relative group"
+                      >
+                        <img src={url} alt={`Work photo ${i + 1}`} className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                        {i === 0 && (
+                          <span className="absolute bottom-1.5 left-1.5 text-[9px] font-black text-white bg-black/60 px-1.5 py-0.5 rounded-full">BEFORE</span>
+                        )}
+                        {i === 1 && (
+                          <span className="absolute bottom-1.5 left-1.5 text-[9px] font-black text-white bg-kazi-orange/90 px-1.5 py-0.5 rounded-full">AFTER</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="bg-white rounded-2xl p-4 card-shadow">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-kazi-dark">Location</h3>
@@ -845,51 +876,61 @@ export default function ProviderProfilePage() {
 
       <BottomNav />
 
-      {/* Photo lightbox */}
+      {/* Portfolio photo lightbox */}
       {lightboxIndex !== null && provider?.portfolioPhotos && (
         <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={() => setLightboxIndex(null)}
         >
-          {/* Close */}
-          <button
-            onClick={() => setLightboxIndex(null)}
-            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
-          >
+          <button onClick={() => setLightboxIndex(null)} className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10">
             <X className="w-5 h-5 text-white" />
           </button>
-
-          {/* Prev */}
           {provider.portfolioPhotos.length > 1 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + provider.portfolioPhotos.length) % provider.portfolioPhotos.length); }}
-              className="absolute left-3 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
-            >
+            <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + provider.portfolioPhotos.length) % provider.portfolioPhotos.length); }} className="absolute left-3 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10">
               <ChevronLeft className="w-5 h-5 text-white" />
             </button>
           )}
-
-          {/* Image */}
-          <img
-            src={provider.portfolioPhotos[lightboxIndex]}
-            alt={`Photo ${lightboxIndex + 1}`}
-            className="max-w-full max-h-full object-contain px-16"
-            onClick={(e) => e.stopPropagation()}
-          />
-
-          {/* Next */}
+          <img src={provider.portfolioPhotos[lightboxIndex]} alt={`Photo ${lightboxIndex + 1}`} className="max-w-full max-h-full object-contain px-16" onClick={(e) => e.stopPropagation()} />
           {provider.portfolioPhotos.length > 1 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % provider.portfolioPhotos.length); }}
-              className="absolute right-3 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
-            >
+            <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % provider.portfolioPhotos.length); }} className="absolute right-3 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10">
               <ChevronRight className="w-5 h-5 text-white" />
             </button>
           )}
-
-          {/* Counter */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white/10 rounded-full text-white text-xs font-semibold">
             {lightboxIndex + 1} / {provider.portfolioPhotos.length}
+          </div>
+        </div>
+      )}
+
+      {/* Completed work photo lightbox */}
+      {workLightboxIndex !== null && provider?.workPhotos && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={() => setWorkLightboxIndex(null)}
+        >
+          <button onClick={() => setWorkLightboxIndex(null)} className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10">
+            <X className="w-5 h-5 text-white" />
+          </button>
+          {provider.workPhotos.length > 1 && (
+            <button onClick={(e) => { e.stopPropagation(); setWorkLightboxIndex((workLightboxIndex - 1 + provider.workPhotos.length) % provider.workPhotos.length); }} className="absolute left-3 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10">
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+          )}
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <img src={provider.workPhotos[workLightboxIndex]} alt={`Work photo ${workLightboxIndex + 1}`} className="max-w-full max-h-full object-contain px-16" />
+            <div className="absolute top-3 left-1/2 -translate-x-1/2">
+              <span className={`text-xs font-black text-white px-3 py-1 rounded-full ${workLightboxIndex % 2 === 0 ? "bg-gray-700" : "bg-kazi-orange"}`}>
+                {workLightboxIndex % 2 === 0 ? "BEFORE" : "AFTER"}
+              </span>
+            </div>
+          </div>
+          {provider.workPhotos.length > 1 && (
+            <button onClick={(e) => { e.stopPropagation(); setWorkLightboxIndex((workLightboxIndex + 1) % provider.workPhotos.length); }} className="absolute right-3 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10">
+              <ChevronRight className="w-5 h-5 text-white" />
+            </button>
+          )}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white/10 rounded-full text-white text-xs font-semibold">
+            {workLightboxIndex + 1} / {provider.workPhotos.length}
           </div>
         </div>
       )}
