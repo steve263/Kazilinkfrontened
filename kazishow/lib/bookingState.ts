@@ -23,6 +23,6 @@ export const bookingState = {
 
   subscribe(fn: (bookingId: string, action: "ACCEPTED" | "DECLINED") => void) {
     listeners.add(fn);
-    return () => listeners.delete(fn);
+    return () => { listeners.delete(fn); };
   },
 };
