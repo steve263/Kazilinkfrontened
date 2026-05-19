@@ -15,7 +15,7 @@ import TrustScoreCard from "@/components/trust/TrustScoreCard";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-type Tab = "bookings" | "services" | "earnings" | "reviews" | "analytics" | "portfolio" | "posts" | "promotions" | "settings";
+type Tab = "bookings" | "services" | "earnings" | "reviews" | "analytics" | "portfolio" | "posts" | "promotions" | "settings" | "subscription";
 
 const CATEGORY_EMOJI: Record<string, string> = {
   FUNDI: "🔧", SHOP: "🏪", HOTEL: "🏨", RESTAURANT: "🍽️",
@@ -606,6 +606,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     { id: "posts", label: "Posts" },
     { id: "promotions", label: "Deals" },
     { id: "settings", label: "Settings" },
+    ...(!isFundi ? [{ id: "subscription" as Tab, label: "💳 Plan" }] : []),
   ];
 
   const STATUS_BUTTONS = isFundi
@@ -1640,27 +1641,6 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
               </button>
             </div>
 
-            {/* Subscription (non-FUNDI only) */}
-            {!isFundi && (
-              <Link
-                href="/provider/subscription"
-                className="block bg-white rounded-2xl shadow-sm p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
-                      <span className="text-xl">💳</span>
-                    </div>
-                    <div>
-                      <p className="font-bold text-kazi-dark text-sm">My Subscription</p>
-                      <p className="text-xs text-gray-400">Manage your business plan</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-              </Link>
-            )}
-
             {/* Change Password */}
             <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
               <h3 className="font-bold text-kazi-dark text-sm flex items-center gap-2">
@@ -1839,6 +1819,27 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
               >
                 Deactivate Account
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── SUBSCRIPTION TAB ── */}
+        {activeTab === "subscription" && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-2xl">💳</div>
+                <div>
+                  <h3 className="font-black text-kazi-dark text-base">My Subscription Plan</h3>
+                  <p className="text-xs text-gray-400">Manage your business plan & billing</p>
+                </div>
+              </div>
+              <Link
+                href="/provider/subscription"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-kazi-orange text-white font-black rounded-2xl hover:bg-orange-600 transition-all active:scale-95 text-sm"
+              >
+                💳 View & Manage My Plan
+              </Link>
             </div>
           </div>
         )}
