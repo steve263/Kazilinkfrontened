@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { X, Check, XCircle, User, MapPin, Calendar, Clock } from "lucide-react";
+import { bookingState } from "@/lib/bookingState";
 
 const COUNTDOWN_SECONDS = 60;
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -30,6 +31,17 @@ export default function BookingToast({ request, token, onDone }: Props) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    // If another component already actioned this booking, show result immediately
+    if (bookingState.isActioned(request.bookingId)) {
+      const existing = bookingState.getAction(request.bookingId);
+      if (existing) {
+        setState(existing.action === "ACCEPTED" ? "accepted" : "declined");
+        setTimeout(() => onDone(request.bookingId), 2000);
+        return;
+      }
+    }
+
+    // Start countdown
     timerRef.current = setInterval(() => {
       setSecondsLeft((s) => {
         if (s <= 1) {
@@ -41,13 +53,28 @@ export default function BookingToast({ request, token, onDone }: Props) {
         return s - 1;
       });
     }, 1000);
-    return () => clearInterval(timerRef.current!);
-  }, []);
+
+    // Listen for actions from the notifications page
+    const unsubscribe = bookingState.subscribe((bookingId, action) => {
+      if (bookingId === request.bookingId) {
+        clearInterval(timerRef.current!);
+        setState(action === "ACCEPTED" ? "accepted" : "declined");
+        setTimeout(() => onDone(request.bookingId), 2000);
+      }
+    });
+
+    return () => {
+      clearInterval(timerRef.current!);
+      unsubscribe();
+    };
+  }, [request.bookingId]);
 
   async function respond(action: "accept" | "decline") {
     clearInterval(timerRef.current!);
     const newState = action === "accept" ? "accepted" : "declined";
     setState(newState);
+    // Notify all other components immediately (stops notifications page countdown)
+    bookingState.setActioned(request.bookingId, action === "accept" ? "ACCEPTED" : "DECLINED");
     try {
       const endpoint = action === "accept"
         ? `${API}/api/bookings/${request.bookingId}/accept`

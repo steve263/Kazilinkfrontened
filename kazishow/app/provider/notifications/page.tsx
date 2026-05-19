@@ -10,6 +10,7 @@ import {
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import { formatCurrency } from "@/lib/utils";
+import { bookingState } from "@/lib/bookingState";
 import toast, { Toaster } from "react-hot-toast";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -157,9 +158,38 @@ function PendingCard({
 }) {
   const [loading, setLoading] = useState<"accept" | "decline" | null>(null);
   const [done, setDone] = useState<"accepted" | "declined" | "expired" | null>(null);
+  const doneRef = useRef<string | null>(null);
+
+  // Check if popup already actioned this booking before we mounted
+  useEffect(() => {
+    if (bookingState.isActioned(booking.id)) {
+      const existing = bookingState.getAction(booking.id);
+      if (existing) {
+        const result = existing.action === "ACCEPTED" ? "accepted" : "declined";
+        doneRef.current = result;
+        setDone(result as "accepted" | "declined");
+        onAction(booking.id, result as "accepted" | "declined");
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booking.id]);
+
+  // Listen for the popup accepting/declining this booking while we are mounted
+  useEffect(() => {
+    const unsubscribe = bookingState.subscribe((bookingId, action) => {
+      if (bookingId === booking.id && !doneRef.current) {
+        const result = action === "ACCEPTED" ? "accepted" : "declined";
+        doneRef.current = result;
+        setDone(result);
+        onAction(booking.id, result);
+      }
+    });
+    return unsubscribe;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booking.id]);
 
   const remaining = useCountdown(30, () => {
-    if (!done) { setDone("expired"); onAction(booking.id, "expired"); }
+    if (!doneRef.current) { doneRef.current = "expired"; setDone("expired"); onAction(booking.id, "expired"); }
   });
 
   const handleAction = async (action: "accept" | "decline") => {
@@ -172,7 +202,10 @@ function PendingCard({
       const data = await res.json();
       if (data.success) {
         const result = action === "accept" ? "accepted" : "declined";
+        doneRef.current = result;
         setDone(result);
+        // Notify popup (and any other components) to stop immediately
+        bookingState.setActioned(booking.id, action === "accept" ? "ACCEPTED" : "DECLINED");
         onAction(booking.id, result);
         toast.success(action === "accept" ? `${bookingLabel} accepted!` : "Declined");
       } else {
