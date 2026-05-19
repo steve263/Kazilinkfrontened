@@ -11,6 +11,33 @@ import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+const DEFAULT_SETTINGS = {
+  commissionRate: 10,
+  cashCommissionRate: 5,
+  trialDays: 30,
+  starterPrice: 999,
+  growthPrice: 2499,
+  premiumPrice: 4999,
+  maxBookingsPerDay: 10,
+  autoCancelHours: 24,
+  autoReleaseHours: 48,
+  cancellationRefundHours: 12,
+  maintenanceMode: false,
+  newRegistrationsOpen: true,
+  appName: "KaziShow",
+  supportPhone: "",
+  supportPhone2: "",
+  supportEmail: "",
+  whatsappNumber: "",
+  smsEnabled: true,
+  smsWelcomeMessage: "Welcome to KaziShow! Find trusted home services near you.",
+  pushEnabled: true,
+  emailEnabled: false,
+  defaultCity: "Nairobi",
+  defaultCountry: "Kenya",
+  currency: "KSh",
+};
+
 const NAV = [
   { label: "Overview",        href: "/admin",                 icon: BarChart2 },
   { label: "Approvals",       href: "/admin/approvals",       icon: ClipboardCheck },
@@ -106,8 +133,20 @@ export default function AdminSettingsPage() {
     try {
       const res = await fetch(`${API}/api/admin/settings`, { headers: { Authorization: `Bearer ${t}` } });
       const data = await res.json();
-      if (data.success) { setSettings(data.data); setOriginal(data.data); }
-    } catch { /* silent */ }
+      if (data.success) {
+        const merged = { ...DEFAULT_SETTINGS, ...data.data };
+        setSettings(merged);
+        setOriginal(merged);
+      } else {
+        toast.error("Could not load settings from server — showing defaults");
+        setSettings({ ...DEFAULT_SETTINGS });
+        setOriginal({ ...DEFAULT_SETTINGS });
+      }
+    } catch {
+      toast.error("Network error — showing default settings");
+      setSettings({ ...DEFAULT_SETTINGS });
+      setOriginal({ ...DEFAULT_SETTINGS });
+    }
     setLoading(false);
   }, []);
 
