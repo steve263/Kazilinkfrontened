@@ -138,7 +138,7 @@ export default function JobCompleteModal({
           )}
 
           <button
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             disabled={submitting}
             className="w-full py-4 bg-kazi-green text-white font-black rounded-2xl flex items-center justify-center gap-2 disabled:opacity-60 mb-3 active:scale-95 transition-transform"
           >
