@@ -132,21 +132,19 @@ export default function AdminSettingsPage() {
     setLoading(true);
     try {
       const res = await fetch(`${API}/api/admin/settings`, { headers: { Authorization: `Bearer ${t}` } });
-      const data = await res.json();
-      if (data.success) {
-        const merged = { ...DEFAULT_SETTINGS, ...data.data };
-        setSettings(merged);
-        setOriginal(merged);
-      } else {
-        toast.error("Could not load settings from server — showing defaults");
-        setSettings({ ...DEFAULT_SETTINGS });
-        setOriginal({ ...DEFAULT_SETTINGS });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          const merged = { ...DEFAULT_SETTINGS, ...data.data };
+          setSettings(merged);
+          setOriginal(merged);
+          setLoading(false);
+          return;
+        }
       }
-    } catch {
-      toast.error("Network error — showing default settings");
-      setSettings({ ...DEFAULT_SETTINGS });
-      setOriginal({ ...DEFAULT_SETTINGS });
-    }
+    } catch { /* ignore — fall through to defaults */ }
+    setSettings({ ...DEFAULT_SETTINGS });
+    setOriginal({ ...DEFAULT_SETTINGS });
     setLoading(false);
   }, []);
 
