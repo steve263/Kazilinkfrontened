@@ -5,7 +5,7 @@ import {
   ArrowLeft, CreditCard, Users, ShoppingBag, Activity, CheckSquare,
   BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone,
   ShieldAlert, RefreshCw, Search, ChevronDown, TrendingUp, Clock,
-  CheckCircle, AlertCircle, Gift, Calendar, MoreVertical, X,
+  CheckCircle, AlertCircle, Gift, Calendar, MoreVertical, X, BadgeCheck,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
@@ -15,6 +15,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const NAV = [
   { label: "Overview",        href: "/admin",                 icon: BarChart2 },
   { label: "Approvals",       href: "/admin/approvals",       icon: ClipboardCheck },
+  { label: "Verification",    href: "/admin/verification",    icon: BadgeCheck },
   { label: "Providers",       href: "/admin/providers",       icon: CheckSquare },
   { label: "Users",           href: "/admin/users",           icon: Users },
   { label: "Bookings",        href: "/admin/bookings",        icon: ShoppingBag },

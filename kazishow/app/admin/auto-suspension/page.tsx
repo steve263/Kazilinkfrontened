@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ShieldAlert, Users, ShoppingBag, Activity, CheckSquare,
-  BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, CreditCard,
+  BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, CreditCard, BadgeCheck,
   RefreshCw, AlertTriangle, Clock, TrendingUp, Check,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
@@ -14,6 +14,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const NAV = [
   { label: "Overview",        href: "/admin",                 icon: BarChart2 },
   { label: "Approvals",       href: "/admin/approvals",       icon: ClipboardCheck },
+  { label: "Verification",    href: "/admin/verification",    icon: BadgeCheck },
   { label: "Providers",       href: "/admin/providers",       icon: CheckSquare },
   { label: "Users",           href: "/admin/users",           icon: Users },
   { label: "Bookings",        href: "/admin/bookings",        icon: ShoppingBag },

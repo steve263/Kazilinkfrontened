@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Users, ShoppingBag, DollarSign, Clock, Activity, Star,
-  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, ShieldAlert, CreditCard,
+  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, ShieldAlert, CreditCard, BadgeCheck,
 } from "lucide-react";
 import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
@@ -25,8 +25,9 @@ interface Stats {
 
 const NAV = [
   { label: "Overview",   href: "/admin",             icon: BarChart2 },
-  { label: "Approvals",  href: "/admin/approvals",   icon: ClipboardCheck },
-  { label: "Providers",  href: "/admin/providers",   icon: CheckSquare },
+  { label: "Approvals",       href: "/admin/approvals",        icon: ClipboardCheck },
+  { label: "Verification",    href: "/admin/verification",     icon: BadgeCheck },
+  { label: "Providers",       href: "/admin/providers",        icon: CheckSquare },
   { label: "Users",      href: "/admin/users",       icon: Users },
   { label: "Bookings",   href: "/admin/bookings",    icon: ShoppingBag },
   { label: "Analytics",  href: "/admin/analytics",   icon: Activity },
@@ -542,6 +543,7 @@ export default function AdminDashboard() {
               { label: "Analytics",           href: "/admin/analytics",        icon: BarChart2,    cls: "text-green-600 border-green-100 hover:bg-green-50" },
               { label: "Cancellations",       href: "/admin/cancellations",    icon: XCircle,      cls: "text-rose-600 border-rose-100 hover:bg-rose-50" },
               { label: "Withdrawals",         href: "/admin/withdrawals",      icon: Wallet,       cls: "text-teal-600 border-teal-100 hover:bg-teal-50" },
+              { label: "Verification",        href: "/admin/verification",     icon: BadgeCheck,   cls: "text-blue-600 border-blue-100 hover:bg-blue-50" },
               { label: "Subscriptions",       href: "/admin/subscriptions",    icon: CreditCard,   cls: "text-green-600 border-green-100 hover:bg-green-50" },
               { label: "Broadcast",           href: "/admin/broadcast",        icon: Megaphone,    cls: "text-purple-600 border-purple-100 hover:bg-purple-50" },
               { label: "Auto-Suspension",     href: "/admin/auto-suspension",  icon: ShieldAlert,  cls: "text-red-600 border-red-100 hover:bg-red-50" },

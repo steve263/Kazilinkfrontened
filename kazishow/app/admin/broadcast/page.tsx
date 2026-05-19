@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Megaphone, Users, ShoppingBag, Activity, CheckSquare,
-  BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, ShieldAlert, Send, CreditCard,
+  BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, ShieldAlert, Send, CreditCard, BadgeCheck,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
@@ -19,6 +19,7 @@ const TARGETS = [
 const NAV = [
   { label: "Overview",        href: "/admin",                 icon: BarChart2 },
   { label: "Approvals",       href: "/admin/approvals",       icon: ClipboardCheck },
+  { label: "Verification",    href: "/admin/verification",    icon: BadgeCheck },
   { label: "Providers",       href: "/admin/providers",       icon: CheckSquare },
   { label: "Users",           href: "/admin/users",           icon: Users },
   { label: "Bookings",        href: "/admin/bookings",        icon: ShoppingBag },

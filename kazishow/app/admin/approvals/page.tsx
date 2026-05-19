@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Users, ShoppingBag, Activity,
   CheckSquare, BarChart2, LogOut, RefreshCw, Menu, ClipboardCheck, CheckCircle, X, Check, MessageSquare, FileText,
-  Award, Video, ExternalLink, Wallet, Send, Megaphone, ShieldAlert, XCircle, CreditCard,
+  Award, Video, ExternalLink, Wallet, Send, Megaphone, ShieldAlert, XCircle, CreditCard, BadgeCheck,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import ApprovalCard from "@/components/admin/ApprovalCard";
@@ -15,6 +15,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const NAV = [
   { label: "Overview",        href: "/admin",                  icon: BarChart2 },
   { label: "Approvals",       href: "/admin/approvals",        icon: ClipboardCheck },
+  { label: "Verification",    href: "/admin/verification",     icon: BadgeCheck },
   { label: "Providers",       href: "/admin/providers",        icon: CheckSquare },
   { label: "Users",           href: "/admin/users",            icon: Users },
   { label: "Bookings",        href: "/admin/bookings",         icon: ShoppingBag },
