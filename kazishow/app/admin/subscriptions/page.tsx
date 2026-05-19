@@ -5,7 +5,7 @@ import {
   ArrowLeft, CreditCard, Users, ShoppingBag, Activity, CheckSquare,
   BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone,
   ShieldAlert, RefreshCw, Search, ChevronDown, TrendingUp, Clock,
-  CheckCircle, AlertCircle, Gift, Calendar, MoreVertical, X, BadgeCheck,
+  CheckCircle, AlertCircle, Gift, Calendar, MoreVertical, X, BadgeCheck, Settings,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
