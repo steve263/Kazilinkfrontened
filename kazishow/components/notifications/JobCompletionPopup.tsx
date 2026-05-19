@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -13,6 +13,7 @@ interface JobCompletionData {
   amount: number;
   providerAmount: number;
   message: string;
+  photos?: string[];
 }
 
 interface Props {
@@ -27,6 +28,8 @@ export default function JobCompletionPopup({ data, onClose }: Props) {
   const [disputeReason, setDisputeReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(300);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const photos = data.photos?.filter(Boolean) ?? [];
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -154,6 +157,50 @@ export default function JobCompletionPopup({ data, onClose }: Props) {
                   </span>
                 </div>
               </div>
+
+              {/* Job photos from provider */}
+              {photos.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    📸 Job Photos ({photos.length})
+                  </p>
+                  <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-video">
+                    <img
+                      src={photos[photoIndex]}
+                      alt={`Job photo ${photoIndex + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {photos.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 rounded-full flex items-center justify-center"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-white" />
+                        </button>
+                        <button
+                          onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 rounded-full flex items-center justify-center"
+                        >
+                          <ChevronRight className="w-4 h-4 text-white" />
+                        </button>
+                        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                          {photos.map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setPhotoIndex(i)}
+                              className={`w-1.5 h-1.5 rounded-full transition-all ${i === photoIndex ? "bg-white w-3" : "bg-white/50"}`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    <span className="absolute top-2 left-2 text-[10px] font-black text-white bg-black/60 px-1.5 py-0.5 rounded-full">
+                      {photoIndex === 0 ? "BEFORE" : photoIndex === 1 ? "AFTER" : `PHOTO ${photoIndex + 1}`}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <p className="font-black text-kazi-dark text-center text-lg mb-1">
                 Did {data.providerName} complete the job satisfactorily?

@@ -11,6 +11,7 @@ import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import { formatCurrency } from "@/lib/utils";
 import { bookingState } from "@/lib/bookingState";
+import JobCompleteModal from "@/components/notifications/JobCompleteModal";
 import toast, { Toaster } from "react-hot-toast";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -352,6 +353,7 @@ function ActiveCard({
 }) {
   const [loading, setLoading] = useState(false);
   const [cashLoading, setCashLoading] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const canMove = isMobileProvider(category, description);
   const paymentMethod = booking.paymentMethod || "MPESA";
   const isNonEscrow = paymentMethod === "CASH" || paymentMethod === "PAY_AFTER";
@@ -506,12 +508,11 @@ function ActiveCard({
               </button>
             )}
 
-            {/* All providers: COMPLETED */}
+            {/* All providers: COMPLETED — opens photo upload modal */}
             {(booking.status === "ACCEPTED" || booking.status === "EN_ROUTE" || booking.status === "ARRIVED" || booking.status === "IN_PROGRESS") && (
-              <button onClick={() => updateStatus("COMPLETED")} disabled={loading}
+              <button onClick={() => setShowCompleteModal(true)} disabled={loading}
                 className="w-full py-3 bg-kazi-green hover:bg-green-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95 disabled:opacity-50">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "✅"}
-                {canMove ? "Job Complete" : "Service Complete"}
+                ✅ {canMove ? "Job Complete" : "Service Complete"}
               </button>
             )}
 
@@ -549,6 +550,21 @@ function ActiveCard({
           );
         })()}
       </div>
+
+      {showCompleteModal && (
+        <JobCompleteModal
+          bookingId={booking.id}
+          customerName={booking.customer.name}
+          token={token}
+          bookingLabel={bookingLabel}
+          onComplete={() => {
+            setShowCompleteModal(false);
+            onUpdated(booking.id, "COMPLETED");
+            toast.success(`${bookingLabel} completed!`);
+          }}
+          onCancel={() => setShowCompleteModal(false)}
+        />
+      )}
     </div>
   );
 }
