@@ -106,6 +106,8 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
+  const [workPhotos, setWorkPhotos] = useState<string[]>([]);
+  const [workPhotoUploading, setWorkPhotoUploading] = useState(false);
 
   // Service form
   const [showAddService, setShowAddService] = useState(false);
@@ -200,6 +202,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
         setIsOnline(pd.data.user?.isOnline || false);
         setIsBusy(pd.data.isBusy || false);
         setPortfolioPhotos(pd.data.portfolioPhotos || []);
+        try { setWorkPhotos(JSON.parse(pd.data.providerWorkPhotos || "[]")); } catch { setWorkPhotos([]); }
         setEditBizName(pd.data.businessName || "");
         setEditDesc(pd.data.description || "");
         setEditHoursStart(pd.data.workingHoursStart || "");
@@ -1265,6 +1268,99 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                 ))}
               </div>
             )}
+
+            {/* ── Before & After Work Photos ── */}
+            <div className="mt-2 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-1">
+                <div>
+                  <h3 className="font-bold text-kazi-dark text-sm">Before & After Work ({workPhotos.length})</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Customers see these on your public profile</p>
+                </div>
+                <label className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl cursor-pointer transition-colors ${workPhotoUploading ? "bg-gray-200 text-gray-400" : "bg-kazi-green text-white hover:bg-green-600"}`}>
+                  {workPhotoUploading ? (
+                    <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" /> Uploading...</>
+                  ) : (
+                    <><Camera className="w-3.5 h-3.5" /> Add Photos</>
+                  )}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    multiple
+                    disabled={workPhotoUploading}
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (!files.length) return;
+                      setWorkPhotoUploading(true);
+                      let current = [...workPhotos];
+                      let uploaded = 0;
+                      for (const file of files.slice(0, 20 - workPhotos.length)) {
+                        const form = new FormData();
+                        form.append("image", file);
+                        try {
+                          const res = await fetch(`${API}/api/upload/image`, {
+                            method: "POST",
+                            headers: { Authorization: `Bearer ${token}` },
+                            body: form,
+                          });
+                          const data = await res.json();
+                          if (data.success && data.data?.url) {
+                            current = [...current, data.data.url];
+                            setWorkPhotos(current);
+                            uploaded++;
+                          }
+                        } catch {}
+                      }
+                      if (uploaded > 0) {
+                        await authFetch(`${API}/api/providers/${providerId}`, {
+                          method: "PUT",
+                          body: JSON.stringify({ providerWorkPhotos: current }),
+                        });
+                        toast.success(`${uploaded} work photo${uploaded > 1 ? "s" : ""} uploaded!`);
+                      }
+                      setWorkPhotoUploading(false);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+
+              {workPhotos.length === 0 ? (
+                <div className="bg-gray-50 rounded-2xl p-6 text-center border-2 border-dashed border-gray-200">
+                  <Camera className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-gray-400">No before & after photos yet</p>
+                  <p className="text-xs text-gray-300 mt-1">Upload photos to show customers the quality of your work</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {workPhotos.map((url, i) => (
+                    <div key={i} className="relative aspect-square">
+                      <img src={url} alt={`Work ${i + 1}`} className="w-full h-full object-cover rounded-xl" />
+                      <span className={`absolute bottom-1.5 left-1.5 text-[9px] font-black text-white px-1.5 py-0.5 rounded-full ${i % 2 === 0 ? "bg-black/60" : "bg-kazi-orange/90"}`}>
+                        {i % 2 === 0 ? "BEFORE" : "AFTER"}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          const newPhotos = workPhotos.filter((_, idx) => idx !== i);
+                          setWorkPhotos(newPhotos);
+                          await authFetch(`${API}/api/providers/${providerId}`, {
+                            method: "PUT",
+                            body: JSON.stringify({ providerWorkPhotos: newPhotos }),
+                          });
+                          toast.success("Photo removed");
+                        }}
+                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-2 text-center">
+                💡 Upload in pairs — first photo = BEFORE, second = AFTER
+              </p>
+            </div>
           </div>
         )}
 
