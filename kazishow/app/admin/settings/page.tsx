@@ -171,15 +171,18 @@ export default function AdminSettingsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success("Settings saved successfully!");
-        setOriginal(settings);
+        setOriginal({ ...settings });
         setHasChanges(false);
       } else {
-        toast.error(data.message || "Failed to save");
+        toast.error("Failed to save: " + (data.message || "Unknown error"));
       }
-    } catch {
-      toast.error("Network error");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      console.error("Save error:", msg);
+      toast.error("Network error saving settings: " + msg);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleReset = () => {
