@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Users, ShoppingBag, DollarSign, Clock, Activity, Star,
-  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone, ShieldAlert, CreditCard, BadgeCheck, Settings,
+  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, Gavel, XCircle, Megaphone, ShieldAlert, CreditCard, BadgeCheck, Settings,
 } from "lucide-react";
 import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
@@ -35,6 +35,7 @@ const NAV = [
   { label: "Payouts",     href: "/admin/payouts",     icon: DollarSign },
   { label: "Trust & Safety",  href: "/admin/trust",              icon: Shield      },
   { label: "Appeals",         href: "/admin/appeals",            icon: Scale       },
+  { label: "Disputes",        href: "/admin/disputes",           icon: Gavel       },
   { label: "Cancellations",   href: "/admin/cancellations",      icon: XCircle     },
   { label: "Subscriptions",   href: "/admin/subscriptions",      icon: CreditCard  },
   { label: "Broadcast",       href: "/admin/broadcast",          icon: Megaphone   },
@@ -210,7 +211,8 @@ export default function AdminDashboard() {
               label === "Approvals"    ? badges.approvals   :
               label === "Bookings"     ? badges.bookings    :
               label === "Withdrawals"  ? badges.withdrawals :
-              label === "Appeals"      ? badges.appeals     : 0;
+              label === "Appeals"      ? badges.appeals     :
+              label === "Disputes"     ? badges.disputes    : 0;
             return (
               <Link key={href} href={href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${href === "/admin" ? "bg-kazi-orange text-white" : "text-white/60 hover:text-white hover:bg-white/10"}`}>

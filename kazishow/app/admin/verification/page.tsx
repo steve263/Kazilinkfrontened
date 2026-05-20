@@ -5,7 +5,7 @@ import {
   ArrowLeft, BadgeCheck, Users, ShoppingBag, Activity, CheckSquare,
   BarChart2, ClipboardCheck, Wallet, Shield, Scale, XCircle, Megaphone,
   ShieldAlert, CreditCard, RefreshCw, Search, X, Phone, Calendar,
-  CheckCircle, AlertCircle, ZoomIn, Clock,
+  CheckCircle, AlertCircle, ZoomIn, Clock, Gavel,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
@@ -23,6 +23,7 @@ const NAV = [
   { label: "Withdrawals",     href: "/admin/withdrawals",     icon: Wallet },
   { label: "Trust & Safety",  href: "/admin/trust",           icon: Shield },
   { label: "Appeals",         href: "/admin/appeals",         icon: Scale },
+  { label: "Disputes",        href: "/admin/disputes",        icon: Gavel },
   { label: "Cancellations",   href: "/admin/cancellations",   icon: XCircle },
   { label: "Subscriptions",   href: "/admin/subscriptions",   icon: CreditCard },
   { label: "Broadcast",       href: "/admin/broadcast",       icon: Megaphone },
