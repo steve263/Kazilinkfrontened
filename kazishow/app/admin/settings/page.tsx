@@ -144,7 +144,8 @@ export default function AdminSettingsPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       console.error("Settings fetch error:", msg);
-      toast.error("Could not load settings. Using defaults.");
+      // Only toast on auth/server errors, not 404 (route not yet deployed)
+      if (!msg.includes("404")) toast.error("Could not load settings. Using defaults.");
       setSettings({ ...DEFAULT_SETTINGS });
       setOriginal({ ...DEFAULT_SETTINGS });
     } finally {
