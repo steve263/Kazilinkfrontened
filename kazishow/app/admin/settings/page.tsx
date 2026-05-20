@@ -132,20 +132,24 @@ export default function AdminSettingsPage() {
     setLoading(true);
     try {
       const res = await fetch(`${API}/api/admin/settings`, { headers: { Authorization: `Bearer ${t}` } });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          const merged = { ...DEFAULT_SETTINGS, ...data.data };
-          setSettings(merged);
-          setOriginal(merged);
-          setLoading(false);
-          return;
-        }
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      if (data.success) {
+        const merged = { ...DEFAULT_SETTINGS, ...data.data };
+        setSettings(merged);
+        setOriginal(merged);
+      } else {
+        throw new Error(data.message);
       }
-    } catch { /* ignore — fall through to defaults */ }
-    setSettings({ ...DEFAULT_SETTINGS });
-    setOriginal({ ...DEFAULT_SETTINGS });
-    setLoading(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      console.error("Settings fetch error:", msg);
+      toast.error("Could not load settings. Using defaults.");
+      setSettings({ ...DEFAULT_SETTINGS });
+      setOriginal({ ...DEFAULT_SETTINGS });
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { if (token) fetchSettings(token); }, [token, fetchSettings]);
