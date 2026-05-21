@@ -161,6 +161,46 @@ export default function AdminSubscriptionsPage() {
 
   useEffect(() => { if (token) { loadStats(); loadSubs(1); } }, [token, loadStats, loadSubs]);
 
+  const handleConfirmPayment = async (subId: string, paymentId: string, plan: string) => {
+    if (!window.confirm("Confirm you have received this M-Pesa payment in your Equity Bank account?")) return;
+    try {
+      const res = await fetch(`${API}/api/admin/subscriptions/${subId}/confirm-payment`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ paymentId, plan }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("✅ Subscription activated!");
+        loadSubs(page);
+        loadStats();
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Failed to confirm");
+    }
+  };
+
+  const handleRejectPayment = async (paymentId: string) => {
+    if (!window.confirm("Reject this payment? The provider will be notified to resubmit.")) return;
+    try {
+      const res = await fetch(`${API}/api/admin/subscriptions/payments/${paymentId}/reject`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Payment rejected");
+        loadSubs(page);
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Failed to reject");
+    }
+  };
+
   const handleAction = async () => {
     if (!actionModal) return;
     setActionLoading(true);
@@ -456,18 +496,42 @@ export default function AdminSubscriptionsPage() {
                         ) : (
                           <div className="space-y-2">
                             {sub.payments.map((p) => (
-                              <div key={p.id} className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className={`w-2 h-2 rounded-full ${p.status === "PAID" ? "bg-green-400" : "bg-gray-300"}`} />
-                                  <span className="font-semibold text-gray-700">KSh {p.amount?.toLocaleString()}</span>
-                                  {p.mpesaRef && <span className="text-gray-400 font-mono">{p.mpesaRef.slice(0, 10)}…</span>}
+                              <div key={p.id}>
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${p.status === "PAID" ? "bg-green-400" : p.status === "PENDING_VERIFICATION" ? "bg-amber-400" : "bg-gray-300"}`} />
+                                    <span className="font-semibold text-gray-700">KSh {p.amount?.toLocaleString()}</span>
+                                    {p.mpesaRef && <span className="text-gray-400 font-mono">{p.mpesaRef.slice(0, 10)}</span>}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-gray-400">
+                                    <span className={`px-2 py-0.5 rounded-full font-bold ${p.status === "PAID" ? "bg-green-100 text-green-700" : p.status === "PENDING_VERIFICATION" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
+                                      {p.status === "PENDING_VERIFICATION" ? "⏳ Pending" : p.status}
+                                    </span>
+                                    <span>{p.paidAt ? new Date(p.paidAt).toLocaleDateString("en-KE") : new Date(p.createdAt).toLocaleDateString("en-KE")}</span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-gray-400">
-                                  <span className={`px-2 py-0.5 rounded-full font-bold ${p.status === "PAID" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                                    {p.status}
-                                  </span>
-                                  <span>{p.paidAt ? new Date(p.paidAt).toLocaleDateString("en-KE") : new Date(p.createdAt).toLocaleDateString("en-KE")}</span>
-                                </div>
+                                {p.status === "PENDING_VERIFICATION" && (
+                                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-2">
+                                    <p className="text-amber-700 font-bold text-xs">⏳ Payment Pending Verification</p>
+                                    <p className="text-amber-600 text-xs mt-1">M-Pesa Code: <strong>{p.mpesaRef}</strong></p>
+                                    <p className="text-amber-600 text-xs">Amount: KSh {p.amount?.toLocaleString()}</p>
+                                    <p className="text-amber-500 text-xs mt-1">Check Equity Bank account for M-Pesa code: {p.mpesaRef}</p>
+                                    <div className="flex gap-2 mt-2">
+                                      <button
+                                        onClick={() => handleConfirmPayment(sub.id, p.id, sub.plan)}
+                                        className="flex-1 py-2 bg-green-500 text-white font-bold rounded-xl text-xs"
+                                      >
+                                        ✅ Confirm Payment
+                                      </button>
+                                      <button
+                                        onClick={() => handleRejectPayment(p.id)}
+                                        className="flex-1 py-2 bg-red-100 text-red-600 font-bold rounded-xl text-xs"
+                                      >
+                                        ❌ Reject
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>

@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Phone, ArrowLeft, CreditCard } from "lucide-react";
-import toast from "react-hot-toast";
+import { Check, ArrowLeft, CreditCard, Copy } from "lucide-react";
+import toast, { Toaster } from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const PAYBILL = "247247";
 
 const PLANS = [
   {
@@ -63,13 +64,14 @@ const PLANS = [
   },
 ];
 
-type Step = "plans" | "pay" | "waiting" | "success";
+type Step = "plans" | "pay" | "waiting";
 
 export default function SubscriptionPage() {
   const router = useRouter();
   const [subscription, setSubscription] = useState<any>(null);
+  const [provider, setProvider] = useState<any>(null);
   const [selectedPlan, setSelectedPlan] = useState("GROWTH");
-  const [phone, setPhone] = useState("");
+  const [mpesaCode, setMpesaCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [step, setStep] = useState<Step>("plans");
@@ -79,7 +81,6 @@ export default function SubscriptionPage() {
     if (!userRaw) { router.push("/auth/login"); return; }
     const user = JSON.parse(userRaw);
     if (user.role !== "PROVIDER") { router.push("/"); return; }
-    setPhone(user.phone || "");
     fetchSubscription();
   }, []);
 
@@ -90,45 +91,43 @@ export default function SubscriptionPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) setSubscription(data.data);
+      if (data.success) {
+        setSubscription(data.data);
+        setProvider(data.data?.provider);
+      }
     } catch {}
     finally { setLoading(false); }
   };
 
-  const handleSubscribe = async () => {
-    if (!phone.trim()) { toast.error("Enter your M-Pesa phone number"); return; }
+  const handleSubmitPayment = async () => {
+    if (!mpesaCode.trim() || mpesaCode.trim().length < 8) {
+      toast.error("Please enter a valid M-Pesa confirmation code");
+      return;
+    }
     setPaying(true);
     try {
       const token = localStorage.getItem("kazishow_token");
-      const res = await fetch(`${API_URL}/api/subscriptions/subscribe`, {
+      const res = await fetch(`${API_URL}/api/subscriptions/submit-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan: selectedPlan, phone }),
+        body: JSON.stringify({ plan: selectedPlan, mpesaCode: mpesaCode.trim().toUpperCase() }),
       });
       const data = await res.json();
       if (data.success) {
         setStep("waiting");
-        // Poll for activation (up to 2 minutes)
-        const interval = setInterval(async () => {
-          const res2 = await fetch(`${API_URL}/api/subscriptions/my`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data2 = await res2.json();
-          if (data2.data?.subscription?.status === "ACTIVE") {
-            clearInterval(interval);
-            setSubscription(data2.data);
-            setStep("success");
-          }
-        }, 3000);
-        setTimeout(() => clearInterval(interval), 120000);
       } else {
-        toast.error(data.message || "Payment failed. Try again.");
+        toast.error(data.message || "Submission failed. Try again.");
       }
     } catch {
-      toast.error("Payment failed. Check your connection and try again.");
+      toast.error("Failed to submit. Check your connection.");
     } finally {
       setPaying(false);
     }
+  };
+
+  const copyText = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied!`);
   };
 
   const getStatusInfo = () => {
@@ -151,7 +150,7 @@ export default function SubscriptionPage() {
         wrapClass: "bg-blue-50 border-blue-200",
         textClass: "text-blue-700",
         badgeClass: "bg-blue-100 text-blue-700",
-        message: `${days} day${days !== 1 ? "s" : ""} remaining • Renews automatically`,
+        message: `${days} day${days !== 1 ? "s" : ""} remaining`,
         emoji: "✅",
       };
     }
@@ -167,6 +166,7 @@ export default function SubscriptionPage() {
 
   const plan = PLANS.find(p => p.key === selectedPlan)!;
   const statusInfo = getStatusInfo();
+  const providerAccountRef = `SUB-${(provider?.id ?? subscription?.subscription?.providerId ?? "").slice(0, 8).toUpperCase()}`;
 
   if (loading) {
     return (
@@ -178,6 +178,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="min-h-screen bg-kazi-cream">
+      <Toaster position="top-right" />
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
 
@@ -215,7 +216,6 @@ export default function SubscriptionPage() {
               </div>
             </div>
 
-            {/* Trial countdown bar */}
             {subscription?.subscription?.status === "TRIAL" && (
               <div className="mt-3">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
@@ -302,9 +302,11 @@ export default function SubscriptionPage() {
                       </p>
                     </div>
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      payment.status === "PAID" ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"
+                      payment.status === "PAID" ? "bg-green-100 text-green-600" :
+                      payment.status === "PENDING_VERIFICATION" ? "bg-amber-100 text-amber-600" :
+                      "bg-gray-100 text-gray-500"
                     }`}>
-                      {payment.status}
+                      {payment.status === "PENDING_VERIFICATION" ? "⏳ Verifying" : payment.status}
                     </span>
                   </div>
                 ))}
@@ -313,42 +315,91 @@ export default function SubscriptionPage() {
           </>
         )}
 
-        {/* Pay step */}
+        {/* Pay step — manual Paybill */}
         {step === "pay" && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-            <div>
-              <h2 className="font-black text-kazi-dark text-lg">Pay via M-Pesa 💚</h2>
-              <p className="text-gray-400 text-sm">{plan.name} Plan — KSh {plan.price.toLocaleString()}/month</p>
+          <div className="space-y-5">
+            <div className="text-center">
+              <h3 className="font-black text-kazi-dark text-xl">Pay via M-Pesa 💚</h3>
+              <p className="text-gray-400 text-sm mt-1">{plan.name} Plan — KSh {plan.price.toLocaleString()}/month</p>
             </div>
 
-            <div className={`rounded-xl p-3 ${plan.bgColor}`}>
-              <div className="flex items-center justify-between">
-                <p className={`font-bold text-sm ${plan.textColor}`}>{plan.emoji} {plan.name} Plan</p>
-                <p className={`font-black text-lg ${plan.textColor}`}>KSh {plan.price.toLocaleString()}</p>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Active for 30 days from payment</p>
+            {/* Amount */}
+            <div className={`rounded-2xl p-4 text-center ${plan.bgColor}`}>
+              <p className={`font-black text-4xl ${plan.textColor}`}>KSh {plan.price.toLocaleString()}</p>
+              <p className="text-gray-500 text-sm mt-1">Active for 30 days from confirmation</p>
             </div>
 
+            {/* Step by step */}
+            <div className="bg-white rounded-2xl p-5 space-y-4">
+              <h4 className="font-black text-kazi-dark">📱 How to Pay</h4>
+
+              {[
+                { step: 1, title: "Open M-Pesa", desc: "Go to M-Pesa → Lipa Na M-Pesa → Pay Bill" },
+                { step: 2, title: "Business Number (Paybill)", value: PAYBILL, copyKey: "paybill" },
+                { step: 3, title: "Account Number", value: providerAccountRef, copyKey: "account" },
+                { step: 4, title: "Amount", value: `KSh ${plan.price.toLocaleString()}`, copyKey: "amount" },
+                { step: 5, title: "Enter PIN and confirm", desc: "You will receive an M-Pesa SMS" },
+              ].map((item) => (
+                <div key={item.step} className="flex items-start gap-3">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0 ${plan.buttonColor.split(" ")[0]}`}>
+                    {item.step}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-kazi-dark text-sm">{item.title}</p>
+                    {item.desc && <p className="text-gray-400 text-xs mt-0.5">{item.desc}</p>}
+                    {item.value && (
+                      <button
+                        onClick={() => copyText(item.copyKey === "amount" ? String(plan.price) : item.value!, item.title)}
+                        className="mt-1.5 w-full flex items-center justify-between bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-2.5 hover:border-kazi-orange"
+                      >
+                        <p className="font-black text-kazi-dark text-lg tracking-wider">{item.value}</p>
+                        <span className="text-xs text-kazi-orange font-bold flex items-center gap-1">
+                          <Copy className="w-3 h-3" /> Copy
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* M-Pesa code input */}
             <div>
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-                M-Pesa Phone Number
+                Enter M-Pesa Confirmation Code
               </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="07XX XXX XXX"
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange"
-                />
-              </div>
+              <input
+                type="text"
+                value={mpesaCode}
+                onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
+                placeholder="e.g. QGH7YU89K"
+                maxLength={12}
+                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl font-black tracking-widest uppercase text-sm focus:outline-none focus:border-kazi-orange"
+              />
+              <p className="text-xs text-gray-400 mt-1">Copy this from the M-Pesa SMS you receive after payment</p>
             </div>
 
-            <div className="bg-amber-50 rounded-xl p-3">
-              <p className="text-xs text-amber-700">
-                ⏰ An M-Pesa prompt will be sent to your phone. Enter your PIN to complete payment.
-              </p>
+            {/* Summary */}
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+              <p className="font-black text-green-700 text-sm mb-2">📋 Payment Summary</p>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Paybill</span>
+                  <span className="font-black">{PAYBILL}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Account</span>
+                  <span className="font-black">{providerAccountRef}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Amount</span>
+                  <span className="font-black text-kazi-orange">KSh {plan.price.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Plan</span>
+                  <span className="font-black">{plan.name} — 30 days</span>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -359,52 +410,35 @@ export default function SubscriptionPage() {
                 Back
               </button>
               <button
-                onClick={handleSubscribe}
-                disabled={paying}
+                onClick={handleSubmitPayment}
+                disabled={paying || !mpesaCode}
                 className={`flex-1 py-3 text-white font-black rounded-2xl disabled:opacity-60 ${plan.buttonColor}`}
               >
-                {paying ? "Sending..." : `Pay KSh ${plan.price.toLocaleString()} 💚`}
+                {paying ? "Submitting..." : "✅ Submit Code"}
               </button>
             </div>
+
+            <p className="text-center text-xs text-gray-400">Admin confirms within 1 hour and activates your subscription</p>
           </div>
         )}
 
-        {/* Waiting for payment */}
+        {/* Waiting for admin */}
         {step === "waiting" && (
           <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
-            <div className="text-5xl mb-4 animate-bounce">📱</div>
-            <h3 className="font-black text-kazi-dark text-xl mb-2">Check Your Phone!</h3>
-            <p className="text-gray-500 text-sm mb-1">M-Pesa prompt sent to</p>
-            <p className="font-bold text-kazi-orange text-lg mb-4">{phone}</p>
-            <div className={`rounded-2xl p-4 mb-4 ${plan.bgColor}`}>
-              <p className={`text-sm font-semibold ${plan.textColor}`}>
-                💚 Enter your M-Pesa PIN to activate {plan.name} plan
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-2 text-gray-400">
-              <div className="w-4 h-4 border-2 border-kazi-orange border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm">Waiting for payment confirmation...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Success */}
-        {step === "success" && (
-          <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
-            <div className="text-5xl mb-4">🎉</div>
-            <h3 className="font-black text-kazi-dark text-2xl mb-2">Subscription Active!</h3>
+            <div className="text-5xl mb-4">⏳</div>
+            <h3 className="font-black text-kazi-dark text-xl mb-2">Payment Submitted!</h3>
             <p className="text-gray-500 text-sm mb-4">
-              Your {plan.name} plan is now active for 30 days. You can start receiving bookings!
+              Admin will verify your M-Pesa payment and activate your {plan.name} plan within 1 hour.
             </p>
             <div className={`rounded-2xl p-4 mb-6 ${plan.bgColor}`}>
-              <p className={`font-black text-lg ${plan.textColor}`}>{plan.emoji} {plan.name} Plan Active</p>
-              <p className="text-gray-500 text-sm mt-1">Active for 30 days • KSh {plan.price.toLocaleString()}/month</p>
+              <p className={`font-black text-lg ${plan.textColor}`}>{plan.emoji} {plan.name} — KSh {plan.price.toLocaleString()}/month</p>
+              <p className="text-gray-500 text-sm mt-1">You will receive an SMS when activated</p>
             </div>
             <button
               onClick={() => router.push("/provider/notifications")}
               className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl"
             >
-              Start Receiving Bookings 🚀
+              Back to My Jobs
             </button>
           </div>
         )}
