@@ -31,7 +31,9 @@ export default function CommissionGuard() {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { return; }
       if (data.success) {
         setCommissions(data.data.commissions);
         setTotal(data.data.total);
