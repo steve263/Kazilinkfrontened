@@ -169,6 +169,9 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
   const [notifPayment, setNotifPayment] = useState(true);
   const [notifReview, setNotifReview] = useState(true);
 
+  // Commission
+  const [pendingCommissionTotal, setPendingCommissionTotal] = useState(0);
+
   // Ringtone
   const [ringtoneUrl, setRingtoneUrl] = useState("");
   const [savedRingtone, setSavedRingtone] = useState("");
@@ -230,6 +233,21 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     if (prefs.payment !== undefined) setNotifPayment(prefs.payment);
     if (prefs.review !== undefined) setNotifReview(prefs.review);
   }, [providerId, authFetch]);
+
+  useEffect(() => {
+    if (!isFundi || !token) return;
+    fetch(`${API}/api/bookings/commission/outstanding`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data)) {
+          const total = data.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || 0), 0);
+          setPendingCommissionTotal(total);
+        }
+      })
+      .catch(() => {});
+  }, [isFundi, token]);
 
   const loadTab = useCallback(
     async (tab: Tab) => {
@@ -1031,6 +1049,20 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
               [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16" />)
             ) : (
               <>
+                {isFundi && pendingCommissionTotal > 0 && (
+                  <Link
+                    href="/provider/commission"
+                    className="flex items-center justify-between bg-red-50 border-2 border-red-300 rounded-2xl px-4 py-3 active:scale-[0.98] transition-all"
+                  >
+                    <div>
+                      <p className="font-black text-red-700 text-sm">💰 Commission Due</p>
+                      <p className="text-red-500 text-xs mt-0.5">
+                        KSh {pendingCommissionTotal.toLocaleString()} · Pay via Paybill 247247
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-red-400" />
+                  </Link>
+                )}
                 <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
                   <p className="text-xs text-gray-500 mb-1">This Month</p>
                   <p className="text-4xl font-black text-kazi-orange">{formatCurrency(earnings?.month?.amount || 0)}</p>
