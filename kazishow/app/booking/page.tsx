@@ -144,12 +144,11 @@ interface BookingCardProps {
   onCancel: (id: string) => void;
   confirmingId: string | null;
   setConfirmingId: (id: string | null) => void;
-  onPayNow: (booking: Booking) => void;
   onReview: (booking: Booking) => void;
   onRefund: (booking: Booking) => void;
 }
 
-function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNow, onReview, onRefund }: BookingCardProps) {
+function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onReview, onRefund }: BookingCardProps) {
   const statusColor = STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-600 border-gray-200";
   const statusLabel = STATUS_LABELS[booking.status] ?? booking.status;
   const emoji = getCategoryEmoji(booking.provider?.category);
@@ -157,7 +156,6 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
   const isConfirming = confirmingId === booking.id;
   const isFundi = booking.provider?.category === "FUNDI";
   const canCancel = booking.status === "PENDING";
-  const canPay = isFundi && ["ACCEPTED", "IN_PROGRESS", "COMPLETED"].includes(booking.status) && booking.paymentStatus !== "PAID";
   const canReview = booking.status === "COMPLETED" && !booking.review;
   const canRefund = ["DECLINED", "CANCELLED"].includes(booking.status) && booking.paymentStatus === "PAID";
 
@@ -253,15 +251,6 @@ function BookingCard({ booking, onCancel, confirmingId, setConfirmingId, onPayNo
           </>
         )}
 
-        {canPay && (
-          <button
-            onClick={() => onPayNow(booking)}
-            className="flex items-center gap-1.5 text-sm text-white bg-kazi-orange hover:bg-orange-600 transition-colors px-3 py-1.5 rounded-lg font-semibold"
-          >
-            <CreditCard className="w-3.5 h-3.5" />
-            Pay KSh {booking.totalAmount?.toLocaleString()}
-          </button>
-        )}
 
         {canRefund && (
           <button
@@ -397,12 +386,6 @@ export default function BookingsPage() {
   // Review modal state
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
 
-  // Payment modal state
-  const [payBooking, setPayBooking] = useState<Booking | null>(null);
-  const [payPhone, setPayPhone] = useState("");
-  const [paying, setPaying] = useState(false);
-  const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
-
   // Refund modal state
   const [refundBooking, setRefundBooking] = useState<Booking | null>(null);
   const [refundPhone, setRefundPhone] = useState("");
@@ -476,66 +459,6 @@ export default function BookingsPage() {
       }
     } catch {
       toast.error("Failed to cancel");
-    }
-  };
-
-  // ── Payment ─────────────────────────────────────────────────────────────────
-  const openPayModal = (booking: Booking) => {
-    setPayBooking(booking);
-    setPayPhone(user?.phone || "");
-  };
-
-  const closePayModal = () => {
-    setPayBooking(null);
-    setPayPhone("");
-    if (pollInterval) { clearInterval(pollInterval); setPollInterval(null); }
-  };
-
-  const submitPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payBooking) return;
-    const token = localStorage.getItem("kazishow_token");
-    setPaying(true);
-    try {
-      const res = await fetch(`${API}/api/payments/stk-push`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ bookingId: payBooking.id, phone: payPhone.trim() }),
-      });
-      const data = await res.json();
-      if (!data.success) { toast.error(data.message); return; }
-
-      toast.success("M-Pesa prompt sent! Enter your PIN on your phone.");
-
-      // Poll payment status every 5 s for up to 90 s
-      let attempts = 0;
-      const interval = setInterval(async () => {
-        attempts++;
-        try {
-          const sRes = await fetch(`${API}/api/payments/${payBooking.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const sData = await sRes.json();
-          if (sData.data?.paymentStatus === "PAID") {
-            clearInterval(interval);
-            setPollInterval(null);
-            setBookings((prev) =>
-              prev.map((b) => b.id === payBooking.id ? { ...b, paymentStatus: "PAID" } : b)
-            );
-            toast.success("Payment confirmed! Thank you.");
-            closePayModal();
-          } else if (sData.data?.payment?.status === "FAILED" || attempts >= 18) {
-            clearInterval(interval);
-            setPollInterval(null);
-            if (attempts >= 18) toast.error("Payment timed out. Try again.");
-          }
-        } catch { /* ignore poll errors */ }
-      }, 5000);
-      setPollInterval(interval);
-    } catch {
-      toast.error("Failed to initiate payment");
-    } finally {
-      setPaying(false);
     }
   };
 
@@ -728,7 +651,6 @@ export default function BookingsPage() {
                 onCancel={cancelBooking}
                 confirmingId={confirmingId}
                 setConfirmingId={setConfirmingId}
-                onPayNow={openPayModal}
                 onReview={setReviewBooking}
                 onRefund={openRefundModal}
               />
@@ -798,46 +720,6 @@ export default function BookingsPage() {
         </div>
       )}
 
-      {/* ── Payment modal ── */}
-      {payBooking && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-black text-kazi-dark text-lg">Pay via M-Pesa</h2>
-              <button onClick={closePayModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-            </div>
-            <div className="bg-orange-50 rounded-2xl p-4 text-center">
-              <p className="text-xs text-gray-500 mb-1">{payBooking.service?.name || "Service"}</p>
-              <p className="text-3xl font-black text-kazi-orange">KSh {payBooking.totalAmount?.toLocaleString()}</p>
-              <p className="text-xs text-gray-500 mt-1">{payBooking.provider?.businessName}</p>
-            </div>
-            <form onSubmit={submitPayment} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">M-Pesa Phone Number</label>
-                <input
-                  type="tel"
-                  value={payPhone}
-                  onChange={(e) => setPayPhone(e.target.value)}
-                  placeholder="e.g. 0712345678"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-kazi-orange"
-                  required
-                />
-              </div>
-              <p className="text-xs text-gray-400 text-center">
-                You will receive an M-Pesa prompt on this number. Enter your PIN to complete payment.
-              </p>
-              <button
-                type="submit"
-                disabled={paying}
-                className="w-full py-3 bg-kazi-orange text-white font-bold text-sm rounded-2xl hover:bg-orange-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-              >
-                {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {paying ? "Sending prompt…" : "Send M-Pesa Prompt"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
