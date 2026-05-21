@@ -239,12 +239,15 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
     fetch(`${API}/api/bookings/commission/outstanding`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.data)) {
-          const total = data.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || 0), 0);
-          setPendingCommissionTotal(total);
-        }
+      .then((r) => r.text())
+      .then((text) => {
+        try {
+          const data = JSON.parse(text);
+          if (data.success && Array.isArray(data.data)) {
+            const total = data.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || c.amount || 0), 0);
+            setPendingCommissionTotal(total);
+          }
+        } catch {}
       })
       .catch(() => {});
   }, [isFundi, token]);
