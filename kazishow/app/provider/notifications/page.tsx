@@ -200,7 +200,9 @@ function PendingCard({
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { toast.error("Server error"); return; }
       if (data.success) {
         const result = action === "accept" ? "accepted" : "declined";
         doneRef.current = result;
@@ -378,7 +380,9 @@ function ActiveCard({
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { toast.error("Server error"); return; }
       if (data.success) {
         onUpdated(booking.id, status);
         toast.success(status === "COMPLETED" ? `${bookingLabel} completed!` : "Status updated");
@@ -688,7 +692,9 @@ export default function ProviderNotificationsPage() {
       const res = await fetch(`${API}/api/bookings`, {
         headers: { Authorization: `Bearer ${jwt}` },
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { return; }
       if (data.success) {
         setBookings(Array.isArray(data.data?.bookings) ? data.data.bookings : []);
       }
@@ -706,8 +712,8 @@ export default function ProviderNotificationsPage() {
         const parsed = JSON.parse(u);
         if (parsed.provider?.category && parsed.provider.category !== "FUNDI") {
           fetch(`${API}/api/subscriptions/my`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => r.json())
-            .then(d => { if (d.success) setSubscription(d.data); })
+            .then(r => r.text())
+            .then(text => { try { const d = JSON.parse(text); if (d.success) setSubscription(d.data); } catch {} })
             .catch(() => {});
         }
         if (parsed.provider?.category === "FUNDI") {

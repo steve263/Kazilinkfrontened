@@ -90,7 +90,9 @@ export default function SubscriptionPage() {
       const res = await fetch(`${API_URL}/api/subscriptions/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { return; }
       if (data.success) {
         setSubscription(data.data);
         setProvider(data.data?.provider);
@@ -112,7 +114,9 @@ export default function SubscriptionPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ plan: selectedPlan, mpesaCode: mpesaCode.trim() }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { toast.error("Server error. Try again."); return; }
       if (data.success) {
         setStep("waiting");
       } else {

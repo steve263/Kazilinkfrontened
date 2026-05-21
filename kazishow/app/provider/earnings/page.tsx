@@ -64,20 +64,23 @@ export default function EarningsPage() {
     if (category && category !== "FUNDI") {
       const token = localStorage.getItem("kazishow_token") || "";
       fetch(`${API}/api/subscriptions/my`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(d => { if (d.success) setSubscription(d.data); })
+        .then(r => r.text())
+        .then(text => { try { const d = JSON.parse(text); if (d.success) setSubscription(d.data); } catch {} })
         .catch(() => {});
     }
     // Fetch pending commission for Fundi providers
     if (category === "FUNDI") {
       const token = localStorage.getItem("kazishow_token") || "";
       fetch(`${API}/api/bookings/commission/outstanding`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(d => {
-          if (d.success && Array.isArray(d.data)) {
-            const total = d.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || 0), 0);
-            setPendingCommissionTotal(total);
-          }
+        .then(r => r.text())
+        .then(text => {
+          try {
+            const d = JSON.parse(text);
+            if (d.success && Array.isArray(d.data)) {
+              const total = d.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || 0), 0);
+              setPendingCommissionTotal(total);
+            }
+          } catch {}
         })
         .catch(() => {});
     }
@@ -92,7 +95,8 @@ export default function EarningsPage() {
         fetch(`${API}/api/earnings/history?days=${days}`, { headers: h }),
         fetch(`${API}/api/earnings/payouts`, { headers: h }),
       ]);
-      const [s, hi, p] = await Promise.all([sumRes.json(), histRes.json(), payRes.json()]);
+      const [st, ht, pt] = await Promise.all([sumRes.text(), histRes.text(), payRes.text()]);
+      const [s, hi, p] = [st, ht, pt].map(t => { try { return JSON.parse(t); } catch { return {}; } });
       if (s.success)  setSummary(s.data);
       if (hi.success) { setHistory(hi.data.history); setTransactions(hi.data.transactions); }
       if (p.success)  setPayouts(p.data);
@@ -106,7 +110,9 @@ export default function EarningsPage() {
       const r = await fetch(`${API}/api/earnings/history?days=${d}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-      const data = await r.json();
+      const text = await r.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { return; }
       if (data.success) { setHistory(data.data.history); setTransactions(data.data.transactions); }
     } catch { /* silent */ }
   }
@@ -123,7 +129,9 @@ export default function EarningsPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ amount: amt, phone: payoutPhone.trim() }),
       });
-      const d = await res.json();
+      const text = await res.text();
+      let d: any;
+      try { d = JSON.parse(text); } catch { toast.error("Server error"); return; }
       if (d.success) {
         toast.success("Payout requested! We'll send it within 24hrs 💰");
         setShowPayout(false);
