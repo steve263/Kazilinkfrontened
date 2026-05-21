@@ -39,8 +39,6 @@ type Step =
   | "service"
   | "datetime"
   | "payment"
-  | "mpesa_entry"
-  | "mpesa_waiting"
   | "confirm"
   | "searching"
   | "success"
@@ -57,9 +55,8 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
   const [selectedService, setSelectedService] = useState<any>(service || null);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [selectedPayment, setSelectedPayment] = useState("mpesa_before");
+  const [selectedPayment, setSelectedPayment] = useState("mpesa_after");
   const [notes, setNotes] = useState("");
-  const [mpesaPhone, setMpesaPhone] = useState("+254 7");
   const [locationAddress, setLocationAddress] = useState(
     business.user?.location || "Nairobi"
   );
@@ -256,8 +253,8 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
     const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
     const paymentMethodValue = isFundi
-      ? (selectedPayment === "mpesa_before" ? "MPESA" : selectedPayment === "cash" ? "CASH" : "PAY_AFTER")
-      : "BUSINESS_DIRECT";
+      ? (selectedPayment === "cash" ? "CASH" : "CASH_OR_MPESA")
+      : "PAY_AT_VENUE";
 
     try {
       const res = await fetch(`${API}/api/bookings`, {
@@ -308,15 +305,9 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
         return;
       }
 
-      // FUNDI: handle M-Pesa or wait for provider acceptance
+      // FUNDI: wait for provider acceptance
       if (booking.status !== "PENDING") {
-        if (selectedPayment === "mpesa_before") {
-          setWaitingForPayment(true);
-          await triggerMpesaPayment(booking.id, mpesaPhone);
-          pollPaymentStatus(booking.id);
-        } else {
-          setTimeout(() => setStep("success"), 1500);
-        }
+        setTimeout(() => setStep("success"), 1500);
         return;
       }
 
@@ -346,18 +337,11 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
         console.log("[BookingModal] Socket joined room:", user.id);
       });
 
-      const acceptedBookingId = booking.id;
-      socket.on("booking_accepted", async () => {
+      socket.on("booking_accepted", () => {
         clearInterval(timerRef.current);
         socket.disconnect();
         socketRef.current = null;
-        if (selectedPayment === "mpesa_before") {
-          setWaitingForPayment(true);
-          await triggerMpesaPayment(acceptedBookingId, mpesaPhone);
-          pollPaymentStatus(acceptedBookingId);
-        } else {
-          setStep("success");
-        }
+        setStep("success");
       });
 
       socket.on("booking_declined", () => {
@@ -375,119 +359,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
         socketRef.current.disconnect();
         socketRef.current = null;
       }
-    }
-  };
-
-  // M-Pesa payment before booking review
-  const handleSendMpesa = async () => {
-    const cleanPhone = mpesaPhone.replace(/\s/g, "");
-    const phoneRegex = /^(07|01|2547|2541|\+2547|\+2541)\d{8}$/;
-    if (!cleanPhone) {
-      setPaymentError("Please enter your M-Pesa phone number");
-      return;
-    }
-    if (!phoneRegex.test(cleanPhone)) {
-      setPaymentError("Please enter a valid Kenyan phone number (07XX XXX XXX)");
-      return;
-    }
-
-    setPaymentLoading(true);
-    setPaymentError("");
-
-    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    const token = localStorage.getItem("kazishow_token");
-
-    try {
-      let currentBookingId = bookingId;
-
-      // Create booking only once — skip on resend
-      if (!currentBookingId) {
-        const bookingRes = await fetch(`${API}/api/bookings`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            providerId: business.id,
-            serviceId: selectedService?.id,
-            scheduledDate: selectedDate,
-            scheduledTime: selectedTime,
-            address: locationAddress,
-            lat: locationLat || undefined,
-            lng: locationLng || undefined,
-            totalAmount: hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0),
-            notes,
-            dealId: dealId || null,
-            paymentMethod: "MPESA",
-          }),
-        });
-        const bookingData = await bookingRes.json();
-
-        if (!bookingData.success) {
-          if (bookingData.message === "PROVIDER_BUSY") {
-            setBusyProviderData(bookingData.data);
-            setProviderBusy(true);
-            setStep("payment");
-            return;
-          }
-          if (bookingData.code === "SUBSCRIPTION_EXPIRED") {
-            setPaymentError("This provider is not currently accepting bookings. Please try another.");
-            return;
-          }
-          setPaymentError(bookingData.message || "Failed to create booking");
-          return;
-        }
-
-        currentBookingId = bookingData.data.id;
-        setBookingId(currentBookingId);
-      }
-
-      // Send (or resend) M-Pesa STK Push
-      const payRes = await fetch(`${API}/api/payments/stk-push`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ phone: cleanPhone, bookingId: currentBookingId }),
-      });
-      const payData = await payRes.json();
-
-      if (!payData.success) {
-        setPaymentError(payData.message || "Failed to send M-Pesa prompt. Try again.");
-        return;
-      }
-
-      setCheckoutRequestId(payData.data.checkoutRequestId);
-      setStep("mpesa_waiting");
-
-      // Clear any existing polls before starting fresh
-      if (pollRef.current) clearInterval(pollRef.current);
-      if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
-
-      // Poll for payment confirmation every 3 seconds
-      const bkgId = currentBookingId;
-      pollRef.current = setInterval(async () => {
-        try {
-          const checkRes = await fetch(`${API}/api/payments/check/${bkgId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const checkData = await checkRes.json();
-          if (checkData.data?.paymentStatus === "PAID") {
-            clearInterval(pollRef.current);
-            if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
-            setStep("success");
-            onBookingSuccess?.(bkgId);
-          }
-        } catch {}
-      }, 3000);
-
-      // Stop polling after 3 minutes
-      pollTimeoutRef.current = setTimeout(() => {
-        clearInterval(pollRef.current);
-        setPaymentError("Payment timed out. Please try again.");
-        setStep("mpesa_entry");
-      }, 180000);
-
-    } catch {
-      setPaymentError("Network error. Please check your connection and try again.");
-    } finally {
-      setPaymentLoading(false);
     }
   };
 
@@ -787,9 +658,9 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
           )}
 
           {/* ─────────────────────────────────────────
-              STEP 3b: Enter M-Pesa Number
+              STEP 3b: (removed — no M-Pesa entry)
           ───────────────────────────────────────── */}
-          {step === "mpesa_entry" && (
+          {false && (
             <div className="space-y-5">
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -876,9 +747,9 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
           )}
 
           {/* ─────────────────────────────────────────
-              STEP 3c: Waiting for M-Pesa PIN
+              STEP 3c: (removed — no M-Pesa waiting)
           ───────────────────────────────────────── */}
-          {step === "mpesa_waiting" && (
+          {false && (
             <div className="text-center py-6 space-y-5">
               <div className="text-6xl animate-bounce">📱</div>
               <div>
