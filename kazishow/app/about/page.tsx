@@ -36,7 +36,7 @@ export default function AboutPage() {
   ];
 
   const partners = [
-    { name: "Safaricom M-Pesa", role: "Payment Partner", icon: "💳", color: "#00C896", desc: "Every payment is processed through M-Pesa's secure escrow — your money only moves when the job is done." },
+    { name: "Safaricom M-Pesa", role: "Payment Partner", icon: "💳", color: "#00C896", desc: "Every payment is processed through M-Pesa — fast, secure, and directly to the provider via Paybill 247247." },
     { name: "Africa's Talking", role: "SMS & OTP Partner", icon: "📱", color: "#0EA5E9", desc: "Instant OTP delivery and booking confirmations to every Kenyan network, 24/7." },
     { name: "Cloudinary", role: "Media Infrastructure", icon: "☁️", color: "#F59E0B", desc: "Enterprise-grade media hosting for provider portfolios and ShowReel videos — fast everywhere in Africa." },
   ];
@@ -92,8 +92,8 @@ export default function AboutPage() {
     },
     {
       icon: Lock,
-      title: "M-Pesa Escrow",
-      desc: "Your payment is held securely and only released to the provider after you confirm the work is done.",
+      title: "Secure M-Pesa Payments",
+      desc: "Pay providers directly via M-Pesa. Confirm the job is done to your satisfaction before it's marked complete.",
       color: "text-kazi-green",
       bg: "bg-green-50",
       border: "border-green-100",
@@ -119,7 +119,7 @@ export default function AboutPage() {
   const howItWorks = [
     { step: "01", icon: Search, title: "Search & Discover", desc: "Browse verified providers by category, location, or rating. Read real reviews from real customers.", color: "bg-kazi-orange" },
     { step: "02", icon: CalendarCheck, title: "Book Instantly", desc: "Select your date, time and address. Your booking is confirmed instantly — no back-and-forth calls.", color: "bg-kazi-blue" },
-    { step: "03", icon: CreditCard, title: "Pay Safely", desc: "Pay via M-Pesa. Funds are held in escrow until you confirm the job is done to your satisfaction.", color: "bg-kazi-green" },
+    { step: "03", icon: CreditCard, title: "Pay Safely", desc: "Pay via M-Pesa directly to your provider. Confirm the job is done to your satisfaction and leave a review.", color: "bg-kazi-green" },
     { step: "04", icon: Star, title: "Rate & Review", desc: "Leave a verified review. Your honest feedback helps the whole community make better choices.", color: "bg-kazi-amber" },
   ];
 
@@ -316,7 +316,7 @@ export default function AboutPage() {
             <div className="p-5 bg-blue-50 rounded-2xl border border-blue-100">
               <p className="text-sm font-black text-kazi-blue mb-2">Our Solution</p>
               <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                One platform with ID-verified providers, secure M-Pesa escrow payments, and genuine customer reviews — all in one place.
+                One platform with ID-verified providers, secure M-Pesa payments, and genuine customer reviews — all in one place.
               </p>
             </div>
             <div className="p-5 bg-green-50 rounded-2xl border border-green-100">

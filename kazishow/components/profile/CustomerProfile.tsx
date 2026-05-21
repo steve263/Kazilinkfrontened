@@ -601,7 +601,7 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
 
                 {/* Completed — awaiting action */}
                 {(() => {
-                  // Escrow: M-Pesa paid, not yet confirmed by customer
+                  // M-Pesa: job completed, awaiting customer confirmation
                   const escrowPending = completedBookings.filter(
                     (b) => (b.paymentMethod === "MPESA" || !b.paymentMethod) && b.paymentStatus === "PAID" && !b.customerConfirmed
                   );
@@ -616,12 +616,12 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
 
                   return (
                     <>
-                      {/* M-Pesa escrow — confirm to release */}
+                      {/* Job completed — confirm satisfaction */}
                       {escrowPending.length > 0 && (
                         <>
                           <h3 className="font-bold text-kazi-dark text-sm pt-2 flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 text-amber-500" />
-                            Awaiting Your Confirmation ({escrowPending.length})
+                            Confirm Job Completed ({escrowPending.length})
                           </h3>
                           {escrowPending.map((b) => (
                             <div key={b.id} className="bg-white rounded-2xl shadow-sm p-4 space-y-3 border-2 border-amber-200">
@@ -637,10 +637,10 @@ export default function CustomerProfile({ user: initialUser }: { user: any }) {
                                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                                   <div>
                                     <p className="font-bold text-green-700 text-sm">
-                                      {b.provider?.businessName} says the job is done!
+                                      {b.provider?.businessName} has marked the job as done!
                                     </p>
                                     <p className="text-green-600 text-xs mt-0.5">
-                                      Confirm to release {formatCurrency(b.totalAmount)} payment. Auto-releases in 24 hours.
+                                      Did {b.provider?.businessName} complete the job to your satisfaction? Tap to confirm and leave a review.
                                     </p>
                                   </div>
                                 </div>
