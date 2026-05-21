@@ -501,7 +501,7 @@ export default function AdminSubscriptionsPage() {
                                   <div className="flex items-center gap-2">
                                     <span className={`w-2 h-2 rounded-full ${p.status === "PAID" ? "bg-green-400" : p.status === "PENDING_VERIFICATION" ? "bg-amber-400" : "bg-gray-300"}`} />
                                     <span className="font-semibold text-gray-700">KSh {p.amount?.toLocaleString()}</span>
-                                    {p.mpesaRef && <span className="text-gray-400 font-mono">{p.mpesaRef.slice(0, 10)}</span>}
+                                    {p.mpesaRef && <span className="text-amber-600 font-bold text-[10px]">⏳ Msg received</span>}
                                   </div>
                                   <div className="flex items-center gap-2 text-gray-400">
                                     <span className={`px-2 py-0.5 rounded-full font-bold ${p.status === "PAID" ? "bg-green-100 text-green-700" : p.status === "PENDING_VERIFICATION" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
@@ -513,9 +513,15 @@ export default function AdminSubscriptionsPage() {
                                 {p.status === "PENDING_VERIFICATION" && (
                                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-2">
                                     <p className="text-amber-700 font-bold text-xs">⏳ Payment Pending Verification</p>
-                                    <p className="text-amber-600 text-xs mt-1">M-Pesa Code: <strong>{p.mpesaRef}</strong></p>
-                                    <p className="text-amber-600 text-xs">Amount: KSh {p.amount?.toLocaleString()}</p>
-                                    <p className="text-amber-500 text-xs mt-1">Check Equity Bank account for M-Pesa code: {p.mpesaRef}</p>
+                                    <p className="text-amber-600 text-xs mt-1">Amount: KSh {p.amount?.toLocaleString()}</p>
+                                    {p.mpesaRef && (
+                                      <div className="mt-2">
+                                        <p className="text-amber-700 font-bold text-xs mb-1">📩 Equity Bank Message from Provider:</p>
+                                        <div className="bg-white border border-amber-300 rounded-lg p-2">
+                                          <p className="text-gray-700 text-xs leading-relaxed break-words">{p.mpesaRef}</p>
+                                        </div>
+                                      </div>
+                                    )}
                                     <div className="flex gap-2 mt-2">
                                       <button
                                         onClick={() => handleConfirmPayment(sub.id, p.id, sub.plan)}
@@ -537,7 +543,10 @@ export default function AdminSubscriptionsPage() {
                           </div>
                         )}
                         {sub.mpesaRef && (
-                          <p className="text-xs text-gray-400 mt-3">Last M-Pesa ref: <span className="font-mono">{sub.mpesaRef}</span></p>
+                          <div className="mt-3">
+                            <p className="text-xs font-bold text-gray-500 mb-1">📩 Last Equity Message:</p>
+                            <p className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2 break-words">{sub.mpesaRef}</p>
+                          </div>
                         )}
                       </div>
                     )}

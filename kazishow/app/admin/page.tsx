@@ -62,6 +62,8 @@ export default function AdminDashboard() {
   const [cancelStats, setCancelStats] = useState<any>(null);
   const [commissionStats, setCommissionStats] = useState<any>(null);
   const [disputes, setDisputes] = useState<any[]>([]);
+  const [pendingCommissions, setPendingCommissions] = useState<any[]>([]);
+  const [confirmingCommissionId, setConfirmingCommissionId] = useState<string | null>(null);
   const [waivingId, setWaivingId] = useState<string | null>(null);
   const [pending, setPending] = useState<any[]>([]);
   const [badges, setBadges] = useState<Record<string, number>>({});
@@ -87,13 +89,14 @@ export default function AdminDashboard() {
         .then((r) => (r.ok ? r.json() : { success: false }))
         .catch(() => ({ success: false }));
     try {
-      const [s, p, b, sub, cancel, comm, disp, bdg] = await Promise.all([
+      const [s, p, b, sub, cancel, comm, pendComm, disp, bdg] = await Promise.all([
         safe(`${API}/api/admin/stats`),
         safe(`${API}/api/admin/providers/pending`),
         safe(`${API}/api/admin/bookings?limit=5`),
         safe(`${API}/api/admin/subscriptions/stats`),
         safe(`${API}/api/bookings/admin/cancellations`),
         safe(`${API}/api/bookings/admin/commissions?limit=10`),
+        safe(`${API}/api/bookings/admin/commissions?status=PENDING_VERIFICATION&limit=50`),
         safe(`${API}/api/bookings?status=DISPUTED`),
         safe(`${API}/api/admin/badges`),
       ]);
@@ -103,6 +106,7 @@ export default function AdminDashboard() {
       if (sub.success) setSubStats(sub.data);
       if (cancel.success) setCancelStats(cancel.data);
       if (comm.success) setCommissionStats(comm.data);
+      if (pendComm.success) setPendingCommissions(pendComm.data?.commissions ?? []);
       if (disp.success) setDisputes(disp.data?.bookings ?? []);
       if (bdg.success) setBadges(bdg.data);
       if (!s.success) toast.error("Could not load some dashboard stats");
@@ -180,6 +184,46 @@ export default function AdminDashboard() {
       }
     } catch { toast.error("Network error"); }
     finally { setWaivingId(null); }
+  };
+
+  const handleConfirmCommission = async (commissionId: string) => {
+    if (!confirm("Confirm this commission payment? This marks it as PAID and notifies the provider.")) return;
+    setConfirmingCommissionId(commissionId);
+    try {
+      const res = await fetch(`${API}/api/bookings/commissions/${commissionId}/confirm-payment`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Commission confirmed — provider notified");
+        fetchDashboard();
+      } else {
+        toast.error(data.message || "Failed to confirm");
+      }
+    } catch { toast.error("Network error"); }
+    finally { setConfirmingCommissionId(null); }
+  };
+
+  const handleRejectCommission = async (commissionId: string) => {
+    const reason = prompt("Rejection reason (sent to provider):");
+    if (reason === null) return;
+    setConfirmingCommissionId(commissionId);
+    try {
+      const res = await fetch(`${API}/api/bookings/commissions/${commissionId}/reject-payment`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Commission rejected — provider notified to resubmit");
+        fetchDashboard();
+      } else {
+        toast.error(data.message || "Failed to reject");
+      }
+    } catch { toast.error("Network error"); }
+    finally { setConfirmingCommissionId(null); }
   };
 
   if (!ready) {
@@ -391,6 +435,61 @@ export default function AdminDashboard() {
                         className="flex-1 py-2 bg-blue-500 text-white font-bold rounded-xl text-xs"
                       >
                         💰 Refund Customer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pending Commission Verification */}
+          {pendingCommissions.length > 0 && (
+            <div>
+              <h2 className="text-sm font-black text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="text-base">💰</span> Commission Payments Awaiting Verification
+                <span className="bg-amber-500 text-white text-xs font-black px-1.5 py-0.5 rounded-full">{pendingCommissions.length}</span>
+              </h2>
+              <div className="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden">
+                <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+                  <span className="text-lg">📩</span>
+                  <div>
+                    <p className="font-black text-amber-700 text-sm">Providers submitted Equity Bank messages</p>
+                    <p className="text-amber-500 text-xs">Verify each message and confirm or reject below</p>
+                  </div>
+                </div>
+                {pendingCommissions.map((c: any) => (
+                  <div key={c.id} className="p-4 border-b border-gray-50 last:border-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-bold text-kazi-dark text-sm">{c.provider?.businessName}</p>
+                        <p className="text-xs text-gray-400">{c.provider?.user?.phone}</p>
+                        <p className="text-xs text-gray-400">{c.booking?.service?.name || "Service"} · KSh {c.amount?.toLocaleString()} commission</p>
+                      </div>
+                      <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full flex-shrink-0">PENDING VERIFICATION</span>
+                    </div>
+                    {c.mpesaRef && (
+                      <div className="mt-2 mb-3">
+                        <p className="text-amber-700 font-bold text-xs mb-1">📩 Equity Bank Message from Provider:</p>
+                        <div className="bg-gray-50 border border-amber-200 rounded-xl p-3">
+                          <p className="text-gray-700 text-xs leading-relaxed break-words">{c.mpesaRef}</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => handleConfirmCommission(c.id)}
+                        disabled={confirmingCommissionId === c.id}
+                        className="flex-1 py-2 bg-green-500 text-white font-bold rounded-xl text-xs disabled:opacity-50"
+                      >
+                        {confirmingCommissionId === c.id ? "..." : "✅ Confirm Payment"}
+                      </button>
+                      <button
+                        onClick={() => handleRejectCommission(c.id)}
+                        disabled={confirmingCommissionId === c.id}
+                        className="flex-1 py-2 bg-red-100 text-red-600 font-bold rounded-xl text-xs disabled:opacity-50"
+                      >
+                        ❌ Reject
                       </button>
                     </div>
                   </div>
