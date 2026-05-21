@@ -355,7 +355,7 @@ function ActiveCard({
   const [cashLoading, setCashLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const canMove = isMobileProvider(category, description);
-  const paymentMethod = booking.paymentMethod || "MPESA";
+  const paymentMethod = (booking.paymentMethod || "MPESA") as string;
   const isCashPayment = paymentMethod === "CASH" || paymentMethod === "PAY_AFTER" || paymentMethod === "CASH_OR_MPESA" || paymentMethod === "PAY_AT_VENUE";
 
   const handleMarkCashPaid = async () => {
