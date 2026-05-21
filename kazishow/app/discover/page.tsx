@@ -59,6 +59,8 @@ function meta(cat: string) {
 
 function mapProvider(p: any) {
   const activePromo = (p.promotions || [])[0] || null;
+  const sub = p.subscription;
+  const subPlan = sub?.status === "ACTIVE" ? sub.plan : null;
   return {
     id: p.id,
     name: p.businessName,
@@ -81,6 +83,7 @@ function mapProvider(p: any) {
     activePromo,
     isBusy: p.isBusy || false,
     avgResponseMinutes: p.avgResponseMinutes ?? null,
+    subPlan,
   };
 }
 
@@ -135,7 +138,12 @@ function ProviderCard({
 
         {/* Top badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          {provider.isFeatured && (
+          {provider.subPlan === "PREMIUM" && (
+            <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-black rounded-full shadow">
+              👑 Top
+            </span>
+          )}
+          {provider.subPlan === "GROWTH" && (
             <span className="px-2 py-0.5 bg-kazi-orange text-white text-[10px] font-black rounded-full shadow">
               ⚡ Featured
             </span>
@@ -296,14 +304,19 @@ function ProviderCardHorizontal({
             <div className="min-w-0">
               <h3 className="font-black text-sm text-kazi-dark truncate">{provider.name}</h3>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {provider.subPlan === "PREMIUM" && (
+                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">
+                    👑 Top
+                  </span>
+                )}
+                {provider.subPlan === "GROWTH" && (
+                  <span className="px-1.5 py-0.5 bg-orange-100 text-kazi-orange text-[10px] font-bold rounded-full">
+                    ⚡ Featured
+                  </span>
+                )}
                 {provider.isVerified && (
                   <span className="px-1.5 py-0.5 bg-green-100 text-kazi-green text-[10px] font-bold rounded-full">
                     ✓ {provider.badge || "Verified"}
-                  </span>
-                )}
-                {provider.isFeatured && (
-                  <span className="px-1.5 py-0.5 bg-orange-100 text-kazi-orange text-[10px] font-bold rounded-full">
-                    ⚡ Featured
                   </span>
                 )}
                 {provider.activePromo && (
@@ -479,7 +492,7 @@ function DiscoverContent() {
 
   // ── Derived data ─────────────────────────────────────────────────────────────
   const featuredProviders = useMemo(
-    () => providers.filter((p) => p.isFeatured).slice(0, 8),
+    () => providers.filter((p) => p.subPlan === "PREMIUM" || p.subPlan === "GROWTH").slice(0, 8),
     [providers]
   );
 
