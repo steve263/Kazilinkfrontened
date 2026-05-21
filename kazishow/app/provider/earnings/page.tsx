@@ -41,8 +41,9 @@ export default function EarningsPage() {
   const [payoutPhone, setPayoutPhone]   = useState("");
   const [submitting, setSubmitting]     = useState(false);
   const [chartDays, setChartDays]       = useState(30);
-  const [subscription, setSubscription] = useState<any>(null);
-  const [isFundi, setIsFundi]           = useState(false);
+  const [subscription, setSubscription]           = useState<any>(null);
+  const [isFundi, setIsFundi]                     = useState(false);
+  const [pendingCommissionTotal, setPendingCommissionTotal] = useState(0);
 
   const getToken = () => localStorage.getItem("kazishow_token") || "";
 
@@ -61,6 +62,19 @@ export default function EarningsPage() {
       fetch(`${API}/api/subscriptions/my`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(d => { if (d.success) setSubscription(d.data); })
+        .catch(() => {});
+    }
+    // Fetch pending commission for Fundi providers
+    if (category === "FUNDI") {
+      const token = localStorage.getItem("kazishow_token") || "";
+      fetch(`${API}/api/bookings/commission/outstanding`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && Array.isArray(d.data)) {
+            const total = d.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || 0), 0);
+            setPendingCommissionTotal(total);
+          }
+        })
         .catch(() => {});
     }
   }, []);
@@ -188,6 +202,25 @@ export default function EarningsPage() {
             }`}>
               {!subscription.isActive ? "Renew" : "Manage"}
             </span>
+          </Link>
+        )}
+
+        {/* Commission payment card — Fundi only */}
+        {isFundi && pendingCommissionTotal > 0 && (
+          <Link
+            href="/provider/commission"
+            className="flex items-center justify-between p-4 rounded-2xl border bg-red-50 border-red-200 mb-2"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-xl flex-shrink-0">
+                💰
+              </div>
+              <div>
+                <p className="text-sm font-black text-red-700">Commission Due — KSh {pendingCommissionTotal.toLocaleString()}</p>
+                <p className="text-xs text-red-500">Pay via Paybill 247247 · Tap for instructions</p>
+              </div>
+            </div>
+            <span className="text-xs font-black px-3 py-1.5 rounded-xl text-white bg-red-500 flex-shrink-0">Pay Now</span>
           </Link>
         )}
 

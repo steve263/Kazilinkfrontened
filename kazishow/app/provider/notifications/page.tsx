@@ -706,6 +706,7 @@ export default function ProviderNotificationsPage() {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [subscription, setSubscription] = useState<any>(null);
+  const [pendingCommissionTotal, setPendingCommissionTotal] = useState(0);
 
   useEffect(() => {
     const t = localStorage.getItem("kazishow_token");
@@ -739,6 +740,17 @@ export default function ProviderNotificationsPage() {
           fetch(`${API}/api/subscriptions/my`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.json())
             .then(d => { if (d.success) setSubscription(d.data); })
+            .catch(() => {});
+        }
+        if (parsed.provider?.category === "FUNDI") {
+          fetch(`${API}/api/bookings/commission/outstanding`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(d => {
+              if (d.success && Array.isArray(d.data)) {
+                const total = d.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || 0), 0);
+                setPendingCommissionTotal(total);
+              }
+            })
             .catch(() => {});
         }
       } catch {}
@@ -940,6 +952,25 @@ export default function ProviderNotificationsPage() {
             </div>
           );
         })()}
+
+        {/* Commission payment banner — Fundi only */}
+        {!loading && category === "FUNDI" && pendingCommissionTotal > 0 && (
+          <button
+            onClick={() => router.push("/provider/commission")}
+            className="w-full mb-4 bg-red-950/40 border border-red-500/40 rounded-2xl p-4 flex items-center justify-between text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center text-lg flex-shrink-0">
+                💰
+              </div>
+              <div>
+                <p className="font-black text-red-400 text-sm">Commission Due — KSh {pendingCommissionTotal.toLocaleString()}</p>
+                <p className="text-xs text-red-500/70">Pay now to keep your app active</p>
+              </div>
+            </div>
+            <span className="text-xs font-black px-3 py-1.5 rounded-full text-white bg-red-500 flex-shrink-0">Pay Now</span>
+          </button>
+        )}
 
         {loading && (
           <div className="space-y-4"><Skeleton /><Skeleton /></div>
