@@ -55,6 +55,10 @@ export default function EarningsPage() {
     if (user.phone) setPayoutPhone(user.phone);
     const category = user.provider?.category;
     setIsFundi(category === "FUNDI");
+    if (category === "FUNDI") {
+      router.replace("/provider/commission");
+      return;
+    }
     loadAll(chartDays);
     // Fetch subscription for non-FUNDI providers
     if (category && category !== "FUNDI") {

@@ -786,25 +786,53 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
         </div>
       </div>
 
-      {/* ── WALLET QUICK ACCESS ── */}
+      {/* ── WALLET / COMMISSION QUICK ACCESS ── */}
       <div className="px-4 pt-3">
-        <Link
-          href="/provider/earnings"
-          className="flex items-center justify-between bg-gradient-to-r from-kazi-orange to-orange-500 rounded-2xl px-4 py-3 shadow-md shadow-orange-200 active:scale-[0.98] transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-white" />
+        {isFundi ? (
+          <Link
+            href="/provider/commission"
+            className={`flex items-center justify-between rounded-2xl px-4 py-3 active:scale-[0.98] transition-all ${
+              pendingCommissionTotal > 0
+                ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-md shadow-red-200"
+                : "bg-gradient-to-r from-kazi-orange to-orange-500 shadow-md shadow-orange-200"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+                <span className="text-lg">💰</span>
+              </div>
+              <div>
+                <p className="text-white font-black text-sm leading-tight">
+                  {pendingCommissionTotal > 0 ? "⚠️ Commission Due!" : "My Commission"}
+                </p>
+                <p className="text-white/80 text-xs">
+                  {pendingCommissionTotal > 0
+                    ? `KSh ${pendingCommissionTotal.toLocaleString()} pending · Pay via Paybill 247247`
+                    : "No pending commission · Keep up the great work!"}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-white font-black text-sm leading-tight">My Wallet & Withdraw</p>
-              <p className="text-orange-100 text-xs">
-                Earned: {earningsLoading ? "..." : formatCurrency((earnings?.allTime?.amount ?? 0) * 0.9)} · Tap to withdraw
-              </p>
+            <ChevronRight className="w-5 h-5 text-white/70" />
+          </Link>
+        ) : (
+          <Link
+            href="/provider/earnings"
+            className="flex items-center justify-between bg-gradient-to-r from-kazi-orange to-orange-500 rounded-2xl px-4 py-3 shadow-md shadow-orange-200 active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-white font-black text-sm leading-tight">My Wallet & Withdraw</p>
+                <p className="text-orange-100 text-xs">
+                  Earned: {earningsLoading ? "..." : formatCurrency((earnings?.allTime?.amount ?? 0) * 0.9)} · Tap to withdraw
+                </p>
+              </div>
             </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-white/70" />
-        </Link>
+            <ChevronRight className="w-5 h-5 text-white/70" />
+          </Link>
+        )}
       </div>
 
       {/* ── TAB BAR ── */}
@@ -1096,9 +1124,15 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                   </div>
                   <p className="text-xs text-gray-400">Total jobs: {earnings?.allTime?.jobs || 0}</p>
                 </div>
-                <Link href="/provider/earnings" className="w-full py-3 bg-kazi-green text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2">
-                  <CreditCard className="w-4 h-4" /> Withdraw Earnings
-                </Link>
+                {isFundi ? (
+                  <Link href="/provider/commission" className={`w-full py-3 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 ${pendingCommissionTotal > 0 ? "bg-red-500 text-white" : "bg-kazi-orange text-white"}`}>
+                    💰 {pendingCommissionTotal > 0 ? `Pay KSh ${pendingCommissionTotal.toLocaleString()} Commission` : "View My Commission"}
+                  </Link>
+                ) : (
+                  <Link href="/provider/earnings" className="w-full py-3 bg-kazi-green text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2">
+                    <CreditCard className="w-4 h-4" /> Withdraw Earnings
+                  </Link>
+                )}
               </>
             )}
           </div>
