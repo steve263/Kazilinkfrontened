@@ -351,29 +351,17 @@ function ActiveCard({
   onUpdated: (id: string, status: string) => void;
   onCashPaid: (id: string) => void;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [cashLoading, setCashLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const canMove = isMobileProvider(category, description);
   const paymentMethod = (booking.paymentMethod || "MPESA") as string;
   const isCashPayment = paymentMethod === "CASH" || paymentMethod === "PAY_AFTER" || paymentMethod === "CASH_OR_MPESA" || paymentMethod === "PAY_AT_VENUE";
 
-  const handleMarkCashPaid = async () => {
-    setCashLoading(true);
-    try {
-      const res = await fetch(`${API}/api/bookings/${booking.id}/mark-cash-paid`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Cash recorded! KSh ${data.data.commissionAmount} commission due`);
-        onCashPaid(booking.id);
-      } else {
-        toast.error(data.message || 'Failed to mark cash paid');
-      }
-    } catch { toast.error('Network error'); }
-    finally { setCashLoading(false); }
+  const goToCommission = () => {
+    router.push(
+      `/provider/commission?bookingId=${booking.id}&amount=${booking.totalAmount}&service=${encodeURIComponent(booking.service?.name || "Service")}&customer=${encodeURIComponent(booking.customer?.name || "Customer")}`
+    );
   };
   const when = dayStatus(booking.scheduledDate);
   const days = daysUntil(booking.scheduledDate);
@@ -518,11 +506,16 @@ function ActiveCard({
 
             {/* Record payment button — cash / pay-at-venue only, while in progress */}
             {booking.status === "IN_PROGRESS" && isCashPayment && !booking.cashPaid && (
-              <button onClick={handleMarkCashPaid} disabled={cashLoading}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95 disabled:opacity-50">
-                {cashLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                {paymentMethod === "CASH" ? "✅ Cash Received" : "✅ Payment Collected"}
+              <button onClick={goToCommission}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95">
+                <CreditCard className="w-4 h-4" />
+                💵 Customer Paid Cash — Record & Pay Commission
               </button>
+            )}
+            {booking.cashPaid && (
+              <div className="bg-amber-900/30 border border-amber-500/30 rounded-xl p-2.5 mt-1">
+                <p className="text-amber-400 font-bold text-xs">⏳ Commission pending admin verification</p>
+              </div>
             )}
           </div>
         )}
@@ -534,10 +527,10 @@ function ActiveCard({
               <p className={`font-bold text-xs mb-1 ${info.titleColor}`}>{info.title}</p>
               <p className="text-gray-400 text-xs">{info.message}</p>
               {info.showCashBtn && (
-                <button onClick={handleMarkCashPaid} disabled={cashLoading}
-                  className="w-full py-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs transition-all active:scale-95 disabled:opacity-50">
-                  {cashLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <CreditCard className="w-3 h-3" />}
-                  {info.type === "pay_after" ? "✅ Payment Collected" : "✅ Cash Received"}
+                <button onClick={goToCommission}
+                  className="w-full py-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs transition-all active:scale-95">
+                  <CreditCard className="w-3 h-3" />
+                  💵 Customer Paid Cash — Record & Pay Commission
                 </button>
               )}
               {info.showCallBtn && (
@@ -588,39 +581,7 @@ function CashPendingCard({
   bookingLabel: string;
   onCashPaid: (id: string) => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-
-  const handleMarkCashPaid = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/api/bookings/${booking.id}/mark-cash-paid`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Cash recorded! KSh ${data.data.commissionAmount} commission due — pay now to keep app active`);
-        setDone(true);
-        onCashPaid(booking.id);
-      } else {
-        toast.error(data.message || "Failed to record cash");
-      }
-    } catch { toast.error("Network error"); }
-    finally { setLoading(false); }
-  };
-
-  if (done) {
-    return (
-      <div className="bg-kazi-dark rounded-2xl p-4 border border-emerald-500/30 flex items-center gap-3">
-        <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-        <div>
-          <p className="text-emerald-400 font-bold text-sm">Cash recorded!</p>
-          <p className="text-xs text-gray-400">Commission payment alert will appear shortly</p>
-        </div>
-      </div>
-    );
-  }
+  const router = useRouter();
 
   return (
     <div className="bg-kazi-dark rounded-2xl overflow-hidden border border-emerald-500/30">
@@ -666,12 +627,13 @@ function CashPendingCard({
         </div>
 
         <button
-          onClick={handleMarkCashPaid}
-          disabled={loading}
-          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95 disabled:opacity-50"
+          onClick={() => router.push(
+            `/provider/commission?bookingId=${booking.id}&amount=${booking.totalAmount}&service=${encodeURIComponent(booking.service?.name || "Service")}&customer=${encodeURIComponent(booking.customer?.name || "Customer")}`
+          )}
+          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-          Customer Paid Cash — KSh {booking.totalAmount.toLocaleString()}
+          <CreditCard className="w-4 h-4" />
+          💵 Customer Paid Cash — Record & Pay Commission
         </button>
       </div>
     </div>
