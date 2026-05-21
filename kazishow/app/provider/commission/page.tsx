@@ -50,8 +50,8 @@ export default function CommissionPaymentPage() {
   };
 
   const handleSubmit = async () => {
-    if (!mpesaCode || mpesaCode.trim().length < 8) {
-      toast.error("Please enter a valid M-Pesa confirmation code");
+    if (!mpesaCode || mpesaCode.trim().length < 20) {
+      toast.error("Please paste your full Equity Bank confirmation message");
       return;
     }
     if (!selected) return;
@@ -61,7 +61,7 @@ export default function CommissionPaymentPage() {
       const res = await fetch(`${API_URL}/api/bookings/commission/${selected.id}/submit-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ mpesaCode: mpesaCode.trim().toUpperCase() }),
+        body: JSON.stringify({ mpesaCode: mpesaCode.trim() }),
       });
       const data = await res.json();
       if (data.success) {
@@ -78,7 +78,7 @@ export default function CommissionPaymentPage() {
     }
   };
 
-  const accountRef = `KZS-${selected?.bookingId?.slice(0, 8).toUpperCase() ?? ""}`;
+  const accountRef = "0795542312";
 
   if (loading) {
     return (
@@ -259,19 +259,18 @@ export default function CommissionPaymentPage() {
                 </div>
               </div>
 
-              {/* Step 6 — Enter code */}
+              {/* Step 6 — Paste Equity message */}
               <div className="flex items-start gap-3">
                 <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0">6</div>
                 <div className="flex-1">
-                  <p className="font-bold text-kazi-dark text-sm">Enter M-Pesa Confirmation Code</p>
-                  <p className="text-gray-400 text-xs mt-0.5 mb-2">Copy the code from the SMS e.g. QGH7YU89K</p>
-                  <input
-                    type="text"
+                  <p className="font-bold text-kazi-dark text-sm">Paste Your Equity Bank Confirmation Message</p>
+                  <p className="text-gray-400 text-xs mt-0.5 mb-2">Copy and paste the full SMS from Equity Bank after payment</p>
+                  <textarea
+                    rows={4}
                     value={mpesaCode}
-                    onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. QGH7YU89K"
-                    maxLength={12}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm font-black tracking-widest uppercase focus:outline-none focus:border-kazi-orange"
+                    onChange={(e) => setMpesaCode(e.target.value)}
+                    placeholder={"Confirmed. Payment of KES 500 to KAZISHOW Till No. 0795542312 has been received. Ref. UELDN4V6NN on 21-05-2026 at 17:41. Thank you."}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none"
                   />
                 </div>
               </div>

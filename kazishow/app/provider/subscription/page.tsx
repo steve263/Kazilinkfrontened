@@ -100,8 +100,8 @@ export default function SubscriptionPage() {
   };
 
   const handleSubmitPayment = async () => {
-    if (!mpesaCode.trim() || mpesaCode.trim().length < 8) {
-      toast.error("Please enter a valid M-Pesa confirmation code");
+    if (!mpesaCode.trim() || mpesaCode.trim().length < 20) {
+      toast.error("Please paste your full Equity Bank confirmation message");
       return;
     }
     setPaying(true);
@@ -110,7 +110,7 @@ export default function SubscriptionPage() {
       const res = await fetch(`${API_URL}/api/subscriptions/submit-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan: selectedPlan, mpesaCode: mpesaCode.trim().toUpperCase() }),
+        body: JSON.stringify({ plan: selectedPlan, mpesaCode: mpesaCode.trim() }),
       });
       const data = await res.json();
       if (data.success) {
@@ -166,7 +166,7 @@ export default function SubscriptionPage() {
 
   const plan = PLANS.find(p => p.key === selectedPlan)!;
   const statusInfo = getStatusInfo();
-  const providerAccountRef = `SUB-${(provider?.id ?? subscription?.subscription?.providerId ?? "").slice(0, 8).toUpperCase()}`;
+  const providerAccountRef = "0795542312";
 
   if (loading) {
     return (
@@ -363,20 +363,19 @@ export default function SubscriptionPage() {
               ))}
             </div>
 
-            {/* M-Pesa code input */}
+            {/* Equity confirmation message input */}
             <div>
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-                Enter M-Pesa Confirmation Code
+                Paste Your Equity Bank Confirmation Message
               </label>
-              <input
-                type="text"
+              <textarea
+                rows={4}
                 value={mpesaCode}
-                onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                placeholder="e.g. QGH7YU89K"
-                maxLength={12}
-                className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl font-black tracking-widest uppercase text-sm focus:outline-none focus:border-kazi-orange"
+                onChange={(e) => setMpesaCode(e.target.value)}
+                placeholder={"e.g. Confirmed. Payment of KES 800 to KAZISHOW Till No. 0795542312 has been received. Ref. UELDN4V6NN on 21-05-2026 at 17:41. Thank you."}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none"
               />
-              <p className="text-xs text-gray-400 mt-1">Copy this from the M-Pesa SMS you receive after payment</p>
+              <p className="text-xs text-gray-400 mt-1">Copy and paste the full message from your Equity Bank SMS after payment</p>
             </div>
 
             {/* Summary */}
