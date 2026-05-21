@@ -14,6 +14,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const NAV = [
   { label: "Overview",        href: "/admin",                 icon: BarChart2 },
+  { label: "Subscriptions",   href: "/admin/subscriptions",   icon: CreditCard },
   { label: "Approvals",       href: "/admin/approvals",       icon: ClipboardCheck },
   { label: "Verification",    href: "/admin/verification",    icon: BadgeCheck },
   { label: "Providers",       href: "/admin/providers",       icon: CheckSquare },
@@ -25,11 +26,9 @@ const NAV = [
   { label: "Appeals",         href: "/admin/appeals",         icon: Scale },
   { label: "Disputes",        href: "/admin/disputes",        icon: Gavel },
   { label: "Cancellations",   href: "/admin/cancellations",   icon: XCircle },
-  { label: "Subscriptions",   href: "/admin/subscriptions",   icon: CreditCard },
   { label: "Broadcast",       href: "/admin/broadcast",       icon: Megaphone },
   { label: "Auto-Suspension", href: "/admin/auto-suspension", icon: ShieldAlert },
   { label: "Settings",        href: "/admin/settings",        icon: Settings },
-
 ];
 
 const PLAN_COLORS: Record<string, string> = {
@@ -115,6 +114,7 @@ export default function AdminSubscriptionsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [pendingVerif, setPendingVerif] = useState<Array<{ sub: Subscription; payment: SubPayment }>>([]);
   const [actionModal, setActionModal] = useState<ActionModal | null>(null);
   const [actionDays, setActionDays] = useState(30);
   const [actionPlan, setActionPlan] = useState("STARTER");
@@ -159,7 +159,28 @@ export default function AdminSubscriptionsPage() {
     setLoading(false);
   }, [token, statusFilter, planFilter, search]);
 
-  useEffect(() => { if (token) { loadStats(); loadSubs(1); } }, [token, loadStats, loadSubs]);
+  const loadPendingVerif = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API}/api/admin/subscriptions?limit=200&page=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const pairs: Array<{ sub: Subscription; payment: SubPayment }> = [];
+        for (const sub of (data.data as Subscription[])) {
+          for (const payment of sub.payments) {
+            if (payment.status === "PENDING_VERIFICATION") {
+              pairs.push({ sub, payment });
+            }
+          }
+        }
+        setPendingVerif(pairs);
+      }
+    } catch { /* silent */ }
+  }, [token]);
+
+  useEffect(() => { if (token) { loadStats(); loadSubs(1); loadPendingVerif(); } }, [token, loadStats, loadSubs, loadPendingVerif]);
 
   const handleConfirmPayment = async (subId: string, paymentId: string, plan: string) => {
     if (!window.confirm("Confirm you have received this M-Pesa payment in your Equity Bank account?")) return;
@@ -174,6 +195,7 @@ export default function AdminSubscriptionsPage() {
         toast.success("✅ Subscription activated!");
         loadSubs(page);
         loadStats();
+        loadPendingVerif();
       } else {
         toast.error(data.message);
       }
@@ -193,6 +215,7 @@ export default function AdminSubscriptionsPage() {
       if (data.success) {
         toast.success("Payment rejected");
         loadSubs(page);
+        loadPendingVerif();
       } else {
         toast.error(data.message);
       }
@@ -286,6 +309,55 @@ export default function AdminSubscriptionsPage() {
         </div>
 
         <div className="p-5 space-y-5 max-w-6xl mx-auto">
+
+          {/* Pending Verification Payments */}
+          {pendingVerif.length > 0 && (
+            <div>
+              <h2 className="text-sm font-black text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="text-base">📩</span> Subscription Payments Awaiting Verification
+                <span className="bg-amber-500 text-white text-xs font-black px-1.5 py-0.5 rounded-full">{pendingVerif.length}</span>
+              </h2>
+              <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm">
+                <div className="px-4 py-3 bg-amber-50 border-b border-amber-100">
+                  <p className="font-black text-amber-700 text-sm">Providers sent Equity Bank messages — verify and confirm below</p>
+                </div>
+                {pendingVerif.map(({ sub, payment }) => (
+                  <div key={payment.id} className="p-4 border-b border-gray-50 last:border-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-bold text-kazi-dark text-sm">{sub.provider.businessName}</p>
+                        <p className="text-xs text-gray-400">{sub.provider.user.phone} · {sub.provider.user.name}</p>
+                        <p className="text-xs text-gray-400">{sub.plan} plan · KSh {payment.amount?.toLocaleString()}</p>
+                      </div>
+                      <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">PENDING</span>
+                    </div>
+                    {payment.mpesaRef && (
+                      <div className="mt-2 mb-3">
+                        <p className="text-amber-700 font-bold text-xs mb-1">📩 Equity Bank Message:</p>
+                        <div className="bg-gray-50 border border-amber-200 rounded-xl p-3">
+                          <p className="text-gray-700 text-xs leading-relaxed break-words">{payment.mpesaRef}</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleConfirmPayment(sub.id, payment.id, sub.plan)}
+                        className="flex-1 py-2 bg-green-500 text-white font-bold rounded-xl text-xs"
+                      >
+                        ✅ Confirm Payment
+                      </button>
+                      <button
+                        onClick={() => handleRejectPayment(payment.id)}
+                        className="flex-1 py-2 bg-red-100 text-red-600 font-bold rounded-xl text-xs"
+                      >
+                        ❌ Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Stats cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
