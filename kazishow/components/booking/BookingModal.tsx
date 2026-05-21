@@ -67,8 +67,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
   const [countdown, setCountdown] = useState(countdownMax);
   const [bookingId, setBookingId] = useState("");
   const [waitingForProvider, setWaitingForProvider] = useState(false);
-  const [waitingForPayment, setWaitingForPayment] = useState(false);
-  const [checkoutRequestId, setCheckoutRequestId] = useState("");
   const [providerBusy, setProviderBusy] = useState(false);
   const [busyProviderData, setBusyProviderData] = useState<any>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -92,15 +90,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
   }, []);
 
   // Pre-fill M-Pesa phone from user profile
-  useEffect(() => {
-    try {
-      const userRaw = localStorage.getItem("kazishow_user");
-      if (userRaw) {
-        const user = JSON.parse(userRaw);
-        if (user.phone) setMpesaPhone(user.phone);
-      }
-    } catch {}
-  }, []);
 
   // Fetch real availability slots whenever the selected date changes
   useEffect(() => {
@@ -169,64 +158,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
     );
   };
 
-  const triggerMpesaPayment = async (bkgId: string, phone: string) => {
-    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    try {
-      const token = localStorage.getItem("kazishow_token");
-      const res = await fetch(`${API}/api/payments/stk-push`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ bookingId: bkgId, phone: phone.replace(/\s/g, "") }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("M-Pesa prompt sent! Enter your PIN to pay.");
-        setCheckoutRequestId(data.data.checkoutRequestId);
-      } else {
-        toast.error(data.message || "Failed to send M-Pesa prompt");
-        setWaitingForPayment(false);
-        setStep("success");
-      }
-    } catch {
-      toast.error("Payment trigger failed. Booking is confirmed.");
-      setWaitingForPayment(false);
-      setStep("success");
-    }
-  };
-
-  const pollPaymentStatus = (bkgId: string) => {
-    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    pollRef.current = setInterval(async () => {
-      try {
-        const token = localStorage.getItem("kazishow_token");
-        const res = await fetch(`${API}/api/payments/${bkgId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        const status = data.data?.payment?.status;
-        if (status === "SUCCESS") {
-          clearInterval(pollRef.current);
-          if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
-          setWaitingForPayment(false);
-          setStep("success");
-          toast.success("Payment confirmed! Booking complete! 🎉");
-        } else if (status === "FAILED") {
-          clearInterval(pollRef.current);
-          if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
-          setWaitingForPayment(false);
-          toast.error("Payment failed. Please try again.");
-          setStep("payment");
-        }
-      } catch {}
-    }, 5000);
-
-    pollTimeoutRef.current = setTimeout(() => {
-      clearInterval(pollRef.current);
-      setWaitingForPayment(false);
-      setStep("success");
-      toast("Booking confirmed. Pay on arrival if needed.", { icon: "⚠️" });
-    }, 120000);
-  };
 
   const handleConfirm = async () => {
     const token = localStorage.getItem("kazishow_token");
@@ -657,131 +588,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
             </div>
           )}
 
-          {/* ─────────────────────────────────────────
-              STEP 3b: (removed — no M-Pesa entry)
-          ───────────────────────────────────────── */}
-          {false && (
-            <div className="space-y-5">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-3xl">💚</span>
-                </div>
-                <h3 className="font-black text-kazi-dark text-xl">Pay via M-Pesa</h3>
-                <p className="text-gray-400 text-sm mt-1">Enter your M-Pesa number to pay</p>
-              </div>
-
-              {/* Booking summary */}
-              <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Service</span>
-                  <span className="text-sm font-bold text-kazi-dark">{selectedService?.name}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Provider</span>
-                  <span className="text-sm font-bold text-kazi-dark">{business.businessName || business.name}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Date</span>
-                  <span className="text-sm font-bold text-kazi-dark">
-                    {selectedDate && new Date(selectedDate).toLocaleDateString("en-KE", {
-                      weekday: "short", day: "numeric", month: "short",
-                    })} at {selectedTime}
-                  </span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="font-black text-kazi-dark">Total</span>
-                  <span className="font-black text-kazi-orange text-xl">
-                    {formatCurrency(hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0))}
-                  </span>
-                </div>
-              </div>
-
-              {/* M-Pesa phone input */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-                  M-Pesa Phone Number
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">📱</span>
-                  <input
-                    type="tel"
-                    value={mpesaPhone}
-                    onChange={(e) => { setMpesaPhone(e.target.value); setPaymentError(""); }}
-                    placeholder="07XX XXX XXX"
-                    className={`w-full pl-9 pr-4 py-3.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                      paymentError ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-kazi-orange"
-                    }`}
-                  />
-                </div>
-                {paymentError && <p className="text-red-500 text-xs mt-1">{paymentError}</p>}
-                <p className="text-gray-400 text-xs mt-1.5">An M-Pesa prompt will be sent to this number</p>
-              </div>
-
-              {/* Security note */}
-              <div className="bg-green-50 rounded-xl p-3 flex items-start gap-2">
-                <span className="text-sm flex-shrink-0 mt-0.5">🔒</span>
-                <p className="text-green-700 text-xs">
-                  Your payment is held securely by KaziShow and only released to the provider after you confirm the job is done.
-                </p>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setBookingId(""); setStep("payment"); }}
-                  className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-2xl text-sm"
-                >
-                  ← Back
-                </button>
-                <button
-                  onClick={handleSendMpesa}
-                  disabled={paymentLoading || !mpesaPhone}
-                  className="flex-1 py-3 bg-kazi-orange text-white font-black rounded-2xl text-sm disabled:opacity-60"
-                >
-                  {paymentLoading
-                    ? "Sending..."
-                    : `Pay ${formatCurrency(hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0))} 💚`}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ─────────────────────────────────────────
-              STEP 3c: (removed — no M-Pesa waiting)
-          ───────────────────────────────────────── */}
-          {false && (
-            <div className="text-center py-6 space-y-5">
-              <div className="text-6xl animate-bounce">📱</div>
-              <div>
-                <h3 className="font-black text-kazi-dark text-2xl mb-2">Check Your Phone!</h3>
-                <p className="text-gray-500 text-sm">M-Pesa prompt sent to</p>
-                <p className="text-kazi-orange font-black text-lg mt-1">{mpesaPhone.replace(/\s/g, "")}</p>
-              </div>
-
-              <div className="bg-green-50 rounded-2xl p-4">
-                <p className="text-green-700 text-sm font-semibold">
-                  💚 Enter your M-Pesa PIN to pay{" "}
-                  {formatCurrency(hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0))}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 text-gray-400">
-                <div className="w-5 h-5 border-2 border-kazi-orange border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm">Waiting for payment confirmation...</p>
-              </div>
-
-              <p className="text-xs text-gray-400">
-                Did not receive the prompt?{" "}
-                <button
-                  onClick={handleSendMpesa}
-                  disabled={paymentLoading}
-                  className="text-kazi-orange font-bold underline disabled:opacity-60"
-                >
-                  {paymentLoading ? "Sending..." : "Resend"}
-                </button>
-              </p>
-            </div>
-          )}
 
           {/* ─────────────────────────────────────────
               STEP 4: Confirm
@@ -878,40 +684,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
               STEP 5: Searching / Payment
           ───────────────────────────────────────── */}
           {step === "searching" && (
-            waitingForPayment ? (
-              /* M-Pesa payment waiting screen */
-              <div className="flex flex-col items-center py-8 space-y-5">
-                <div className="text-6xl animate-bounce">📱</div>
-                <div className="text-center">
-                  <h3 className="font-black text-kazi-dark text-xl mb-2">Check Your Phone!</h3>
-                  <p className="text-gray-500 text-sm mb-2">
-                    An M-Pesa prompt has been sent to
-                  </p>
-                  <p className="font-bold text-kazi-orange text-lg">
-                    {mpesaPhone.replace(/\s/g, "")}
-                  </p>
-                </div>
-                <div className="w-full bg-green-50 border border-green-200 rounded-2xl p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">💚</span>
-                    <div>
-                      <p className="font-bold text-sm text-kazi-dark">Enter your M-Pesa PIN</p>
-                      <p className="text-xs text-gray-500">The prompt will expire in 2 minutes</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-kazi-orange border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm text-gray-500">Waiting for payment confirmation...</p>
-                </div>
-                <p className="text-xs text-gray-400">
-                  Amount:{" "}
-                  <strong className="text-kazi-orange">
-                    KSh {selectedService?.price?.toLocaleString()}
-                  </strong>
-                </p>
-              </div>
-            ) : (
+            (
               /* Provider search / countdown screen */
               <div className="flex flex-col items-center justify-center py-10 space-y-6">
                 {/* Pulsing ring + spinner */}
