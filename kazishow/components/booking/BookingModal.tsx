@@ -494,8 +494,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
   const services = business.services || [];
 
   const paymentLabel = (id: string) => {
-    if (id === "mpesa_before") return "M-Pesa Pay Now";
-    if (id === "mpesa_after") return "M-Pesa Pay After";
+    if (id === "mpesa_after") return "M-Pesa";
     return "Cash";
   };
 
@@ -722,56 +721,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
                 Payment Method
               </h3>
 
-              {/* KaziShow Promise */}
-              <div className="flex items-start gap-3 p-3.5 bg-green-50 border-2 border-kazi-green/30 rounded-2xl">
-                <ShieldCheck className="w-4 h-4 text-kazi-green flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-kazi-dark mb-0.5">
-                    Pay via KaziShow for full protection
-                  </p>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    In-app M-Pesa payments are secured. Full refund if provider
-                    doesn't show up.
-                  </p>
-                </div>
-              </div>
-
-              {/* mpesa_before */}
-              <button
-                onClick={() => setSelectedPayment("mpesa_before")}
-                className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
-                  selectedPayment === "mpesa_before"
-                    ? "border-kazi-orange bg-orange-50"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                <span className="text-2xl">📱</span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-sm text-kazi-dark">
-                      M-Pesa Pay Now
-                    </p>
-                    <span className="text-xs bg-green-100 text-kazi-green font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                      <Lock className="w-2.5 h-2.5" /> Protected
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Pay before service. Full refund if no-show.
-                  </p>
-                </div>
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    selectedPayment === "mpesa_before"
-                      ? "border-kazi-orange"
-                      : "border-gray-300"
-                  }`}
-                >
-                  {selectedPayment === "mpesa_before" && (
-                    <div className="w-2.5 h-2.5 bg-kazi-orange rounded-full" />
-                  )}
-                </div>
-              </button>
-
               {/* mpesa_after */}
               <button
                 onClick={() => setSelectedPayment("mpesa_after")}
@@ -784,10 +733,10 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
                 <span className="text-2xl">📲</span>
                 <div className="flex-1">
                   <p className="font-semibold text-sm text-kazi-dark">
-                    M-Pesa Pay After
+                    M-Pesa
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Pay on completion. No platform protection.
+                    Pay the provider directly via M-Pesa after the job.
                   </p>
                 </div>
                 <div
@@ -833,22 +782,6 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
                 </div>
               </button>
 
-              {/* M-Pesa phone input */}
-              {selectedPayment.includes("mpesa") && (
-                <div>
-                  <label className="text-sm font-semibold text-kazi-dark mb-2 flex items-center gap-1.5">
-                    <Smartphone className="w-4 h-4 text-kazi-green" />
-                    M-Pesa Phone Number
-                  </label>
-                  <input
-                    value={mpesaPhone}
-                    onChange={(e) => setMpesaPhone(e.target.value)}
-                    placeholder="+254 7XX XXX XXX"
-                    type="tel"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-kazi-green focus:border-transparent"
-                  />
-                </div>
-              )}
 
             </div>
           )}
@@ -1338,19 +1271,10 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
             )}
             {step === "payment" && isFundi && (
               <button
-                onClick={() => {
-                  if (selectedPayment === "mpesa_before") {
-                    setPaymentError("");
-                    setStep("mpesa_entry");
-                  } else {
-                    setStep("confirm");
-                  }
-                }}
+                onClick={() => setStep("confirm")}
                 className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98]"
               >
-                {selectedPayment === "mpesa_before"
-                  ? `Pay Now — ${formatCurrency(hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0))}`
-                  : "Review Booking"}
+                Review Booking
               </button>
             )}
             {step === "confirm" && (
