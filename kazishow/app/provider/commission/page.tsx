@@ -103,6 +103,25 @@ export default function CommissionPaymentPage() {
 
       <div className="px-4 py-5 space-y-4 max-w-lg mx-auto">
 
+        {/* Always-visible Paybill info card */}
+        <div className="bg-white rounded-2xl p-5 border-2 border-kazi-orange/20">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3">KaziShow Paybill Details</p>
+          <div className="flex gap-3">
+            <div className="flex-1 bg-kazi-cream rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-400 mb-1">Paybill Number</p>
+              <p className="font-black text-kazi-dark text-2xl tracking-widest">247247</p>
+            </div>
+            <div className="flex-1 bg-kazi-cream rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-400 mb-1">Account</p>
+              <p className="font-black text-kazi-dark text-sm">KZS-<span className="text-kazi-orange">BookingID</span></p>
+              <p className="text-xs text-gray-400 mt-0.5">shown below per job</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-3 text-center">
+            M-Pesa → Lipa Na M-Pesa → Pay Bill → enter details below
+          </p>
+        </div>
+
         {pendingCommissions.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center">
             <div className="text-5xl mb-3">✅</div>
