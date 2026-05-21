@@ -57,12 +57,12 @@ function getPaymentInfo(booking: Booking) {
     return { type: "pay_after", title: "⏰ Collect Payment from Customer", message: `Remind ${name} to pay KSh ${amount.toLocaleString()}. Payment is due now. Call them if needed.`, color: "border-amber-500/40 bg-amber-900/20", titleColor: "text-amber-400", showCashBtn: true, showCallBtn: true };
   }
 
-  // MPESA escrow
+  // M-Pesa payment — commission due via Paybill
   if (booking.customerConfirmed || booking.paymentReleasedAt) {
-    return { type: "escrow_released", title: "💰 Payment Released!", message: `KSh ${providerAmount.toLocaleString()} added to your earnings. Commission: KSh ${(amount - providerAmount).toLocaleString()}`, color: "border-kazi-green/30 bg-green-900/20", titleColor: "text-kazi-green", showCashBtn: false, showCallBtn: false };
+    return { type: "mpesa_done", title: "💰 Payment Received!", message: `KSh ${providerAmount.toLocaleString()} earned. Pay 10% commission (KSh ${(amount - providerAmount).toLocaleString()}) via Paybill 247247.`, color: "border-kazi-green/30 bg-green-900/20", titleColor: "text-kazi-green", showCashBtn: false, showCallBtn: false };
   }
 
-  return { type: "escrow_waiting", title: "⏳ Waiting for Customer Confirmation", message: `KSh ${providerAmount.toLocaleString()} releases when ${name} confirms. Auto-releases in 24 hours.`, color: "border-amber-500/30 bg-amber-900/30", titleColor: "text-amber-400", showCashBtn: false, showCallBtn: false };
+  return { type: "mpesa_pending", title: "💳 M-Pesa Payment Pending", message: `KSh ${providerAmount.toLocaleString()} will be credited once confirmed. Pay 10% commission via Paybill 247247 after job.`, color: "border-amber-500/30 bg-amber-900/30", titleColor: "text-amber-400", showCashBtn: false, showCallBtn: false };
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -356,7 +356,7 @@ function ActiveCard({
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const canMove = isMobileProvider(category, description);
   const paymentMethod = booking.paymentMethod || "MPESA";
-  const isNonEscrow = paymentMethod === "CASH" || paymentMethod === "PAY_AFTER";
+  const isCashPayment = paymentMethod === "CASH" || paymentMethod === "PAY_AFTER" || paymentMethod === "CASH_OR_MPESA" || paymentMethod === "PAY_AT_VENUE";
 
   const handleMarkCashPaid = async () => {
     setCashLoading(true);
@@ -516,8 +516,8 @@ function ActiveCard({
               </button>
             )}
 
-            {/* Record payment button — cash / pay-after only, while in progress */}
-            {booking.status === "IN_PROGRESS" && isNonEscrow && !booking.cashPaid && (
+            {/* Record payment button — cash / pay-at-venue only, while in progress */}
+            {booking.status === "IN_PROGRESS" && isCashPayment && !booking.cashPaid && (
               <button onClick={handleMarkCashPaid} disabled={cashLoading}
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95 disabled:opacity-50">
                 {cashLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
@@ -544,6 +544,12 @@ function ActiveCard({
                 <a href={`tel:${booking.customer.phone}`}
                   className="w-full py-2 mt-1.5 bg-white/10 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs hover:bg-white/20 transition-all">
                   <Phone className="w-3 h-3" /> Call {booking.customer.name}
+                </a>
+              )}
+              {category === "FUNDI" && (
+                <a href="/provider/commission"
+                  className="w-full py-2 mt-2 bg-orange-500/90 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs hover:bg-orange-600 transition-all">
+                  💰 Pay 10% Commission · Paybill 247247
                 </a>
               )}
             </div>
