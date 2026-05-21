@@ -712,12 +712,15 @@ export default function ProviderNotificationsPage() {
         }
         if (parsed.provider?.category === "FUNDI") {
           fetch(`${API}/api/bookings/commission/outstanding`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => r.json())
-            .then(d => {
-              if (d.success && Array.isArray(d.data)) {
-                const total = d.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || 0), 0);
-                setPendingCommissionTotal(total);
-              }
+            .then(r => r.text())
+            .then(text => {
+              try {
+                const d = JSON.parse(text);
+                if (d.success && Array.isArray(d.data)) {
+                  const total = d.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || 0), 0);
+                  setPendingCommissionTotal(total);
+                }
+              } catch {}
             })
             .catch(() => {});
         }

@@ -36,6 +36,10 @@ function CommissionPaymentContent() {
   };
 
   const handleSubmit = async () => {
+    if (!bookingId) {
+      toast.error("Missing booking info. Go back and tap the button again.");
+      return;
+    }
     if (!equityMsg.trim() || equityMsg.trim().length < 20) {
       toast.error("Please paste your full Equity Bank confirmation message");
       return;
@@ -51,7 +55,13 @@ function CommissionPaymentContent() {
           totalAmount,
         }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch {
+        console.error("Non-JSON response:", text.slice(0, 200));
+        toast.error("Server error. Please try again.");
+        return;
+      }
       if (data.success) {
         setSubmitted(true);
       } else {
