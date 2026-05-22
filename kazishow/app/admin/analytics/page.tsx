@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -22,68 +21,52 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  COMPLETED: "#00C896",
-  ACCEPTED:  "#0EA5E9",
-  PENDING:   "#F59E0B",
-  CANCELLED: "#EF4444",
-  DECLINED:  "#6B7280",
+  COMPLETED:  "#00C896",
+  ACCEPTED:   "#0EA5E9",
+  PENDING:    "#F59E0B",
+  CANCELLED:  "#EF4444",
+  DECLINED:   "#6B7280",
+  EN_ROUTE:   "#06B6D4",
+  IN_PROGRESS:"#8B5CF6",
+  DISPUTED:   "#F43F5E",
 };
 
 function formatKES(amount: number) {
   if (amount >= 1_000_000) return `KSh ${(amount / 1_000_000).toFixed(1)}M`;
   if (amount >= 1_000)     return `KSh ${(amount / 1_000).toFixed(1)}K`;
-  return `KSh ${amount}`;
+  return `KSh ${Math.round(amount).toLocaleString()}`;
 }
 
 export default function AnalyticsDashboard() {
   const ready = useAdminGuard();
-  const router = useRouter();
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
-  const [overview, setOverview]               = useState<any>(null);
-  const [dailyBookings, setDailyBookings]     = useState<any[]>([]);
-  const [revenueByCategory, setRevenueByCategory] = useState<any[]>([]);
-  const [topProviders, setTopProviders]       = useState<any[]>([]);
-  const [customerGrowth, setCustomerGrowth]   = useState<any[]>([]);
-  const [bookingStatus, setBookingStatus]     = useState<any[]>([]);
-  const [paymentStats, setPaymentStats]       = useState<any>(null);
-  const [recentActivity, setRecentActivity]   = useState<any>(null);
-  const [daysRange, setDaysRange]             = useState(30);
-  const [sortBy, setSortBy]                   = useState("bookings");
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [period, setPeriod] = useState(30);
+  const [sortBy, setSortBy] = useState("bookings");
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAnalytics = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    const h = { Authorization: `Bearer ${token}` };
     try {
-      const [ov, db, rc, tp, cg, bs, ps, ra] = await Promise.all([
-        fetch(`${API}/api/analytics/overview`, { headers: h }).then(r => r.json()),
-        fetch(`${API}/api/analytics/daily-bookings?days=30`, { headers: h }).then(r => r.json()),
-        fetch(`${API}/api/analytics/revenue-by-category`, { headers: h }).then(r => r.json()),
-        fetch(`${API}/api/analytics/top-providers?limit=10`, { headers: h }).then(r => r.json()),
-        fetch(`${API}/api/analytics/customer-growth?months=6`, { headers: h }).then(r => r.json()),
-        fetch(`${API}/api/analytics/booking-status`, { headers: h }).then(r => r.json()),
-        fetch(`${API}/api/analytics/payment-stats`, { headers: h }).then(r => r.json()),
-        fetch(`${API}/api/analytics/recent-activity`, { headers: h }).then(r => r.json()),
-      ]);
-      if (ov.success) setOverview(ov.data);
-      if (db.success) setDailyBookings(db.data);
-      if (rc.success) setRevenueByCategory(rc.data);
-      if (tp.success) setTopProviders(tp.data);
-      if (cg.success) setCustomerGrowth(cg.data);
-      if (bs.success) setBookingStatus(bs.data);
-      if (ps.success) setPaymentStats(ps.data);
-      if (ra.success) setRecentActivity(ra.data);
+      const res = await fetch(`${API}/api/admin/analytics?period=${period}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if (data.success) setAnalytics(data.data);
+      } catch { console.error("Parse error", text.slice(0, 200)); }
     } catch (err) {
       console.error("Analytics fetch error:", err);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, period]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
 
   if (!ready) {
     return (
@@ -93,22 +76,80 @@ export default function AnalyticsDashboard() {
     );
   }
 
-  const sortedProviders = [...topProviders].sort((a, b) => {
-    if (sortBy === "revenue") return b.totalRevenue - a.totalRevenue;
-    if (sortBy === "rating")  return b.rating - a.rating;
-    return b.completedBookings - a.completedBookings;
-  });
+  const a = analytics || {};
 
-  const OVERVIEW_CARDS = [
-    { label: "Total Revenue",       value: formatKES(overview?.totalRevenue || 0),       sub: `${formatKES(overview?.thisMonthRevenue || 0)} this month`, emoji: "💰", change: overview?.revenueGrowth, bg: "bg-green-50 border-green-200" },
-    { label: "Total Bookings",      value: overview?.totalBookings ?? "—",               sub: `${overview?.thisMonthBookings || 0} this month`,          emoji: "📅", change: overview?.bookingGrowth, bg: "bg-blue-50 border-blue-200" },
-    { label: "Total Customers",     value: overview?.totalCustomers ?? "—",              sub: `${overview?.thisMonthUsers || 0} new this month`,          emoji: "👥", change: null, bg: "bg-orange-50 border-orange-200" },
-    { label: "Verified Providers",  value: overview?.totalProviders ?? "—",              sub: `${overview?.pendingProviders || 0} pending approval`,       emoji: "🔧", change: null, bg: "bg-purple-50 border-purple-200" },
-    { label: "Completion Rate",     value: `${overview?.completionRate || 0}%`,          sub: `${overview?.completedBookings || 0} completed`,             emoji: "✅", change: null, bg: "bg-emerald-50 border-emerald-200" },
-    { label: "Average Rating",      value: overview?.avgRating ?? "—",                  sub: `${overview?.totalReviews || 0} total reviews`,              emoji: "⭐", change: null, bg: "bg-yellow-50 border-yellow-200" },
-    { label: "Active Today",        value: overview?.activeBookingsToday ?? "—",         sub: "bookings in progress",                                      emoji: "🔥", change: null, bg: "bg-red-50 border-red-200" },
-    { label: "Revenue Processed",   value: formatKES(paymentStats?.totalProcessed || 0), sub: `${formatKES(paymentStats?.totalProviderPayout || 0)} to providers`, emoji: "💳", change: null, bg: "bg-indigo-50 border-indigo-200" },
+  const STATS = [
+    {
+      label: "Total Revenue",
+      value: formatKES(a.totalRevenue || 0),
+      sub: `${formatKES(a.revenueThisMonth || 0)} this month`,
+      emoji: "💰",
+      bg: "bg-green-50 border-green-200",
+      color: "text-green-600",
+    },
+    {
+      label: "Total Bookings",
+      value: (a.totalBookings || 0).toLocaleString(),
+      sub: `${a.bookingsThisMonth || 0} this month`,
+      emoji: "📅",
+      bg: "bg-blue-50 border-blue-200",
+      color: "text-blue-600",
+    },
+    {
+      label: "Total Customers",
+      value: (a.totalCustomers || 0).toLocaleString(),
+      sub: `${a.newCustomersThisMonth || 0} new this month`,
+      emoji: "👥",
+      bg: "bg-purple-50 border-purple-200",
+      color: "text-purple-600",
+    },
+    {
+      label: "Verified Providers",
+      value: (a.verifiedProviders || 0).toLocaleString(),
+      sub: `${a.totalProviders || 0} total providers`,
+      emoji: "🔧",
+      bg: "bg-orange-50 border-orange-200",
+      color: "text-kazi-orange",
+    },
+    {
+      label: "Completion Rate",
+      value: `${a.completionRate || 0}%`,
+      sub: `${a.completedBookings || 0} completed`,
+      emoji: "✅",
+      bg: "bg-emerald-50 border-emerald-200",
+      color: "text-emerald-600",
+    },
+    {
+      label: "Average Rating",
+      value: `${a.averageRating || 0} ⭐`,
+      sub: `${a.totalReviews || 0} total reviews`,
+      emoji: "⭐",
+      bg: "bg-yellow-50 border-yellow-200",
+      color: "text-yellow-600",
+    },
+    {
+      label: "Active Now",
+      value: (a.activeToday || 0).toLocaleString(),
+      sub: "bookings in progress",
+      emoji: "🔥",
+      bg: "bg-red-50 border-red-200",
+      color: "text-red-500",
+    },
+    {
+      label: "Commission Collected",
+      value: formatKES(a.commissionRevenue || 0),
+      sub: `${formatKES(a.subscriptionRevenue || 0)} subscriptions`,
+      emoji: "💳",
+      bg: "bg-indigo-50 border-indigo-200",
+      color: "text-indigo-600",
+    },
   ];
+
+  const sortedProviders = [...(a.topProviders || [])].sort((x: any, y: any) => {
+    if (sortBy === "revenue") return y.totalRevenue - x.totalRevenue;
+    if (sortBy === "rating")  return y.averageRating - x.averageRating;
+    return y.totalBookings - x.totalBookings;
+  });
 
   return (
     <div className="min-h-screen bg-kazi-cream">
@@ -122,9 +163,17 @@ export default function AnalyticsDashboard() {
           <h1 className="text-lg font-black text-kazi-dark">📊 Analytics Dashboard</h1>
           <p className="text-xs text-gray-400">Real-time insights for KaziShow</p>
         </div>
-        <button onClick={fetchAll} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-xl transition-colors">
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
+        <div className="flex gap-2 items-center">
+          {[7, 14, 30, 90].map((d) => (
+            <button key={d} onClick={() => setPeriod(d)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${period === d ? "bg-kazi-orange text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+              {d}d
+            </button>
+          ))}
+          <button onClick={fetchAnalytics} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-xl transition-colors ml-2">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -137,140 +186,163 @@ export default function AnalyticsDashboard() {
       ) : (
         <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-          {/* Overview stat cards */}
+          {/* Stats grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {OVERVIEW_CARDS.map((card) => (
-              <div key={card.label} className={`bg-white rounded-2xl p-4 border ${card.bg} card-shadow`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">{card.emoji}</span>
-                  {card.change != null && card.change !== 0 && (
-                    <span className={`text-xs font-bold flex items-center gap-0.5 ${card.change > 0 ? "text-green-500" : "text-red-500"}`}>
-                      {card.change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {Math.abs(card.change)}%
-                    </span>
-                  )}
-                </div>
-                <p className="text-2xl font-black text-kazi-dark">{card.value}</p>
-                <p className="text-xs font-semibold text-gray-500 mt-0.5">{card.label}</p>
+            {STATS.map((card) => (
+              <div key={card.label} className={`bg-white rounded-2xl p-4 border ${card.bg}`}>
+                <span className="text-2xl block mb-2">{card.emoji}</span>
+                <p className={`text-2xl font-black ${card.color}`}>{card.value}</p>
+                <p className="text-xs font-semibold text-gray-600 mt-0.5">{card.label}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{card.sub}</p>
               </div>
             ))}
           </div>
 
-          {/* Daily bookings area chart */}
-          <div className="bg-white rounded-2xl p-6 card-shadow">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-black text-kazi-dark text-base">📈 Daily Bookings &amp; Revenue</h2>
-              <div className="flex gap-2">
-                {[7, 14, 30].map((d) => (
-                  <button key={d} onClick={() => setDaysRange(d)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${daysRange === d ? "bg-kazi-orange text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
-                    {d}d
-                  </button>
-                ))}
+          {/* Revenue summary row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { label: "Total Job Value", value: formatKES(a.totalRevenue || 0), desc: "All completed bookings", color: "text-green-600" },
+              { label: "Commission Earned", value: formatKES(a.commissionRevenue || 0), desc: "From paid commissions", color: "text-kazi-orange" },
+              { label: "Subscription Revenue", value: formatKES(a.subscriptionRevenue || 0), desc: "From provider subscriptions", color: "text-purple-600" },
+            ].map((item) => (
+              <div key={item.label} className="bg-white rounded-2xl p-5 border border-gray-100">
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">{item.label}</p>
+                <p className={`text-3xl font-black ${item.color}`}>{item.value}</p>
+                <p className="text-xs text-gray-400 mt-1">{item.desc}</p>
               </div>
-            </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={dailyBookings.slice(-daysRange)} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="gradBookings" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF6B2B" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#FF6B2B" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00C896" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#00C896" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v: any, name: any) => [name === "revenue" ? `KSh ${v}` : v, name === "revenue" ? "Commission" : "Bookings"]} />
-                <Legend />
-                <Area type="monotone" dataKey="bookings" stroke="#FF6B2B" fill="url(#gradBookings)" strokeWidth={2} name="Bookings" />
-                <Area type="monotone" dataKey="revenue"  stroke="#00C896" fill="url(#gradRevenue)"  strokeWidth={2} name="Revenue" />
-              </AreaChart>
-            </ResponsiveContainer>
+            ))}
           </div>
 
-          {/* Category pie + booking status bar side by side */}
+          {/* Daily bookings + revenue chart */}
+          <div className="bg-white rounded-2xl p-6">
+            <h2 className="font-black text-kazi-dark text-base mb-5">📈 Daily Bookings &amp; Revenue (last {period} days)</h2>
+            {(a.dailyBookings || []).length === 0 ? (
+              <p className="text-center text-gray-400 py-16 text-sm">No data for this period</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={a.dailyBookings || []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="gradB" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FF6B2B" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#FF6B2B" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradR" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00C896" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#00C896" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v: any, name: any) => [name === "revenue" ? `KSh ${Number(v).toLocaleString()}` : v, name === "revenue" ? "Revenue" : "Bookings"]} />
+                  <Legend />
+                  <Area type="monotone" dataKey="bookings" stroke="#FF6B2B" fill="url(#gradB)" strokeWidth={2} name="Bookings" />
+                  <Area type="monotone" dataKey="revenue"  stroke="#00C896" fill="url(#gradR)"  strokeWidth={2} name="Revenue" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Category breakdown + Status breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            <div className="bg-white rounded-2xl p-6 card-shadow">
-              <h2 className="font-black text-kazi-dark text-base mb-5">🍕 Revenue by Category</h2>
-              <ResponsiveContainer width="100%" height={230}>
-                <PieChart>
-                  <Pie data={revenueByCategory.filter(c => c.revenue > 0)} dataKey="revenue" nameKey="category"
-                    cx="50%" cy="50%" outerRadius={85} label={({ category, percent }: any) => `${category} ${Math.round(percent * 100)}%`}
-                    labelLine={false}>
-                    {revenueByCategory.map((entry) => (
-                      <Cell key={entry.category} fill={CATEGORY_COLORS[entry.category] || "#999"} />
+            <div className="bg-white rounded-2xl p-6">
+              <h2 className="font-black text-kazi-dark text-base mb-4">🍕 Bookings by Category</h2>
+              {(a.categoryBreakdown || []).filter((c: any) => c.bookings > 0).length === 0 ? (
+                <p className="text-center text-gray-400 py-10 text-sm">No category data yet</p>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={(a.categoryBreakdown || []).filter((c: any) => c.bookings > 0)}
+                        dataKey="bookings" nameKey="category"
+                        cx="50%" cy="50%" outerRadius={80}
+                        label={({ category, percent }: any) => `${category} ${Math.round(percent * 100)}%`}
+                        labelLine={false}>
+                        {(a.categoryBreakdown || []).map((entry: any) => (
+                          <Cell key={entry.category} fill={CATEGORY_COLORS[entry.category] || "#999"} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: any, name: any) => [v, "Bookings"]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="space-y-2 mt-3">
+                    {(a.categoryBreakdown || []).filter((c: any) => c.bookings > 0).map((cat: any) => (
+                      <div key={cat.category} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat.category] || "#999" }} />
+                          <span className="text-sm font-bold text-kazi-dark">{cat.category}</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-kazi-dark text-sm">{cat.bookings} bookings</p>
+                          <p className="text-xs text-kazi-orange">KSh {parseFloat(cat.revenue || 0).toLocaleString()}</p>
+                        </div>
+                      </div>
                     ))}
-                  </Pie>
-                  <Tooltip formatter={(v: any) => [`KSh ${v}`, "Commission"]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {revenueByCategory.map((cat) => (
-                  <div key={cat.category} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat.category] || "#999" }} />
-                    <div>
-                      <p className="text-xs font-semibold text-kazi-dark">{cat.category}</p>
-                      <p className="text-xs text-gray-400">{cat.bookings} bookings</p>
-                    </div>
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 card-shadow">
-              <h2 className="font-black text-kazi-dark text-base mb-5">📊 Booking Status Breakdown</h2>
-              <ResponsiveContainer width="100%" height={230}>
-                <BarChart data={bookingStatus} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="status" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]} name="Count">
-                    {bookingStatus.map((entry) => (
-                      <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || "#999"} />
+            <div className="bg-white rounded-2xl p-6">
+              <h2 className="font-black text-kazi-dark text-base mb-4">📊 Booking Status Breakdown</h2>
+              {(a.statusBreakdown || []).length === 0 ? (
+                <p className="text-center text-gray-400 py-10 text-sm">No booking data yet</p>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={a.statusBreakdown || []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="status" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" radius={[6, 6, 0, 0]} name="Count">
+                        {(a.statusBreakdown || []).map((entry: any) => (
+                          <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || "#999"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    {(a.statusBreakdown || []).map((s: any) => (
+                      <div key={s.status} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[s.status] || "#999" }} />
+                          <span className="text-xs text-gray-600">{s.status}</span>
+                        </div>
+                        <span className="text-xs font-black text-kazi-dark">{s.count}</span>
+                      </div>
                     ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {bookingStatus.map((s) => (
-                  <div key={s.status} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[s.status] || "#999" }} />
-                      <span className="text-xs text-gray-600">{s.status}</span>
-                    </div>
-                    <span className="text-xs font-black text-kazi-dark">{s.percentage}%</span>
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Customer & provider growth line chart */}
-          <div className="bg-white rounded-2xl p-6 card-shadow">
-            <h2 className="font-black text-kazi-dark text-base mb-5">📈 Customer &amp; Provider Growth (6 months)</h2>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={customerGrowth} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="customers" stroke="#FF6B2B" strokeWidth={3} dot={{ fill: "#FF6B2B", r: 4 }} name="New Customers" />
-                <Line type="monotone" dataKey="providers" stroke="#00C896" strokeWidth={3} dot={{ fill: "#00C896", r: 4 }} name="New Providers" />
-                <Line type="monotone" dataKey="bookings"  stroke="#0EA5E9" strokeWidth={3} dot={{ fill: "#0EA5E9", r: 4 }} name="Bookings" />
-              </LineChart>
-            </ResponsiveContainer>
+          {/* Growth chart */}
+          <div className="bg-white rounded-2xl p-6">
+            <h2 className="font-black text-kazi-dark text-base mb-5">📈 Growth — Last 6 Months</h2>
+            {(a.growthData || []).length === 0 ? (
+              <p className="text-center text-gray-400 py-10 text-sm">No growth data yet</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={a.growthData || []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="customers" stroke="#FF6B2B" strokeWidth={3} dot={{ fill: "#FF6B2B", r: 4 }} name="New Customers" />
+                  <Line type="monotone" dataKey="providers" stroke="#00C896" strokeWidth={3} dot={{ fill: "#00C896", r: 4 }} name="New Providers" />
+                  <Line type="monotone" dataKey="bookings"  stroke="#0EA5E9" strokeWidth={3} dot={{ fill: "#0EA5E9", r: 4 }} name="Bookings" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* Top providers table */}
-          <div className="bg-white rounded-2xl p-6 card-shadow">
+          <div className="bg-white rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-black text-kazi-dark text-base">🏆 Top Providers</h2>
               <div className="flex gap-2">
@@ -299,24 +371,26 @@ export default function AnalyticsDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedProviders.slice(0, 10).map((provider, index) => (
-                    <tr key={provider.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                  {sortedProviders.slice(0, 10).map((p: any, i: number) => (
+                    <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                       <td className="py-3 pl-2 text-sm font-black">
-                        {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : <span className="text-gray-300">#{index + 1}</span>}
+                        {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span className="text-gray-300">#{i + 1}</span>}
                       </td>
                       <td className="py-3">
-                        <p className="text-sm font-bold text-kazi-dark">{provider.businessName}</p>
-                        <p className="text-xs text-gray-400">{provider.location}</p>
+                        <p className="text-sm font-bold text-kazi-dark">{p.name}</p>
+                        <p className="text-xs text-gray-400">{p.location}</p>
                       </td>
                       <td className="py-3">
-                        <span className="text-xs font-bold px-2 py-1 rounded-full text-white"
-                          style={{ backgroundColor: CATEGORY_COLORS[provider.category] || "#666" }}>
-                          {provider.category}
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: CATEGORY_COLORS[p.category] || "#666", color: "#fff" }}>
+                          {p.category}
                         </span>
                       </td>
-                      <td className="py-3 text-right text-sm font-bold text-kazi-dark">{provider.completedBookings}</td>
-                      <td className="py-3 text-right text-sm font-bold text-green-600">{formatKES(provider.totalRevenue)}</td>
-                      <td className="py-3 text-right text-sm font-bold text-amber-500">⭐ {provider.rating}</td>
+                      <td className="py-3 text-right text-sm font-bold text-kazi-dark">{p.totalBookings}</td>
+                      <td className="py-3 text-right text-sm font-bold text-green-600">{formatKES(p.totalRevenue)}</td>
+                      <td className="py-3 text-right text-sm font-bold text-amber-500">
+                        {p.averageRating > 0 ? `${p.averageRating} ⭐` : (p.totalReviews > 0 ? "—" : "New")}
+                      </td>
                     </tr>
                   ))}
                   {sortedProviders.length === 0 && (
@@ -327,32 +401,13 @@ export default function AnalyticsDashboard() {
             </div>
           </div>
 
-          {/* Payment stats */}
-          <div className="bg-white rounded-2xl p-6 card-shadow">
-            <h2 className="font-black text-kazi-dark text-base mb-5">💳 Payment Statistics</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: "Total Processed",       value: formatKES(paymentStats?.totalProcessed || 0),   emoji: "💳", color: "text-blue-600" },
-                { label: "KaziShow Commission",    value: formatKES(paymentStats?.totalCommission || 0),  emoji: "💰", color: "text-kazi-orange" },
-                { label: "Provider Payouts",       value: formatKES(paymentStats?.totalProviderPayout || 0), emoji: "🔧", color: "text-green-600" },
-                { label: "Refunds Given",          value: (paymentStats?.refunded ?? 0) + (paymentStats?.refundRequested ?? 0), emoji: "↩️", color: "text-red-500" },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-gray-50 rounded-2xl p-4 text-center">
-                  <span className="text-3xl block mb-2">{stat.emoji}</span>
-                  <p className={`text-xl font-black ${stat.color}`}>{stat.value}</p>
-                  <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent activity 3-column */}
+          {/* Recent activity */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            <div className="bg-white rounded-2xl p-5 card-shadow">
+            <div className="bg-white rounded-2xl p-5">
               <h3 className="font-black text-kazi-dark mb-4">📅 Recent Bookings</h3>
               <div className="space-y-3">
-                {(recentActivity?.recentBookings || []).slice(0, 5).map((b: any) => (
+                {(a.recentBookings || []).slice(0, 5).map((b: any) => (
                   <div key={b.id} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                       style={{ backgroundColor: CATEGORY_COLORS[b.provider?.category] || "#666" }}>
@@ -368,14 +423,14 @@ export default function AnalyticsDashboard() {
                     </span>
                   </div>
                 ))}
-                {!recentActivity?.recentBookings?.length && <p className="text-xs text-gray-400 text-center py-4">No bookings yet</p>}
+                {!(a.recentBookings?.length) && <p className="text-xs text-gray-400 text-center py-4">No bookings yet</p>}
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 card-shadow">
+            <div className="bg-white rounded-2xl p-5">
               <h3 className="font-black text-kazi-dark mb-4">👥 New Users</h3>
               <div className="space-y-3">
-                {(recentActivity?.recentUsers || []).slice(0, 5).map((user: any, i: number) => (
+                {(a.newUsers || []).slice(0, 5).map((user: any, i: number) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-kazi-orange font-bold text-sm flex-shrink-0">
                       {user.name?.charAt(0)}
@@ -389,26 +444,28 @@ export default function AnalyticsDashboard() {
                     </span>
                   </div>
                 ))}
-                {!recentActivity?.recentUsers?.length && <p className="text-xs text-gray-400 text-center py-4">No users yet</p>}
+                {!(a.newUsers?.length) && <p className="text-xs text-gray-400 text-center py-4">No users yet</p>}
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 card-shadow">
+            <div className="bg-white rounded-2xl p-5">
               <h3 className="font-black text-kazi-dark mb-4">💚 Recent Payments</h3>
               <div className="space-y-3">
-                {(recentActivity?.recentPayments || []).slice(0, 5).map((payment: any) => (
+                {(a.recentPayments || []).slice(0, 5).map((payment: any) => (
                   <div key={payment.id} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold text-xs flex-shrink-0">
-                      M
+                      ✓
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-kazi-dark truncate">{payment.booking?.customer?.name}</p>
-                      <p className="text-xs text-gray-400 truncate">→ {payment.booking?.provider?.businessName}</p>
+                      <p className="text-xs font-bold text-kazi-dark truncate">{payment.customer?.name}</p>
+                      <p className="text-xs text-gray-400 truncate">→ {payment.provider?.businessName}</p>
                     </div>
-                    <span className="text-xs font-black text-green-600 flex-shrink-0">KSh {payment.amount}</span>
+                    <span className="text-xs font-black text-green-600 flex-shrink-0">
+                      KSh {(payment.amount || 0).toLocaleString()}
+                    </span>
                   </div>
                 ))}
-                {!recentActivity?.recentPayments?.length && <p className="text-xs text-gray-400 text-center py-4">No payments yet</p>}
+                {!(a.recentPayments?.length) && <p className="text-xs text-gray-400 text-center py-4">No payments yet</p>}
               </div>
             </div>
 
