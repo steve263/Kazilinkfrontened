@@ -143,7 +143,7 @@ function DirectPaymentView({
 
               <div className="pt-2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-                  Paste Full M-Pesa SMS Message
+                  Paste Your Equity Bank Message
                 </label>
                 <textarea
                   rows={5}
@@ -152,8 +152,8 @@ function DirectPaymentView({
                   placeholder={"Paste your Equity Bank message here\n\nExample:\nConfirmed. Payment of KES 230 to KAZISHOW Till No. 0795542312 has been received. Ref. UELDN4V6NN on 21-05-2026 at 17:41. Thank you."}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none"
                 />
-                <p className="text-xs text-green-600 font-semibold mt-1">
-                  ✅ Copy and paste the entire SMS message you received from M-Pesa
+                <p className="text-xs text-green-600 mt-1">
+                  ✅ <strong>Copy and paste the entire equity message you received from Equity Bank</strong>
                 </p>
               </div>
 
@@ -382,7 +382,7 @@ function CommissionListView({ token }: { token: string }) {
 
                   <div className="pt-2">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-                      Paste Full M-Pesa SMS Message
+                      Paste Your Equity Bank Message
                     </label>
                     <textarea
                       rows={5}
@@ -391,8 +391,8 @@ function CommissionListView({ token }: { token: string }) {
                       placeholder={"Paste your Equity Bank message here\n\nExample:\nConfirmed. Payment of KES 230 to KAZISHOW Till No. 0795542312 has been received. Ref. UELDN4V6NN on 21-05-2026 at 17:41. Thank you."}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none"
                     />
-                    <p className="text-xs text-green-600 font-semibold mt-1">
-                      ✅ Copy and paste the entire SMS message you received from M-Pesa
+                    <p className="text-xs text-green-600 mt-1">
+                      ✅ <strong>Copy and paste the entire equity message you received from Equity Bank</strong>
                     </p>
                   </div>
 
