@@ -53,6 +53,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
   const hasDeal = !!dealId;
   const [step, setStep] = useState<Step>(service ? "datetime" : "service");
   const [selectedService, setSelectedService] = useState<any>(service || null);
+  const [selectedServices, setSelectedServices] = useState<any[]>(service ? [service] : []);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("mpesa_after");
@@ -187,6 +188,9 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
       ? (selectedPayment === "cash" ? "CASH" : "CASH_OR_MPESA")
       : "PAY_AT_VENUE";
 
+    const finalTotal = hasDeal && dealPrice !== undefined ? dealPrice : totalAmount;
+    const serviceNames = selectedServices.map(s => s.name).join(", ");
+
     try {
       const res = await fetch(`${API}/api/bookings`, {
         method: "POST",
@@ -196,13 +200,15 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
         },
         body: JSON.stringify({
           providerId: business.id,
-          serviceId: selectedService?.id,
+          serviceId: selectedServices[0]?.id || selectedService?.id,
+          serviceIds: selectedServices.map(s => s.id),
+          serviceNames,
           scheduledDate: selectedDate,
           scheduledTime: selectedTime,
           address: locationAddress,
           lat: locationLat || undefined,
           lng: locationLng || undefined,
-          totalAmount: hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0),
+          totalAmount: finalTotal,
           notes,
           dealId: dealId || null,
           paymentMethod: paymentMethodValue,
@@ -295,6 +301,19 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
 
   const services = business.services || [];
 
+  // Multi-select helpers
+  const totalAmount = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+  const commissionAmt = Math.round(totalAmount * 0.10);
+
+  const toggleService = (svc: any) => {
+    setSelectedServices(prev => {
+      const exists = prev.find(s => s.id === svc.id);
+      if (exists) return prev.filter(s => s.id !== svc.id);
+      return [...prev, svc];
+    });
+  };
+  const isSelected = (id: string) => selectedServices.some(s => s.id === id);
+
   const paymentLabel = (id: string) => {
     if (id === "mpesa_after") return "M-Pesa";
     return "Cash";
@@ -357,9 +376,9 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
           ───────────────────────────────────────── */}
           {step === "service" && (
             <div className="space-y-3">
-              <h3 className="font-semibold text-kazi-dark text-base">
-                Choose a Service
-              </h3>
+              <p className="font-black text-kazi-dark text-sm">
+                Select Services <span className="font-normal text-gray-400">(choose one or more)</span>
+              </p>
               {services.length === 0 ? (
                 <div className="text-center py-10">
                   <p className="text-gray-400 text-sm">No services listed yet</p>
@@ -368,34 +387,71 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
                 services.map((svc: any) => (
                   <button
                     key={svc.id}
-                    onClick={() => {
-                      setSelectedService(svc);
-                      setStep("datetime");
-                    }}
-                    className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 hover:border-kazi-orange hover:bg-orange-50 text-left transition-all active:scale-[0.99]"
+                    onClick={() => toggleService(svc)}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.99] ${
+                      isSelected(svc.id)
+                        ? "border-kazi-orange bg-orange-50"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
                   >
-                    <div className="flex-1 min-w-0 pr-2">
-                      <p className="font-semibold text-sm text-kazi-dark">
-                        {svc.name}
-                      </p>
-                      {svc.description && (
-                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">
-                          {svc.description}
+                    <div className="flex items-center gap-3">
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                        isSelected(svc.id) ? "bg-kazi-orange border-kazi-orange" : "border-gray-300"
+                      }`}>
+                        {isSelected(svc.id) && <span className="text-white text-xs font-black">✓</span>}
+                      </div>
+                      <div>
+                        <p className={`font-bold text-sm ${isSelected(svc.id) ? "text-kazi-orange" : "text-kazi-dark"}`}>
+                          {svc.name}
                         </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <span className="text-xs bg-orange-100 text-kazi-orange px-2 py-0.5 rounded-full font-semibold">
-                          {formatCurrency(svc.price)}
-                        </span>
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {svc.duration || "1 hr"}
-                        </span>
+                        {svc.description && (
+                          <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{svc.description}</p>
+                        )}
+                        {svc.duration && (
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3 h-3" /> ~{svc.duration} min
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <p className={`font-black text-sm flex-shrink-0 ml-2 ${isSelected(svc.id) ? "text-kazi-orange" : "text-kazi-dark"}`}>
+                      KSh {(svc.price || 0).toLocaleString()}
+                    </p>
                   </button>
                 ))
+              )}
+
+              {selectedServices.length === 0 && services.length > 0 && (
+                <p className="text-xs text-amber-600 text-center py-1">Select at least one service to continue</p>
+              )}
+
+              {/* Running total */}
+              {selectedServices.length > 0 && (
+                <div className="bg-kazi-dark rounded-2xl p-4 space-y-2 mt-1">
+                  <p className="text-white/60 text-xs font-bold uppercase tracking-wider">Order Summary</p>
+                  {selectedServices.map(s => (
+                    <div key={s.id} className="flex justify-between items-center">
+                      <p className="text-white text-sm">✅ {s.name}</p>
+                      <p className="text-white font-bold text-sm">KSh {(s.price || 0).toLocaleString()}</p>
+                    </div>
+                  ))}
+                  <div className="border-t border-white/20 pt-2 space-y-1">
+                    <div className="flex justify-between">
+                      <p className="text-white/60 text-xs">Subtotal ({selectedServices.length} service{selectedServices.length !== 1 ? "s" : ""})</p>
+                      <p className="text-white text-xs font-bold">KSh {totalAmount.toLocaleString()}</p>
+                    </div>
+                    {isFundi && (
+                      <div className="flex justify-between">
+                        <p className="text-white/60 text-xs">KaziShow commission (10%)</p>
+                        <p className="text-white/60 text-xs">KSh {commissionAmt.toLocaleString()}</p>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-white/20 pt-1.5">
+                      <p className="text-white font-black text-sm">Total to Pay</p>
+                      <p className="text-kazi-orange font-black text-lg">KSh {totalAmount.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -600,37 +656,32 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
 
               {/* Summary card */}
               <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5">
-                <div className="flex justify-between items-start text-sm">
-                  <span className="text-gray-500">Service</span>
-                  <span className="font-semibold text-kazi-dark text-right max-w-[60%]">
-                    {selectedService?.name || "—"}
-                  </span>
+                {/* Services list */}
+                <div className="space-y-1.5">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wide">Services</span>
+                  {selectedServices.map(s => (
+                    <div key={s.id} className="flex justify-between items-center text-sm">
+                      <span className="text-kazi-dark">✅ {s.name}</span>
+                      <span className="font-semibold text-kazi-dark">KSh {(s.price || 0).toLocaleString()}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between items-start text-sm">
+                <div className="flex justify-between items-start text-sm border-t border-gray-200 pt-2">
                   <span className="text-gray-500">Date & Time</span>
                   <span className="font-semibold text-kazi-dark text-right">
                     {selectedDate} at {selectedTime}
                   </span>
                 </div>
                 <div className="flex justify-between items-start text-sm">
-                  <span className="text-gray-500">Duration</span>
-                  <span className="font-semibold text-kazi-dark">
-                    {selectedService?.duration || "1 hr"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-start text-sm">
                   <span className="text-gray-500 flex-shrink-0">Location</span>
                   <span className="font-semibold text-kazi-dark text-right max-w-[60%] truncate">
-                    {locationAddress.slice(0, 40)}
-                    {locationAddress.length > 40 ? "…" : ""}
+                    {locationAddress.slice(0, 40)}{locationAddress.length > 40 ? "…" : ""}
                   </span>
                 </div>
                 {isFundi && (
                   <div className="flex justify-between items-start text-sm">
                     <span className="text-gray-500">Payment</span>
-                    <span className="font-semibold text-kazi-dark">
-                      {paymentLabel(selectedPayment)}
-                    </span>
+                    <span className="font-semibold text-kazi-dark">{paymentLabel(selectedPayment)}</span>
                   </div>
                 )}
                 {hasDeal && dealPrice !== undefined && originalPrice !== undefined && (
@@ -650,7 +701,7 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
                 <div className="border-t border-gray-200 pt-2.5 flex justify-between items-center">
                   <span className="font-bold text-kazi-dark">Total</span>
                   <span className="font-black text-kazi-orange text-xl">
-                    {formatCurrency(hasDeal && dealPrice !== undefined ? dealPrice : (selectedService?.price || 0))}
+                    {formatCurrency(hasDeal && dealPrice !== undefined ? dealPrice : totalAmount)}
                   </span>
                 </div>
               </div>
@@ -754,10 +805,29 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
                   Booking Submitted!
                 </h3>
                 <p className="text-gray-400 text-sm">{business?.businessName || business?.name}</p>
-                {selectedService && (
-                  <p className="text-xs text-kazi-orange font-semibold mt-1">{selectedService.name}</p>
-                )}
+                <p className="text-xs text-kazi-orange font-semibold mt-1">
+                  {selectedServices.length > 1
+                    ? `${selectedServices.length} services — KSh ${totalAmount.toLocaleString()}`
+                    : selectedServices[0]?.name}
+                </p>
               </div>
+
+              {/* Booked services summary */}
+              {selectedServices.length > 0 && (
+                <div className="w-full bg-gray-50 rounded-2xl p-4">
+                  <p className="text-xs font-bold text-gray-400 uppercase mb-2">Services Booked</p>
+                  {selectedServices.map(s => (
+                    <div key={s.id} className="flex justify-between py-1">
+                      <p className="text-sm text-kazi-dark">✅ {s.name}</p>
+                      <p className="text-sm font-bold text-kazi-dark">KSh {(s.price || 0).toLocaleString()}</p>
+                    </div>
+                  ))}
+                  <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between">
+                    <p className="font-black text-kazi-dark text-sm">Total</p>
+                    <p className="font-black text-kazi-orange">KSh {totalAmount.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Smart date message */}
               {(() => {
@@ -902,8 +972,22 @@ export default function BookingModal({ business, service, onClose, onBookingSucc
         </div>
 
         {/* Sticky action footer — always visible above the keyboard / FABs */}
-        {(step === "datetime" || step === "payment" || step === "confirm") && (
+        {(step === "service" || step === "datetime" || step === "payment" || step === "confirm") && (
           <div className="px-5 py-4 border-t border-gray-100 bg-white">
+            {step === "service" && (
+              <button
+                disabled={selectedServices.length === 0}
+                onClick={() => {
+                  setSelectedService(selectedServices[0]);
+                  setStep("datetime");
+                }}
+                className="w-full py-3.5 bg-kazi-orange text-white font-bold text-sm rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 transition-all active:scale-[0.98]"
+              >
+                {selectedServices.length === 0
+                  ? "Select a service first"
+                  : `Continue — ${selectedServices.length} service${selectedServices.length !== 1 ? "s" : ""} · KSh ${totalAmount.toLocaleString()}`}
+              </button>
+            )}
             {step === "datetime" && (
               <button
                 disabled={!selectedDate || !selectedTime}
