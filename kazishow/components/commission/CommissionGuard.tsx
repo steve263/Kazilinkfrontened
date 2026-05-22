@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import CommissionAlert from './CommissionAlert';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const POLL_INTERVAL_MS = 60_000; // re-check every 60s so popup appears shortly after job completion
 
 interface Commission {
   id: string;
   bookingId: string;
   amount: number;
-  status: 'PENDING' | 'OVERDUE';
+  status: 'PENDING' | 'OVERDUE' | 'PENDING_VERIFICATION';
   dueAt: string;
   createdAt: string;
   booking: {
@@ -24,6 +25,7 @@ export default function CommissionGuard() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [isProvider, setIsProvider] = useState(false);
   const [checked, setChecked] = useState(false);
+  const tokenRef = useRef<string | null>(null);
 
   const fetchCommissions = useCallback(async (token: string) => {
     try {
@@ -35,9 +37,13 @@ export default function CommissionGuard() {
       let data: any;
       try { data = JSON.parse(text); } catch { return; }
       if (data.success) {
-        setCommissions(data.data.commissions);
-        setTotal(data.data.total);
-        setIsBlocked(data.data.isBlocked);
+        // Only show popup for PENDING/OVERDUE — not PENDING_VERIFICATION (already submitted)
+        const actionable = (data.data.commissions as Commission[]).filter(
+          (c) => c.status === 'PENDING' || c.status === 'OVERDUE'
+        );
+        setCommissions(actionable);
+        setTotal(actionable.reduce((s, c) => s + c.amount, 0));
+        setIsBlocked(actionable.some((c) => c.status === 'OVERDUE'));
       }
     } catch {
       // Silently fail — don't block provider if API is down
@@ -53,8 +59,9 @@ export default function CommissionGuard() {
 
     try {
       const user = JSON.parse(raw);
-      if (user?.role === 'PROVIDER') {
+      if (user?.role === 'PROVIDER' && user?.provider?.category === 'FUNDI') {
         setIsProvider(true);
+        tokenRef.current = token;
         fetchCommissions(token);
       } else {
         setChecked(true);
@@ -63,6 +70,16 @@ export default function CommissionGuard() {
       setChecked(true);
     }
   }, [fetchCommissions]);
+
+  // Poll every 60s so the popup appears shortly after a job is marked COMPLETED
+  useEffect(() => {
+    if (!isProvider) return;
+    const id = setInterval(() => {
+      const token = tokenRef.current || localStorage.getItem('kazishow_token');
+      if (token) fetchCommissions(token);
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [isProvider, fetchCommissions]);
 
   const handlePaid = useCallback(() => {
     const token = localStorage.getItem('kazishow_token');

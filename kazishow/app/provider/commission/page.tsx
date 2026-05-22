@@ -93,12 +93,21 @@ function PaymentForm({
         </div>
       </div>
 
+      {/* Open M-Pesa CTA */}
+      <a
+        href={`tel:*334%23`}
+        className="flex items-center justify-center gap-3 w-full py-4 bg-green-600 text-white font-black rounded-2xl text-lg shadow-lg active:scale-95 transition-transform"
+      >
+        <span className="text-2xl">📱</span> Open M-Pesa Now
+      </a>
+      <p className="text-center text-xs text-gray-400 -mt-2">Tap above to open M-Pesa on your phone, then follow the steps below</p>
+
       {/* Instructions */}
       <div className="bg-white rounded-2xl p-5 shadow-sm space-y-5">
-        <h3 className="font-black text-kazi-dark text-lg">📱 How to Pay Commission</h3>
+        <h3 className="font-black text-kazi-dark text-lg">📋 Paybill Steps</h3>
 
         {[
-          { n: 1, title: "Open M-Pesa on your phone", desc: "Go to M-Pesa → Lipa Na M-Pesa → Pay Bill" },
+          { n: 1, title: "Lipa Na M-Pesa → Pay Bill", desc: "Open M-Pesa menu → select Lipa Na M-Pesa → Pay Bill" },
           { n: 2, title: "Enter Business Number (Paybill)", copy: { label: "Paybill", value: PAYBILL } },
           { n: 3, title: "Enter Account Number", copy: { label: "Account", value: ACCOUNT } },
           { n: 4, title: "Enter Amount", copy: { label: "Amount", value: `${commissionAmount}` } },
