@@ -29,16 +29,16 @@ export default function CommissionGuard() {
 
   const fetchCommissions = useCallback(async (token: string) => {
     try {
-      const res = await fetch(`${API}/api/bookings/my-commissions`, {
+      const res = await fetch(`${API}/api/bookings/commission/outstanding`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
       const text = await res.text();
       let data: any;
       try { data = JSON.parse(text); } catch { return; }
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         // Only show popup for PENDING/OVERDUE — not PENDING_VERIFICATION (already submitted)
-        const actionable = (data.data.commissions as Commission[]).filter(
+        const actionable = (data.data as Commission[]).filter(
           (c) => c.status === 'PENDING' || c.status === 'OVERDUE'
         );
         setCommissions(actionable);

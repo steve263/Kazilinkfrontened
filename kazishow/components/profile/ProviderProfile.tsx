@@ -170,7 +170,8 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
   const [notifReview, setNotifReview] = useState(true);
 
   // Commission
-  const [pendingCommissionTotal, setPendingCommissionTotal] = useState(0);
+  const [pendingCommissions, setPendingCommissions] = useState<any[]>([]);
+  const pendingCommissionTotal = pendingCommissions.reduce((s, c) => s + (c.commissionAmount || c.amount || 0), 0);
 
   // Ringtone
   const [ringtoneUrl, setRingtoneUrl] = useState("");
@@ -245,8 +246,7 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
           try {
             const data = JSON.parse(text);
             if (data.success && Array.isArray(data.data)) {
-              const total = data.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || c.amount || 0), 0);
-              setPendingCommissionTotal(total);
+              setPendingCommissions(data.data.filter((c: any) => c.status !== "PAID"));
             }
           } catch {}
         })
@@ -816,11 +816,11 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
               </div>
               <div>
                 <p className="text-white font-black text-sm leading-tight">
-                  {pendingCommissionTotal > 0 ? "⚠️ Commission Due!" : "My Commission"}
+                  {pendingCommissionTotal > 0 ? "⚠️ Commission Due!" : "✅ My Commission"}
                 </p>
                 <p className="text-white/80 text-xs">
                   {pendingCommissionTotal > 0
-                    ? `KSh ${pendingCommissionTotal.toLocaleString()} pending · Pay via Paybill 247247`
+                    ? `${pendingCommissions.length} pending · KSh ${pendingCommissionTotal.toLocaleString()} owed`
                     : "No pending commission · Keep up the great work!"}
                 </p>
               </div>
