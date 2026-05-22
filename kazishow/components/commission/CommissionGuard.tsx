@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import CommissionAlert from './CommissionAlert';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const POLL_INTERVAL_MS = 60_000; // re-check every 60s so popup appears shortly after job completion
+const POLL_INTERVAL_MS = 60_000;
+const GRACE_PERIOD_MS = 10 * 60 * 1000; // 10 minutes after job completion
 
 interface Commission {
   id: string;
@@ -20,11 +22,13 @@ interface Commission {
 }
 
 export default function CommissionGuard() {
+  const pathname = usePathname();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [total, setTotal] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isProvider, setIsProvider] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [graceUntil, setGraceUntil] = useState<number>(0);
   const tokenRef = useRef<string | null>(null);
 
   const fetchCommissions = useCallback(async (token: string) => {
@@ -37,7 +41,6 @@ export default function CommissionGuard() {
       let data: any;
       try { data = JSON.parse(text); } catch { return; }
       if (data.success && Array.isArray(data.data)) {
-        // Only show popup for PENDING/OVERDUE — not PENDING_VERIFICATION (already submitted)
         const actionable = (data.data as Commission[]).filter(
           (c) => c.status === 'PENDING' || c.status === 'OVERDUE'
         );
@@ -71,7 +74,7 @@ export default function CommissionGuard() {
     }
   }, [fetchCommissions]);
 
-  // Poll every 60s so the popup stays fresh
+  // Poll every 60s so commission data stays fresh
   useEffect(() => {
     if (!isProvider) return;
     const id = setInterval(() => {
@@ -81,23 +84,41 @@ export default function CommissionGuard() {
     return () => clearInterval(id);
   }, [isProvider, fetchCommissions]);
 
-  // Immediate re-fetch when notifications page marks a job COMPLETED
+  // On job completion: fetch immediately + start 10-min grace period before showing popup
   useEffect(() => {
     if (!isProvider) return;
     const handler = () => {
       const token = tokenRef.current || localStorage.getItem('kazishow_token');
       if (token) fetchCommissions(token);
+      setGraceUntil(Date.now() + GRACE_PERIOD_MS);
     };
     window.addEventListener('commission:refresh', handler);
     return () => window.removeEventListener('commission:refresh', handler);
   }, [isProvider, fetchCommissions]);
+
+  // When grace period expires: clear it + fetch fresh data to trigger popup if unpaid
+  useEffect(() => {
+    if (graceUntil === 0) return;
+    const remaining = graceUntil - Date.now();
+    if (remaining <= 0) { setGraceUntil(0); return; }
+    const id = setTimeout(() => {
+      setGraceUntil(0);
+      const token = tokenRef.current || localStorage.getItem('kazishow_token');
+      if (token) fetchCommissions(token);
+    }, remaining);
+    return () => clearTimeout(id);
+  }, [graceUntil, fetchCommissions]);
 
   const handlePaid = useCallback(() => {
     const token = localStorage.getItem('kazishow_token');
     if (token) fetchCommissions(token);
   }, [fetchCommissions]);
 
-  if (!checked || !isProvider || commissions.length === 0) return null;
+  // Hide popup on commission page (so fundi can access it to pay)
+  const isOnCommissionPage = pathname?.startsWith('/provider/commission');
+  const isInGrace = Date.now() < graceUntil;
+
+  if (!checked || !isProvider || commissions.length === 0 || isOnCommissionPage || isInGrace) return null;
 
   return (
     <CommissionAlert
