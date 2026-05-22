@@ -9,11 +9,12 @@ import BottomNav from "@/components/layout/BottomNav";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const PAYBILL = "247247";
 
-const PLANS = [
+const PLAN_TEMPLATES = [
   {
     key: "STARTER",
     name: "Starter",
-    price: 800,
+    priceKey: "starterPrice" as const,
+    defaultPrice: 800,
     emoji: "🌱",
     borderColor: "border-green-400",
     bgColor: "bg-green-50",
@@ -30,7 +31,8 @@ const PLANS = [
   {
     key: "GROWTH",
     name: "Growth",
-    price: 1200,
+    priceKey: "growthPrice" as const,
+    defaultPrice: 1200,
     emoji: "🚀",
     borderColor: "border-kazi-orange",
     bgColor: "bg-orange-50",
@@ -48,7 +50,8 @@ const PLANS = [
   {
     key: "PREMIUM",
     name: "Premium",
-    price: 1500,
+    priceKey: "premiumPrice" as const,
+    defaultPrice: 1500,
     emoji: "👑",
     borderColor: "border-purple-500",
     bgColor: "bg-purple-50",
@@ -75,14 +78,29 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [step, setStep] = useState<Step>("plans");
+  const [prices, setPrices] = useState({ starterPrice: 800, growthPrice: 1200, premiumPrice: 1500, trialDays: 14 });
+
+  const PLANS = PLAN_TEMPLATES.map(p => ({ ...p, price: prices[p.priceKey] ?? p.defaultPrice }));
 
   useEffect(() => {
     const userRaw = localStorage.getItem("kazishow_user");
     if (!userRaw) { router.push("/auth/login"); return; }
     const user = JSON.parse(userRaw);
     if (user.role !== "PROVIDER") { router.push("/"); return; }
+    fetchPublicSettings();
     fetchSubscription();
   }, []);
+
+  const fetchPublicSettings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/settings/public`);
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if (data.success && data.data) setPrices(p => ({ ...p, ...data.data }));
+      } catch {}
+    } catch {}
+  };
 
   const fetchSubscription = async () => {
     try {
@@ -224,12 +242,12 @@ export default function SubscriptionPage() {
               <div className="mt-3">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                   <span>Trial progress</span>
-                  <span>{14 - (subscription?.daysRemaining || 0)} of 14 days used</span>
+                  <span>{prices.trialDays - (subscription?.daysRemaining || 0)} of {prices.trialDays} days used</span>
                 </div>
                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-2 bg-green-500 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, ((14 - (subscription?.daysRemaining || 0)) / 14) * 100)}%` }}
+                    style={{ width: `${Math.min(100, ((prices.trialDays - (subscription?.daysRemaining || 0)) / prices.trialDays) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -242,7 +260,7 @@ export default function SubscriptionPage() {
           <>
             <div>
               <h2 className="font-black text-kazi-dark text-lg mb-1">Choose Your Plan</h2>
-              <p className="text-gray-400 text-sm">First 14 days FREE • Then KSh 800–1,500/month</p>
+              <p className="text-gray-400 text-sm">First {prices.trialDays} days FREE • Then KSh {prices.starterPrice.toLocaleString()}–{prices.premiumPrice.toLocaleString()}/month</p>
             </div>
 
             <div className="space-y-3">
