@@ -255,16 +255,16 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Phone mockup */}
-            <div className="hidden lg:flex justify-center items-center">
+            {/* Phone mockup — visible on all screen sizes */}
+            <div className="flex justify-center items-center mt-4 lg:mt-0">
               <div className="relative">
                 <div className="absolute inset-0 bg-kazi-orange/20 rounded-[3rem] blur-3xl scale-110" />
-                <div className="relative w-64 h-[520px] bg-kazi-dark2 rounded-[3rem] border-[6px] border-gray-700 shadow-2xl overflow-hidden">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-kazi-dark2 rounded-b-2xl z-10" />
-                  <div className="h-full overflow-hidden pt-6 bg-kazi-cream">
-                    <div className="px-4 pt-3 pb-2 bg-white border-b border-gray-100 flex items-center justify-between">
-                      <span className="font-black text-sm text-kazi-dark">Kazi<span className="text-kazi-orange">Show</span></span>
-                      <div className="w-6 h-6 rounded-full bg-orange-100" />
+                <div className="relative w-48 h-[390px] sm:w-56 sm:h-[450px] lg:w-64 lg:h-[520px] bg-kazi-dark2 rounded-[3rem] border-[6px] border-gray-700 shadow-2xl overflow-hidden">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 lg:w-24 lg:h-6 bg-kazi-dark2 rounded-b-2xl z-10" />
+                  <div className="h-full overflow-hidden pt-5 lg:pt-6 bg-kazi-cream">
+                    <div className="px-3 pt-2 pb-2 bg-white border-b border-gray-100 flex items-center justify-between">
+                      <span className="font-black text-xs lg:text-sm text-kazi-dark">Kazi<span className="text-kazi-orange">Show</span></span>
+                      <div className="w-5 h-5 lg:w-6 lg:h-6 rounded-full bg-orange-100" />
                     </div>
                     {[
                       { name: "James Mwangi", tag: "⚡ Electrician", rating: "4.9", color: "#FF6B2B" },
@@ -272,15 +272,15 @@ export default function HomePage() {
                       { name: "CleanPro Kenya", tag: "🧹 Cleaning", rating: "4.7", color: "#00C896" },
                       { name: "Peter Otieno", tag: "🔧 Plumber", rating: "4.9", color: "#0EA5E9" },
                     ].map((card, i) => (
-                      <div key={i} className="mx-3 mt-2.5 bg-white rounded-2xl p-3 shadow-sm border border-gray-50">
+                      <div key={i} className="mx-2 lg:mx-3 mt-2 bg-white rounded-2xl p-2.5 lg:p-3 shadow-sm border border-gray-50">
                         <div className="flex items-center gap-2">
-                          <div className="w-9 h-9 rounded-xl flex-shrink-0" style={{ backgroundColor: card.color + "30" }} />
-                          <div className="flex-1">
+                          <div className="w-7 h-7 lg:w-9 lg:h-9 rounded-xl flex-shrink-0" style={{ backgroundColor: card.color + "30" }} />
+                          <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-kazi-dark truncate">{card.name}</p>
                             <p className="text-xs text-gray-400">{card.tag}</p>
                           </div>
-                          <div className="flex items-center gap-0.5">
-                            <Star className="w-3 h-3 text-kazi-amber" fill="#F59E0B" />
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            <Star className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-kazi-amber" fill="#F59E0B" />
                             <span className="text-xs font-bold text-gray-600">{card.rating}</span>
                           </div>
                         </div>
@@ -288,15 +288,15 @@ export default function HomePage() {
                     ))}
                     <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-2 px-4">
                       {["🏠", "🔍", "📍", "👤"].map((icon) => (
-                        <div key={icon} className="text-base">{icon}</div>
+                        <div key={icon} className="text-sm lg:text-base">{icon}</div>
                       ))}
                     </div>
                   </div>
                 </div>
-                <div className="absolute -right-6 top-20 bg-white rounded-2xl shadow-xl px-3 py-2 border border-gray-100 animate-bounce">
+                <div className="absolute -right-4 lg:-right-6 top-16 lg:top-20 bg-white rounded-2xl shadow-xl px-2.5 py-1.5 lg:px-3 lg:py-2 border border-gray-100 animate-bounce">
                   <p className="text-xs font-bold text-kazi-dark">✅ ID Verified</p>
                 </div>
-                <div className="absolute -left-8 bottom-24 bg-kazi-orange rounded-2xl shadow-xl px-3 py-2 animate-pulse">
+                <div className="absolute -left-4 lg:-left-8 bottom-20 lg:bottom-24 bg-kazi-orange rounded-2xl shadow-xl px-2.5 py-1.5 lg:px-3 lg:py-2 animate-pulse">
                   <p className="text-xs font-bold text-white">⚡ Instant Book</p>
                 </div>
               </div>
