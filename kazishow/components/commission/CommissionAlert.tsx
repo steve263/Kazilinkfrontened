@@ -8,7 +8,7 @@ interface Commission {
   id: string;
   bookingId: string;
   amount: number;
-  status: 'PENDING' | 'OVERDUE';
+  status: 'PENDING' | 'OVERDUE' | 'PENDING_VERIFICATION';
   dueAt: string;
   createdAt: string;
   booking: {
