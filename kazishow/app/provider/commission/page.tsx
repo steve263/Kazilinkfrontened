@@ -143,7 +143,7 @@ function DirectPaymentView({
 
               <div className="pt-2">
                 <label className="text-xs font-bold text-gray-500 uppercase block mb-2">
-                  Enter M-Pesa Confirmation Code
+                  Paste Your Equity Bank Confirmation Message
                 </label>
                 <input
                   type="text"
@@ -154,7 +154,7 @@ function DirectPaymentView({
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl font-black tracking-widest text-lg text-center focus:outline-none focus:border-kazi-orange uppercase"
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Copy from the M-Pesa SMS you receive after paying
+                  Copy from the Equity Bank SMS you receive after paying
                 </p>
               </div>
 
@@ -383,7 +383,7 @@ function CommissionListView({ token }: { token: string }) {
 
                   <div className="pt-2">
                     <label className="text-xs font-bold text-gray-500 uppercase block mb-2">
-                      Enter M-Pesa Confirmation Code
+                      Paste Your Equity Bank Confirmation Message
                     </label>
                     <input
                       type="text"
@@ -394,7 +394,7 @@ function CommissionListView({ token }: { token: string }) {
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl font-black tracking-widest text-lg text-center focus:outline-none focus:border-kazi-orange uppercase"
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                      Copy from the M-Pesa SMS you receive after paying
+                      Copy from the Equity Bank SMS you receive after paying
                     </p>
                   </div>
 
