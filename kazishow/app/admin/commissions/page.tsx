@@ -217,10 +217,16 @@ export default function AdminCommissionsPage() {
                       <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">PENDING VERIFICATION</span>
                     </div>
                     {c.mpesaRef && (
-                      <div className="mt-2 mb-3">
-                        <p className="text-amber-700 font-bold text-xs mb-1">📩 Equity Bank Message:</p>
-                        <div className="bg-gray-50 border border-amber-200 rounded-xl p-3">
-                          <p className="text-gray-700 text-xs leading-relaxed break-words">{c.mpesaRef}</p>
+                      <div className="mt-2 mb-3 space-y-2">
+                        <div className="bg-gray-50 rounded-xl p-3">
+                          <p className="text-xs font-bold text-gray-400 mb-1">M-Pesa SMS Message:</p>
+                          <p className="text-sm text-gray-700 leading-relaxed break-words">{c.mpesaRef}</p>
+                        </div>
+                        <div className="bg-blue-50 rounded-xl p-3">
+                          <p className="text-blue-600 text-xs font-bold">📱 Check Equity Bank:</p>
+                          <p className="text-blue-500 text-xs mt-1">
+                            Verify this payment arrived in your Equity Bank account <strong>0795542312</strong> from Paybill <strong>247247</strong>
+                          </p>
                         </div>
                       </div>
                     )}
@@ -302,12 +308,20 @@ export default function AdminCommissionsPage() {
                         </div>
                       </div>
 
-                      {c.mpesaRef && c.status !== "PENDING_VERIFICATION" && (
-                        <div className="mt-3">
-                          <p className="text-xs font-bold text-gray-400 mb-1">📩 Last Equity Message:</p>
-                          <div className="bg-gray-50 rounded-xl p-2 border border-gray-100">
-                            <p className="text-xs text-gray-600 break-words">{c.mpesaRef}</p>
+                      {c.mpesaRef && (
+                        <div className="mt-3 space-y-2">
+                          <div className="bg-gray-50 rounded-xl p-3">
+                            <p className="text-xs font-bold text-gray-400 mb-1">M-Pesa SMS Message:</p>
+                            <p className="text-sm text-gray-700 leading-relaxed break-words">{c.mpesaRef}</p>
                           </div>
+                          {c.status === "PENDING_VERIFICATION" && (
+                            <div className="bg-blue-50 rounded-xl p-3">
+                              <p className="text-blue-600 text-xs font-bold">📱 Check Equity Bank:</p>
+                              <p className="text-blue-500 text-xs mt-1">
+                                Verify this payment arrived in your Equity Bank account <strong>0795542312</strong> from Paybill <strong>247247</strong>
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
 
