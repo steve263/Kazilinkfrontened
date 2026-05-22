@@ -159,6 +159,28 @@ export default function AdminCommissionsPage() {
     setProcessing(null);
   };
 
+  const handleUnsuspend = async (userId: string, commissionId: string) => {
+    if (!window.confirm("Reinstate this Fundi's account?")) return;
+    setProcessing(commissionId);
+    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    try {
+      const r = await fetch(`${API}/api/trust/admin/users/${userId}/unsuspend`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await r.json();
+      if (data.success) {
+        toast.success("✅ Fundi reinstated!");
+        fetchCommissions(token, statusFilter);
+      } else {
+        toast.error(data.message || "Failed to reinstate");
+      }
+    } catch {
+      toast.error("Connection error");
+    }
+    setProcessing(null);
+  };
+
   const filtered = commissions.filter((c) => {
     const q = search.toLowerCase();
     return (
@@ -325,6 +347,9 @@ export default function AdminCommissionsPage() {
                       {c.mpesaRef && (
                         <p className="text-xs text-green-600 mt-1 truncate">📱 SMS submitted</p>
                       )}
+                      {c.provider?.user?.isSuspended && (
+                        <p className="text-xs text-red-600 font-bold mt-1">🚨 Account Suspended</p>
+                      )}
                     </button>
                   );
                 })
@@ -343,6 +368,9 @@ export default function AdminCommissionsPage() {
                 }`}>
                   <p className="text-white font-black text-lg leading-tight">{selected.provider?.businessName}</p>
                   <p className="text-white/70 text-sm">{selected.provider?.user?.phone}</p>
+                  {selected.provider?.user?.isSuspended && (
+                    <p className="text-red-300 text-xs font-bold mt-1">🚨 Account Currently Suspended</p>
+                  )}
                 </div>
 
                 <div className="p-5 space-y-4 max-h-[600px] overflow-y-auto">
@@ -431,14 +459,22 @@ export default function AdminCommissionsPage() {
                   {/* Actions — PENDING / OVERDUE */}
                   {(selected.status === "PENDING" || selected.status === "OVERDUE") && (
                     <div className="space-y-2 pt-2">
+                      {selected.provider?.user?.isSuspended && (
+                        <button onClick={() => handleUnsuspend(selected.provider.user.id, selected.id)} disabled={processing === selected.id}
+                          className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-black rounded-2xl text-sm disabled:opacity-50 transition-colors">
+                          {processing === selected.id ? "Processing..." : "✅ Reinstate Fundi Account"}
+                        </button>
+                      )}
                       <button onClick={() => handleWaive(selected.id)} disabled={processing === selected.id}
                         className="w-full py-3 bg-purple-50 border border-purple-200 text-purple-600 font-bold rounded-2xl text-sm disabled:opacity-50">
                         🎁 Waive Commission
                       </button>
-                      <button onClick={() => handleSuspend(selected.id)} disabled={processing === selected.id}
-                        className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-sm disabled:opacity-50 transition-colors">
-                        {processing === selected.id ? "Processing..." : "🚨 Suspend Fundi"}
-                      </button>
+                      {!selected.provider?.user?.isSuspended && (
+                        <button onClick={() => handleSuspend(selected.id)} disabled={processing === selected.id}
+                          className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-sm disabled:opacity-50 transition-colors">
+                          {processing === selected.id ? "Processing..." : "🚨 Suspend Fundi"}
+                        </button>
+                      )}
                     </div>
                   )}
 
