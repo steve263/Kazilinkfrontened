@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { X } from "lucide-react";
+import { useSettings } from "@/lib/settingsContext";
 
 const WA_SVG = (
   <svg viewBox="0 0 24 24" className="w-7 h-7 fill-white">
@@ -14,27 +15,30 @@ const WA_ICON_SM = (
   </svg>
 );
 
-const AGENTS = [
-  {
-    id: "K1",
-    name: "Kazi Agent K1",
-    role: "General Help",
-    number: "254795542312",
-    message: "Hi KaziShow! I need help with your platform.",
-    bg: "bg-green-500",
-  },
-  {
-    id: "K2",
-    name: "Kazi Agent K2",
-    role: "Payments & Disputes",
-    number: "254731421635",
-    message: "Hi KaziShow! I have a payment or booking issue.",
-    bg: "bg-emerald-600",
-  },
-];
-
 export default function WhatsAppFloat() {
   const [open, setOpen] = useState(false);
+  const { whatsappNumber, whatsappNumber2 } = useSettings();
+
+  const toIntl = (n: string) => "254" + n.replace(/^0/, "").replace(/\D/g, "");
+
+  const AGENTS = [
+    {
+      id: "K1",
+      name: "Kazi Agent K1",
+      role: "General Help",
+      number: toIntl(whatsappNumber || "0795542312"),
+      message: "Hi KaziShow! I need help with your platform.",
+      bg: "bg-green-500",
+    },
+    {
+      id: "K2",
+      name: "Kazi Agent K2",
+      role: "Payments & Disputes",
+      number: toIntl(whatsappNumber2 || "0731421635"),
+      message: "Hi KaziShow! I have a payment or booking issue.",
+      bg: "bg-emerald-600",
+    },
+  ];
 
   return (
     <div className="fixed bottom-24 md:bottom-8 right-4 z-50 flex flex-col items-end gap-3">

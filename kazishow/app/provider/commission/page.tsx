@@ -3,11 +3,10 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Copy, CheckCircle, AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import { useSettings } from "@/lib/settingsContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const PAYBILL = "247247";
-const ACCOUNT = "0795542312";
-const COMMISSION_RATE = 0.1;
 
 // ─── Direct payment (bookingId in URL params) ─────────────────────────────────
 
@@ -25,7 +24,9 @@ function DirectPaymentView({
   token: string;
 }) {
   const router = useRouter();
-  const commissionAmount = Math.round(totalAmount * COMMISSION_RATE);
+  const { cashCommissionRate, supportPhone } = useSettings();
+  const commissionAmount = Math.round(totalAmount * (cashCommissionRate / 100));
+  const account = supportPhone || "0795542312";
   const [mpesaCode, setMpesaCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -86,7 +87,7 @@ function DirectPaymentView({
 
       <div className="px-4 py-5 max-w-lg mx-auto space-y-4">
         <div className="bg-kazi-orange rounded-2xl p-5 text-center">
-          <p className="text-white/80 text-sm">Commission Due (10%)</p>
+          <p className="text-white/80 text-sm">Commission Due ({cashCommissionRate}%)</p>
           <p className="text-white font-black text-4xl mt-1">KSh {commissionAmount.toLocaleString()}</p>
           <p className="text-white/60 text-xs mt-1">Job value: KSh {totalAmount.toLocaleString()}</p>
         </div>
@@ -119,7 +120,7 @@ function DirectPaymentView({
 
               {[
                 { label: "Paybill Number", value: PAYBILL },
-                { label: "Account Number", value: ACCOUNT },
+                { label: "Account Number", value: account },
                 { label: "Amount (KSh)", value: `${commissionAmount}` },
               ].map((item) => (
                 <button
@@ -176,6 +177,8 @@ function DirectPaymentView({
 
 function CommissionListView({ token }: { token: string }) {
   const router = useRouter();
+  const { cashCommissionRate, supportPhone } = useSettings();
+  const account = supportPhone || "0795542312";
   const [commissions, setCommissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
@@ -275,7 +278,7 @@ function CommissionListView({ token }: { token: string }) {
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
         <h1 className="text-white font-black text-2xl">💰 My Commissions</h1>
-        <p className="text-white/50 text-sm mt-1">Pay KaziShow 10% to keep your account active</p>
+        <p className="text-white/50 text-sm mt-1">Pay KaziShow {cashCommissionRate}% to keep your account active</p>
       </div>
 
       <div className="px-4 py-5 max-w-lg mx-auto space-y-4">
@@ -358,7 +361,7 @@ function CommissionListView({ token }: { token: string }) {
 
                   {[
                     { label: "Paybill Number", value: PAYBILL },
-                    { label: "Account Number", value: ACCOUNT },
+                    { label: "Account Number", value: account },
                     { label: "Amount (KSh)", value: `${selected.commissionAmount}` },
                   ].map((item) => (
                     <button

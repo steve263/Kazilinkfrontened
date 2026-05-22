@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
+import { useSettings } from "@/lib/settingsContext";
 import TrustScoreCard from "@/components/trust/TrustScoreCard";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -84,6 +85,7 @@ function CountdownRing({ seconds, max }: { seconds: number; max: number }) {
 }
 
 export default function ProviderProfile({ user: initialUser }: { user: any }) {
+  const { commissionRate } = useSettings();
   const [activeTab, setActiveTab] = useState<Tab>("bookings");
   const [provider, setProvider] = useState<any>(null);
   const [providerLoading, setProviderLoading] = useState(true);
@@ -1128,12 +1130,12 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                     <span className="font-bold text-kazi-dark">{formatCurrency(earnings?.allTime?.amount || 0)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Commission (10%)</span>
-                    <span className="font-bold text-red-500">-{formatCurrency((earnings?.allTime?.amount || 0) * 0.1)}</span>
+                    <span className="text-sm text-gray-500">Commission ({commissionRate}%)</span>
+                    <span className="font-bold text-red-500">-{formatCurrency((earnings?.allTime?.amount || 0) * commissionRate / 100)}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between">
                     <span className="text-sm font-bold text-kazi-dark">Net Earnings</span>
-                    <span className="font-black text-kazi-green">{formatCurrency((earnings?.allTime?.amount || 0) * 0.9)}</span>
+                    <span className="font-black text-kazi-green">{formatCurrency((earnings?.allTime?.amount || 0) * (1 - commissionRate / 100))}</span>
                   </div>
                   <p className="text-xs text-gray-400">Total jobs: {earnings?.allTime?.jobs || 0}</p>
                 </div>

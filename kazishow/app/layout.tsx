@@ -14,6 +14,7 @@ import BookingNotificationManager from "@/components/notifications/BookingNotifi
 import JobCompletionManager from "@/components/notifications/JobCompletionManager";
 import CommissionGuard from "@/components/commission/CommissionGuard";
 import SubscriptionBanner from "@/components/subscription/SubscriptionBanner";
+import { SettingsProvider } from "@/lib/settingsContext";
 
 export const metadata: Metadata = {
   title: "KaziShow — Discover Local Businesses in Kenya",
@@ -40,6 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-kazi-cream min-h-screen">
+        <SettingsProvider>
         <GoogleAuthProvider>
         <SuspensionGate>
           <AuthGuard />
@@ -56,6 +58,7 @@ export default function RootLayout({
           <AISupportChat />
         </SuspensionGate>
         </GoogleAuthProvider>
+        </SettingsProvider>
         <Toaster
           position="top-center"
           toastOptions={{

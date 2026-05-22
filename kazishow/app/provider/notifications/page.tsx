@@ -13,6 +13,7 @@ import { formatCurrency } from "@/lib/utils";
 import { bookingState } from "@/lib/bookingState";
 import JobCompleteModal from "@/components/notifications/JobCompleteModal";
 import toast, { Toaster } from "react-hot-toast";
+import { useSettings } from "@/lib/settingsContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -36,10 +37,11 @@ interface Booking {
   paymentMethod?: "MPESA" | "CASH" | "PAY_AFTER";
 }
 
-function getPaymentInfo(booking: Booking) {
+function getPaymentInfo(booking: Booking, commissionRate = 10) {
   const method = booking.paymentMethod || "MPESA";
   const amount = booking.totalAmount;
-  const providerAmount = Math.round(amount * 0.9);
+  const providerAmount = Math.round(amount * (1 - commissionRate / 100));
+  const commissionAmount = amount - providerAmount;
   const name = booking.customer.name;
   const phone = booking.customer.phone;
 
@@ -59,10 +61,10 @@ function getPaymentInfo(booking: Booking) {
 
   // M-Pesa payment — commission due via Paybill
   if (booking.customerConfirmed || booking.paymentReleasedAt) {
-    return { type: "mpesa_done", title: "💰 Payment Received!", message: `KSh ${providerAmount.toLocaleString()} earned. Pay 10% commission (KSh ${(amount - providerAmount).toLocaleString()}) via Paybill 247247.`, color: "border-kazi-green/30 bg-green-900/20", titleColor: "text-kazi-green", showCashBtn: false, showCallBtn: false };
+    return { type: "mpesa_done", title: "💰 Payment Received!", message: `KSh ${providerAmount.toLocaleString()} earned. Pay ${commissionRate}% commission (KSh ${commissionAmount.toLocaleString()}) via Paybill 247247.`, color: "border-kazi-green/30 bg-green-900/20", titleColor: "text-kazi-green", showCashBtn: false, showCallBtn: false };
   }
 
-  return { type: "mpesa_pending", title: "💳 M-Pesa Payment Pending", message: `KSh ${providerAmount.toLocaleString()} will be credited once confirmed. Pay 10% commission via Paybill 247247 after job.`, color: "border-amber-500/30 bg-amber-900/30", titleColor: "text-amber-400", showCashBtn: false, showCallBtn: false };
+  return { type: "mpesa_pending", title: "💳 M-Pesa Payment Pending", message: `KSh ${providerAmount.toLocaleString()} will be credited once confirmed. Pay ${commissionRate}% commission via Paybill 247247 after job.`, color: "border-amber-500/30 bg-amber-900/30", titleColor: "text-amber-400", showCashBtn: false, showCallBtn: false };
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -529,7 +531,7 @@ function ActiveCard({
         )}
 
         {booking.status === "COMPLETED" && (() => {
-          const info = getPaymentInfo(booking);
+          const info = getPaymentInfo(booking, commissionRate);
           return (
             <div className={`rounded-xl border p-3 ${info.color}`}>
               <p className={`font-bold text-xs mb-1 ${info.titleColor}`}>{info.title}</p>
@@ -550,7 +552,7 @@ function ActiveCard({
               {category === "FUNDI" && (
                 <a href="/provider/commission"
                   className="w-full py-2 mt-2 bg-orange-500/90 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs hover:bg-orange-600 transition-all">
-                  💰 Pay 10% Commission · Paybill 247247
+                  💰 Pay {commissionRate}% Commission · Paybill 247247
                 </a>
               )}
             </div>
@@ -629,7 +631,7 @@ function CashPendingCard({
         <div className="bg-emerald-950/40 border border-emerald-500/20 rounded-xl p-3 mb-3">
           <p className="text-emerald-400 font-bold text-xs mb-0.5">💵 Did the customer pay cash?</p>
           <p className="text-emerald-500/70 text-xs">
-            Record it so KaziShow can collect the 10% commission (KSh {Math.round(booking.totalAmount * 0.1).toLocaleString()}).
+            Record it so KaziShow can collect the {commissionRate}% commission (KSh {Math.round(booking.totalAmount * commissionRate / 100).toLocaleString()}).
             Your app will be blocked if you don't record within 24 hours.
           </p>
         </div>
@@ -677,6 +679,7 @@ function Skeleton() {
 
 export default function ProviderNotificationsPage() {
   const router = useRouter();
+  const { commissionRate } = useSettings();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);

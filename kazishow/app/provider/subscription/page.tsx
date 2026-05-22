@@ -5,6 +5,7 @@ import { Check, ArrowLeft, CreditCard, Copy } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
+import { useSettings } from "@/lib/settingsContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const PAYBILL = "247247";
@@ -78,7 +79,7 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [step, setStep] = useState<Step>("plans");
-  const [prices, setPrices] = useState({ starterPrice: 800, growthPrice: 1200, premiumPrice: 1500, trialDays: 14 });
+  const prices = useSettings();
 
   const PLANS = PLAN_TEMPLATES.map(p => ({ ...p, price: prices[p.priceKey] ?? p.defaultPrice }));
 
@@ -87,20 +88,8 @@ export default function SubscriptionPage() {
     if (!userRaw) { router.push("/auth/login"); return; }
     const user = JSON.parse(userRaw);
     if (user.role !== "PROVIDER") { router.push("/"); return; }
-    fetchPublicSettings();
     fetchSubscription();
   }, []);
-
-  const fetchPublicSettings = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/settings/public`);
-      const text = await res.text();
-      try {
-        const data = JSON.parse(text);
-        if (data.success && data.data) setPrices(p => ({ ...p, ...data.data }));
-      } catch {}
-    } catch {}
-  };
 
   const fetchSubscription = async () => {
     try {
