@@ -356,6 +356,7 @@ function ActiveCard({
   onCashPaid: (id: string) => void;
 }) {
   const router = useRouter();
+  const { commissionRate } = useSettings();
   const [loading, setLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const canMove = isMobileProvider(category, description);
@@ -592,6 +593,7 @@ function CashPendingCard({
   onCashPaid: (id: string) => void;
 }) {
   const router = useRouter();
+  const { commissionRate } = useSettings();
 
   return (
     <div className="bg-kazi-dark rounded-2xl overflow-hidden border border-emerald-500/30">
