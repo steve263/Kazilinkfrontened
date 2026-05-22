@@ -532,7 +532,26 @@ function ActiveCard({
         )}
 
         {booking.status === "COMPLETED" && (() => {
+          const commissionAmount = Math.round(booking.totalAmount * commissionRate / 100);
           const info = getPaymentInfo(booking, commissionRate);
+
+          // FUNDI: always show commission alert — never show "payment released" message
+          if (category === "FUNDI") {
+            return (
+              <div className="rounded-xl border border-orange-500/50 bg-orange-500/10 p-3 space-y-2">
+                <p className="font-black text-orange-400 text-sm">🚨 Outstanding Commission Due!</p>
+                <p className="text-gray-300 text-xs leading-relaxed">
+                  You have an outstanding commission of <span className="font-black text-orange-400">KSh {commissionAmount.toLocaleString()}</span> for this job. Pay now to keep your account active.
+                </p>
+                <a href={`/provider/commission?bookingId=${booking.id}&amount=${booking.totalAmount}&service=${encodeURIComponent(booking.service?.name || "Service")}&customer=${encodeURIComponent(booking.customer?.name || "Customer")}`}
+                  className="w-full py-2.5 mt-1 bg-kazi-orange hover:bg-orange-600 text-white font-black rounded-xl flex items-center justify-center gap-2 text-sm transition-all active:scale-95">
+                  💰 Tap Here to Pay Commission
+                </a>
+              </div>
+            );
+          }
+
+          // Non-FUNDI: show cash recording flow if needed
           return (
             <div className={`rounded-xl border p-3 ${info.color}`}>
               <p className={`font-bold text-xs mb-1 ${info.titleColor}`}>{info.title}</p>
@@ -548,12 +567,6 @@ function ActiveCard({
                 <a href={`tel:${booking.customer.phone}`}
                   className="w-full py-2 mt-1.5 bg-white/10 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs hover:bg-white/20 transition-all">
                   <Phone className="w-3 h-3" /> Call {booking.customer.name}
-                </a>
-              )}
-              {category === "FUNDI" && (
-                <a href="/provider/commission"
-                  className="w-full py-2 mt-2 bg-orange-500/90 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-xs hover:bg-orange-600 transition-all">
-                  💰 Pay {commissionRate}% Commission · Paybill 247247
                 </a>
               )}
             </div>
