@@ -62,7 +62,11 @@ export default function AdminCommissionsPage() {
       const res = await fetch(`${API}/api/bookings/admin/commissions?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch {
+        toast.error("Server error — check backend"); return;
+      }
       if (data.success) {
         setCommissions(data.data.commissions ?? []);
         setStats(data.data.stats ?? []);
@@ -83,7 +87,8 @@ export default function AdminCommissionsPage() {
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
     });
-    return res.json();
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { return { success: false, message: "Server error" }; }
   };
 
   const handleConfirm = async (id: string) => {
@@ -216,20 +221,21 @@ export default function AdminCommissionsPage() {
                       </div>
                       <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">PENDING VERIFICATION</span>
                     </div>
-                    {c.mpesaRef && (
-                      <div className="mt-2 mb-3 space-y-2">
-                        <div className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-xs font-bold text-gray-400 mb-1">M-Pesa SMS Message:</p>
-                          <p className="text-sm text-gray-700 leading-relaxed break-words">{c.mpesaRef}</p>
-                        </div>
-                        <div className="bg-blue-50 rounded-xl p-3">
-                          <p className="text-blue-600 text-xs font-bold">📱 Check Equity Bank:</p>
-                          <p className="text-blue-500 text-xs mt-1">
-                            Verify this payment arrived in your Equity Bank account <strong>0795542312</strong> from Paybill <strong>247247</strong>
-                          </p>
-                        </div>
+                    <div className="mt-2 mb-3 space-y-2">
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-xs font-bold text-gray-400 mb-1">M-Pesa SMS Message:</p>
+                        {c.mpesaRef
+                          ? <p className="text-sm text-gray-700 leading-relaxed break-words">{c.mpesaRef}</p>
+                          : <p className="text-sm text-red-400 italic">No message submitted yet</p>
+                        }
                       </div>
-                    )}
+                      <div className="bg-blue-50 rounded-xl p-3">
+                        <p className="text-blue-600 text-xs font-bold">📱 Check Equity Bank:</p>
+                        <p className="text-blue-500 text-xs mt-1">
+                          Verify this payment arrived in your Equity Bank account <strong>0795542312</strong> from Paybill <strong>247247</strong>
+                        </p>
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <button onClick={() => handleConfirm(c.id)} disabled={actionId === c.id}
                         className="flex-1 py-2 bg-green-500 text-white font-bold rounded-xl text-xs disabled:opacity-50">
