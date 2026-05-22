@@ -306,7 +306,7 @@ export default function AdminSettingsPage() {
                       {
                         key: "commissionRate" as const,
                         label: "M-Pesa Commission Rate",
-                        desc: "Percentage taken from escrow payments",
+                        desc: "KaziShow's cut from M-Pesa payments received by the provider",
                         preview: `KSh 2,000 job → KaziShow KSh ${Math.round(2000 * settings.commissionRate / 100)}, Provider KSh ${2000 - Math.round(2000 * settings.commissionRate / 100)}`,
                         suffix: "%", min: 0, max: 50,
                       },
@@ -373,7 +373,7 @@ export default function AdminSettingsPage() {
                     </div>
                     {[
                       { key: "autoCancelHours" as const,          label: "Auto Cancel",          desc: "Cancel PENDING bookings if provider doesn't accept within X hours",                    suffix: "hrs", min: 1, max: 72 },
-                      { key: "autoReleaseHours" as const,         label: "Payment Auto Release", desc: "Release escrow automatically if customer doesn't confirm within X hours after completion", suffix: "hrs", min: 1, max: 72 },
+                      { key: "autoReleaseHours" as const,         label: "Payment Auto Release", desc: "Auto-complete job if customer doesn't confirm within X hours after provider marks done", suffix: "hrs", min: 1, max: 72 },
                       { key: "cancellationRefundHours" as const,  label: "Full Refund Window",   desc: "Customer gets full refund if they cancel X hours before the booking",                  suffix: "hrs", min: 1, max: 48 },
                     ].map(({ key, label, desc, suffix, min, max }) => (
                       <div key={key} className="flex items-center justify-between gap-4 p-4 bg-gray-50 rounded-2xl">
