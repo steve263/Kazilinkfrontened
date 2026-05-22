@@ -39,9 +39,9 @@ function DirectPaymentView({
   };
 
   const handleSubmit = async () => {
-    const code = mpesaCode.trim().toUpperCase();
-    if (code.length < 8) {
-      toast.error("Enter your M-Pesa confirmation code (e.g. QGH7YU89KL)");
+    const code = mpesaCode.trim();
+    if (code.length < 20) {
+      toast.error("Please paste your full Equity Bank confirmation message");
       return;
     }
     setSubmitting(true);
@@ -142,25 +142,24 @@ function DirectPaymentView({
               ))}
 
               <div className="pt-2">
-                <label className="text-xs font-bold text-gray-500 uppercase block mb-2">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
                   Paste Your Equity Bank Confirmation Message
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  rows={4}
                   value={mpesaCode}
-                  onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                  placeholder="e.g. QGH7YU89KL"
-                  maxLength={12}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl font-black tracking-widest text-lg text-center focus:outline-none focus:border-kazi-orange uppercase"
+                  onChange={(e) => setMpesaCode(e.target.value)}
+                  placeholder="e.g. Confirmed. Payment of KES 120 to KAZISHOW Till No. 0795542312 has been received. Ref. UELDN4V6NN on 21-05-2026 at 17:41. Thank you."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none"
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Copy from the Equity Bank SMS you receive after paying
+                  Copy and paste the full message from your Equity Bank SMS after paying
                 </p>
               </div>
 
               <button
                 onClick={handleSubmit}
-                disabled={submitting || mpesaCode.trim().length < 8}
+                disabled={submitting || mpesaCode.trim().length < 20}
                 className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl text-lg disabled:opacity-60"
               >
                 {submitting ? "Submitting..." : "✅ I Have Paid — Submit Code"}
@@ -219,9 +218,9 @@ function CommissionListView({ token }: { token: string }) {
 
   const handleSubmit = async () => {
     if (!selected) return;
-    const code = mpesaCode.trim().toUpperCase();
-    if (code.length < 8) {
-      toast.error("Enter your M-Pesa confirmation code (e.g. QGH7YU89KL)");
+    const code = mpesaCode.trim();
+    if (code.length < 20) {
+      toast.error("Please paste your full Equity Bank confirmation message");
       return;
     }
     setSubmitting(true);
@@ -382,19 +381,18 @@ function CommissionListView({ token }: { token: string }) {
                   ))}
 
                   <div className="pt-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase block mb-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
                       Paste Your Equity Bank Confirmation Message
                     </label>
-                    <input
-                      type="text"
+                    <textarea
+                      rows={4}
                       value={mpesaCode}
-                      onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                      placeholder="e.g. QGH7YU89KL"
-                      maxLength={12}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl font-black tracking-widest text-lg text-center focus:outline-none focus:border-kazi-orange uppercase"
+                      onChange={(e) => setMpesaCode(e.target.value)}
+                      placeholder="e.g. Confirmed. Payment of KES 120 to KAZISHOW Till No. 0795542312 has been received. Ref. UELDN4V6NN on 21-05-2026 at 17:41. Thank you."
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none"
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                      Copy from the Equity Bank SMS you receive after paying
+                      Copy and paste the full message from your Equity Bank SMS after paying
                     </p>
                   </div>
 
@@ -406,7 +404,7 @@ function CommissionListView({ token }: { token: string }) {
                   ) : (
                     <button
                       onClick={handleSubmit}
-                      disabled={submitting || mpesaCode.trim().length < 8}
+                      disabled={submitting || mpesaCode.trim().length < 20}
                       className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl text-lg disabled:opacity-60"
                     >
                       {submitting ? "Submitting..." : "✅ I Have Paid — Submit Code"}
