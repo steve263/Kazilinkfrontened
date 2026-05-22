@@ -386,6 +386,10 @@ function ActiveCard({
       if (data.success) {
         onUpdated(booking.id, status);
         toast.success(status === "COMPLETED" ? `${bookingLabel} completed!` : "Status updated");
+        // Trigger commission popup immediately after job is marked COMPLETED
+        if (status === "COMPLETED") {
+          window.dispatchEvent(new CustomEvent("commission:refresh"));
+        }
       } else {
         toast.error(data.message || "Failed to update");
       }

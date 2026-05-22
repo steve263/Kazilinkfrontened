@@ -236,20 +236,30 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
 
   useEffect(() => {
     if (!isFundi || !token) return;
-    fetch(`${API}/api/bookings/commission/outstanding`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.text())
-      .then((text) => {
-        try {
-          const data = JSON.parse(text);
-          if (data.success && Array.isArray(data.data)) {
-            const total = data.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || c.amount || 0), 0);
-            setPendingCommissionTotal(total);
-          }
-        } catch {}
+    const loadCommissions = () => {
+      fetch(`${API}/api/bookings/commission/outstanding`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => {});
+        .then((r) => r.text())
+        .then((text) => {
+          try {
+            const data = JSON.parse(text);
+            if (data.success && Array.isArray(data.data)) {
+              const total = data.data.reduce((sum: number, c: any) => sum + (c.commissionAmount || c.amount || 0), 0);
+              setPendingCommissionTotal(total);
+            }
+          } catch {}
+        })
+        .catch(() => {});
+    };
+    loadCommissions();
+    // Re-fetch every 60s and immediately after a job is marked COMPLETED
+    const interval = setInterval(loadCommissions, 60_000);
+    window.addEventListener("commission:refresh", loadCommissions);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("commission:refresh", loadCommissions);
+    };
   }, [isFundi, token]);
 
   const loadTab = useCallback(

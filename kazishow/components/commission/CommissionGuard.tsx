@@ -71,7 +71,7 @@ export default function CommissionGuard() {
     }
   }, [fetchCommissions]);
 
-  // Poll every 60s so the popup appears shortly after a job is marked COMPLETED
+  // Poll every 60s so the popup stays fresh
   useEffect(() => {
     if (!isProvider) return;
     const id = setInterval(() => {
@@ -79,6 +79,17 @@ export default function CommissionGuard() {
       if (token) fetchCommissions(token);
     }, POLL_INTERVAL_MS);
     return () => clearInterval(id);
+  }, [isProvider, fetchCommissions]);
+
+  // Immediate re-fetch when notifications page marks a job COMPLETED
+  useEffect(() => {
+    if (!isProvider) return;
+    const handler = () => {
+      const token = tokenRef.current || localStorage.getItem('kazishow_token');
+      if (token) fetchCommissions(token);
+    };
+    window.addEventListener('commission:refresh', handler);
+    return () => window.removeEventListener('commission:refresh', handler);
   }, [isProvider, fetchCommissions]);
 
   const handlePaid = useCallback(() => {
