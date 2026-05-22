@@ -1,11 +1,10 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BarChart2, ClipboardCheck, BadgeCheck, CheckSquare, Users, ShoppingBag,
   Activity, Wallet, Shield, Scale, Gavel, XCircle, CreditCard, Megaphone,
-  ShieldAlert, Settings, RefreshCw, Search, ChevronDown, CheckCircle,
-  AlertTriangle, Clock,
+  ShieldAlert, Settings, RefreshCw, CheckCircle, AlertTriangle, Phone,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
@@ -13,75 +12,87 @@ import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const NAV = [
-  { label: "Overview",        href: "/admin",                 icon: BarChart2 },
-  { label: "Subscriptions",   href: "/admin/subscriptions",   icon: CreditCard },
-  { label: "Commissions",     href: "/admin/commissions",     icon: Wallet },
+  { label: "Overview",        href: "/admin",                 icon: BarChart2     },
+  { label: "Subscriptions",   href: "/admin/subscriptions",   icon: CreditCard    },
+  { label: "Commissions",     href: "/admin/commissions",     icon: Wallet        },
   { label: "Approvals",       href: "/admin/approvals",       icon: ClipboardCheck },
-  { label: "Verification",    href: "/admin/verification",    icon: BadgeCheck },
-  { label: "Providers",       href: "/admin/providers",       icon: CheckSquare },
-  { label: "Users",           href: "/admin/users",           icon: Users },
-  { label: "Bookings",        href: "/admin/bookings",        icon: ShoppingBag },
-  { label: "Analytics",       href: "/admin/analytics",       icon: Activity },
-  { label: "Trust & Safety",  href: "/admin/trust",           icon: Shield },
-  { label: "Appeals",         href: "/admin/appeals",         icon: Scale },
-  { label: "Disputes",        href: "/admin/disputes",        icon: Gavel },
-  { label: "Cancellations",   href: "/admin/cancellations",   icon: XCircle },
-  { label: "Broadcast",       href: "/admin/broadcast",       icon: Megaphone },
-  { label: "Auto-Suspension", href: "/admin/auto-suspension", icon: ShieldAlert },
-  { label: "Settings",        href: "/admin/settings",        icon: Settings },
+  { label: "Verification",    href: "/admin/verification",    icon: BadgeCheck    },
+  { label: "Providers",       href: "/admin/providers",       icon: CheckSquare   },
+  { label: "Users",           href: "/admin/users",           icon: Users         },
+  { label: "Bookings",        href: "/admin/bookings",        icon: ShoppingBag   },
+  { label: "Analytics",       href: "/admin/analytics",       icon: Activity      },
+  { label: "Trust & Safety",  href: "/admin/trust",           icon: Shield        },
+  { label: "Appeals",         href: "/admin/appeals",         icon: Scale         },
+  { label: "Disputes",        href: "/admin/disputes",        icon: Gavel         },
+  { label: "Cancellations",   href: "/admin/cancellations",   icon: XCircle       },
+  { label: "Broadcast",       href: "/admin/broadcast",       icon: Megaphone     },
+  { label: "Auto-Suspension", href: "/admin/auto-suspension", icon: ShieldAlert   },
+  { label: "Settings",        href: "/admin/settings",        icon: Settings      },
 ];
 
-const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  PENDING:              { label: "Pending",      color: "bg-yellow-100 text-yellow-700" },
-  OVERDUE:              { label: "Overdue",      color: "bg-red-100 text-red-700" },
-  PENDING_VERIFICATION: { label: "Verifying",    color: "bg-amber-100 text-amber-700" },
-  PAID:                 { label: "Paid",         color: "bg-green-100 text-green-700" },
-  WAIVED:               { label: "Waived",       color: "bg-gray-100 text-gray-500" },
-};
+const STATUS_FILTERS = [
+  { key: "ALL",                  label: "All",              emoji: "📋" },
+  { key: "PENDING_VERIFICATION", label: "Needs Verification", emoji: "⏳" },
+  { key: "PENDING",              label: "Not Paid",         emoji: "❌" },
+  { key: "OVERDUE",              label: "Overdue",          emoji: "🚨" },
+  { key: "PAID",                 label: "Paid",             emoji: "✅" },
+  { key: "WAIVED",               label: "Waived",           emoji: "🎁" },
+];
+
+function getStatusBadge(status: string) {
+  const map: Record<string, { style: string; label: string }> = {
+    PENDING:              { style: "bg-red-100 text-red-600",    label: "❌ Not Paid"      },
+    PENDING_VERIFICATION: { style: "bg-amber-100 text-amber-700", label: "⏳ Needs Check"  },
+    PAID:                 { style: "bg-green-100 text-green-600", label: "✅ Paid"          },
+    OVERDUE:              { style: "bg-red-200 text-red-700",    label: "🚨 Overdue"       },
+    WAIVED:               { style: "bg-purple-100 text-purple-600", label: "🎁 Waived"    },
+  };
+  return map[status] ?? { style: "bg-gray-100 text-gray-600", label: status };
+}
 
 export default function AdminCommissionsPage() {
   const ready = useAdminGuard();
   const [token, setToken] = useState("");
   const [commissions, setCommissions] = useState<any[]>([]);
-  const [stats, setStats] = useState<any[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [stats, setStats] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [actionId, setActionId] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [selected, setSelected] = useState<any>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
 
-  const load = useCallback(async (pg = 1) => {
-    if (!token) return;
+  const fetchCommissions = async (t: string, status: string) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(pg), limit: "20" });
-      if (statusFilter) params.set("status", statusFilter);
-      const res = await fetch(`${API}/api/bookings/admin/commissions?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const url = status === "ALL"
+        ? `${API}/api/admin/commissions`
+        : `${API}/api/admin/commissions?status=${status}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${t}` } });
       const text = await res.text();
       let data: any;
       try { data = JSON.parse(text); } catch {
-        toast.error("Server error — check backend"); return;
+        toast.error("Server error loading commissions"); return;
       }
       if (data.success) {
-        setCommissions(data.data.commissions ?? []);
-        setStats(data.data.stats ?? []);
-        setTotal(data.data.total ?? 0);
-        setPage(pg);
+        setCommissions(data.data.commissions || []);
+        setStats(data.data.stats || {});
+      } else {
+        toast.error(data.message || "Failed to load");
       }
     } catch {
-      toast.error("Failed to load commissions");
+      toast.error("Network error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [token, statusFilter]);
+  };
 
-  useEffect(() => { if (token) load(1); }, [token, load]);
+  useEffect(() => { if (token) fetchCommissions(token, "ALL"); }, [token]);
 
-  const action = async (url: string, method = "PUT", body?: object) => {
+  const apiCall = async (url: string, method = "PUT", body?: object) => {
     const res = await fetch(`${API}${url}`, {
       method,
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -92,51 +103,76 @@ export default function AdminCommissionsPage() {
   };
 
   const handleConfirm = async (id: string) => {
-    if (!confirm("Confirm this commission payment? Provider will be notified.")) return;
-    setActionId(id);
-    const data = await action(`/api/bookings/commissions/${id}/confirm-payment`).catch(() => null);
-    if (data?.success) { toast.success("✅ Commission confirmed"); load(page); }
-    else toast.error(data?.message || "Failed");
-    setActionId(null);
+    if (!window.confirm("Confirm you received this payment in your Equity Bank account?")) return;
+    setProcessing(id);
+    const data = await apiCall(`/api/admin/commissions/${id}/confirm`).catch(() => null);
+    if (data?.success) {
+      toast.success("✅ Commission confirmed! Fundi notified.");
+      fetchCommissions(token, statusFilter);
+      setSelected(null);
+    } else {
+      toast.error(data?.message || "Failed to confirm");
+    }
+    setProcessing(null);
   };
 
   const handleReject = async (id: string) => {
-    const reason = prompt("Rejection reason (sent to provider):");
-    if (reason === null) return;
-    setActionId(id);
-    const data = await action(`/api/bookings/commissions/${id}/reject-payment`, "PUT", { reason }).catch(() => null);
-    if (data?.success) { toast.success("Payment rejected — provider notified"); load(page); }
-    else toast.error(data?.message || "Failed");
-    setActionId(null);
+    setProcessing(id);
+    const data = await apiCall(`/api/admin/commissions/${id}/reject`, "PUT", { reason: rejectReason }).catch(() => null);
+    if (data?.success) {
+      toast.success("❌ Rejected. Fundi told to pay again.");
+      setShowRejectModal(false);
+      setRejectReason("");
+      fetchCommissions(token, statusFilter);
+      setSelected(null);
+    } else {
+      toast.error(data?.message || "Failed to reject");
+    }
+    setProcessing(null);
   };
 
   const handleWaive = async (id: string) => {
-    const reason = prompt("Reason for waiving:");
-    if (!reason) return;
-    setActionId(id);
-    const data = await action(`/api/bookings/commissions/${id}/waive`, "PUT", { reason }).catch(() => null);
-    if (data?.success) { toast.success("Commission waived"); load(page); }
-    else toast.error(data?.message || "Failed");
-    setActionId(null);
+    if (!window.confirm("Waive this commission? Fundi will not need to pay.")) return;
+    setProcessing(id);
+    const data = await apiCall(`/api/admin/commissions/${id}/waive`).catch(() => null);
+    if (data?.success) {
+      toast.success("🎁 Commission waived!");
+      fetchCommissions(token, statusFilter);
+      setSelected(null);
+    } else {
+      toast.error(data?.message || "Failed to waive");
+    }
+    setProcessing(null);
   };
 
-  const handleSuspend = async (id: string, providerName: string) => {
-    if (!confirm(`Suspend ${providerName} for unpaid commission? They will be notified.`)) return;
-    setActionId(id);
-    const data = await action(`/api/admin/commissions/${id}/suspend-provider`).catch(() => null);
-    if (data?.success) { toast.success("Provider suspended"); load(page); }
-    else toast.error(data?.message || "Failed");
-    setActionId(null);
+  const handleSuspend = async (id: string) => {
+    if (!window.confirm("Suspend this Fundi for not paying commission?")) return;
+    setProcessing(id);
+    const data = await apiCall(`/api/admin/commissions/${id}/suspend`).catch(() => null);
+    if (data?.success) {
+      toast.success("🚨 Fundi suspended!");
+      fetchCommissions(token, statusFilter);
+      setSelected(null);
+    } else {
+      toast.error(data?.message || "Failed to suspend");
+    }
+    setProcessing(null);
   };
+
+  const filtered = commissions.filter((c) => {
+    const q = search.toLowerCase();
+    return (
+      c.provider?.businessName?.toLowerCase().includes(q) ||
+      c.provider?.user?.phone?.includes(q) ||
+      c.provider?.user?.name?.toLowerCase().includes(q)
+    );
+  });
 
   if (!ready) return (
     <div className="min-h-screen bg-kazi-dark flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-kazi-orange border-t-transparent rounded-full animate-spin" />
     </div>
   );
-
-  const totalPages = Math.ceil(total / 20);
-  const pendingVerif = commissions.filter(c => c.status === "PENDING_VERIFICATION");
 
   return (
     <div className="min-h-screen bg-kazi-cream flex">
@@ -156,7 +192,11 @@ export default function AdminCommissionsPage() {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {NAV.map(({ label, href, icon: Icon }) => (
             <Link key={href} href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${href === "/admin/commissions" ? "bg-kazi-orange text-white" : "text-white/60 hover:text-white hover:bg-white/10"}`}>
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                href === "/admin/commissions"
+                  ? "bg-kazi-orange text-white"
+                  : "text-white/60 hover:text-white hover:bg-white/10"
+              }`}>
               <Icon className="w-4 h-4" />
               {label}
             </Link>
@@ -168,219 +208,292 @@ export default function AdminCommissionsPage() {
         {/* Header */}
         <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-4">
           <div className="flex items-center gap-3 flex-1">
-            <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
-              <span className="text-lg">💰</span>
-            </div>
+            <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center text-lg">💰</div>
             <div>
               <h1 className="text-lg font-black text-kazi-dark">Commission Management</h1>
               <p className="text-xs text-gray-400">Verify payments, waive fees, suspend non-payers</p>
             </div>
           </div>
-          <button onClick={() => load(page)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500">
+          <button onClick={() => fetchCommissions(token, statusFilter)}
+            className="p-2 rounded-xl hover:bg-gray-100 text-gray-500">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-5 space-y-5 max-w-5xl mx-auto">
+        <div className="p-5 space-y-5 max-w-6xl mx-auto">
 
           {/* Stats */}
-          {stats.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {stats.map((s: any) => {
-                const cfg = STATUS_CFG[s.status] || { label: s.status, color: "bg-gray-100 text-gray-600" };
-                return (
-                  <div key={s.status} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <p className={`text-2xl font-black ${s.status === "OVERDUE" ? "text-red-500" : s.status === "PAID" ? "text-green-600" : s.status === "PENDING_VERIFICATION" ? "text-amber-600" : "text-kazi-orange"}`}>
-                      KSh {(s._sum?.amount || 0).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{cfg.label} ({s._count})</p>
-                  </div>
-                );
-              })}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-black text-amber-600">{stats.pendingVerification || 0}</p>
+              <p className="text-xs text-amber-500 mt-1">⏳ Needs Verification</p>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-black text-red-500">{(stats.pending || 0) + (stats.overdue || 0)}</p>
+              <p className="text-xs text-red-400 mt-1">❌ Unpaid</p>
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
+              <p className="text-xl font-black text-green-600">KSh {(stats.totalCollectedAmount || 0).toLocaleString()}</p>
+              <p className="text-xs text-green-500 mt-1">✅ Collected</p>
+            </div>
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-center">
+              <p className="text-xl font-black text-kazi-orange">KSh {(stats.totalPendingAmount || 0).toLocaleString()}</p>
+              <p className="text-xs text-orange-400 mt-1">💰 Pending</p>
+            </div>
+          </div>
+
+          {/* Alert */}
+          {(stats.pendingVerification || 0) > 0 && (
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-black text-amber-700">
+                  {stats.pendingVerification} payment{stats.pendingVerification !== 1 ? "s" : ""} waiting for verification!
+                </p>
+                <p className="text-amber-600 text-sm mt-0.5">
+                  Fundis submitted M-Pesa SMS messages. Check your Equity Bank account and confirm.
+                </p>
+              </div>
             </div>
           )}
 
-          {/* Pending verification — top priority */}
-          {pendingVerif.length > 0 && (
-            <div>
-              <h2 className="text-sm font-black text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <span>📩</span> Awaiting Verification
-                <span className="bg-amber-500 text-white text-xs font-black px-1.5 py-0.5 rounded-full">{pendingVerif.length}</span>
-              </h2>
-              <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm">
-                <div className="px-4 py-3 bg-amber-50 border-b border-amber-100">
-                  <p className="font-black text-amber-700 text-sm">Fundi providers submitted Equity Bank messages — verify below</p>
+          {/* Search + Filter */}
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by provider name or phone..."
+              className="w-full px-4 py-3 bg-white rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-kazi-orange border border-gray-100"
+            />
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {STATUS_FILTERS.map((f) => (
+                <button key={f.key}
+                  onClick={() => { setStatusFilter(f.key); fetchCommissions(token, f.key); }}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    statusFilter === f.key ? "bg-kazi-orange text-white" : "bg-white text-gray-500 shadow-sm border border-gray-100"
+                  }`}>
+                  {f.emoji} {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Split view */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+
+            {/* LEFT — List */}
+            <div className="space-y-3">
+              {loading ? (
+                <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
+                  <div className="w-8 h-8 border-2 border-kazi-orange border-t-transparent rounded-full animate-spin mx-auto" />
                 </div>
-                {pendingVerif.map((c: any) => (
-                  <div key={c.id} className="p-4 border-b border-gray-50 last:border-0">
-                    <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
-                      <div>
-                        <p className="font-bold text-kazi-dark text-sm">{c.provider?.businessName}</p>
-                        <p className="text-xs text-gray-400">{c.provider?.user?.phone}</p>
-                        <p className="text-xs text-gray-400">{c.booking?.service?.name} · KSh {c.amount?.toLocaleString()} commission</p>
+              ) : filtered.length === 0 ? (
+                <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
+                  <p className="text-4xl mb-3">💰</p>
+                  <p className="font-black text-kazi-dark">No commissions found</p>
+                  <p className="text-gray-400 text-sm mt-1">Try changing the filter above</p>
+                </div>
+              ) : (
+                filtered.map((c) => {
+                  const badge = getStatusBadge(c.status);
+                  return (
+                    <button key={c.id} onClick={() => setSelected(c)}
+                      className={`w-full bg-white rounded-2xl p-4 text-left shadow-sm transition-all hover:shadow-md ${
+                        selected?.id === c.id ? "ring-2 ring-kazi-orange" : "border border-gray-100"
+                      }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center font-black text-kazi-orange text-sm flex-shrink-0">
+                            {c.provider?.businessName?.charAt(0) || "?"}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-kazi-dark text-sm truncate">{c.provider?.businessName}</p>
+                            <p className="text-xs text-gray-400">{c.provider?.user?.phone}</p>
+                          </div>
+                        </div>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${badge.style}`}>
+                          {badge.label}
+                        </span>
                       </div>
-                      <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">PENDING VERIFICATION</span>
-                    </div>
-                    <div className="mt-2 mb-3 space-y-2">
-                      <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs font-bold text-gray-400 mb-1">M-Pesa SMS Message:</p>
-                        {c.mpesaRef
-                          ? <p className="text-sm text-gray-700 leading-relaxed break-words">{c.mpesaRef}</p>
-                          : <p className="text-sm text-red-400 italic">No message submitted yet</p>
-                        }
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-gray-400 truncate flex-1">
+                          {c.booking?.service?.name || "Service"} · {c.booking?.customer?.name || "Customer"}
+                        </p>
+                        <p className="font-black text-kazi-orange ml-2">KSh {(c.commissionAmount || c.amount || 0).toLocaleString()}</p>
                       </div>
-                      <div className="bg-blue-50 rounded-xl p-3">
-                        <p className="text-blue-600 text-xs font-bold">📱 Check Equity Bank:</p>
-                        <p className="text-blue-500 text-xs mt-1">
-                          Verify this payment arrived in your Equity Bank account <strong>0795542312</strong> from Paybill <strong>247247</strong>
+                      {c.mpesaRef && (
+                        <p className="text-xs text-green-600 mt-1 truncate">📱 SMS submitted</p>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* RIGHT — Detail */}
+            {selected ? (
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden sticky top-24">
+                {/* Detail header */}
+                <div className={`p-4 ${
+                  selected.status === "PENDING_VERIFICATION" ? "bg-amber-500"
+                  : selected.status === "PAID"               ? "bg-green-500"
+                  : selected.status === "WAIVED"             ? "bg-purple-500"
+                  : "bg-kazi-dark"
+                }`}>
+                  <p className="text-white font-black text-lg leading-tight">{selected.provider?.businessName}</p>
+                  <p className="text-white/70 text-sm">{selected.provider?.user?.phone}</p>
+                </div>
+
+                <div className="p-5 space-y-4 max-h-[600px] overflow-y-auto">
+                  {/* Amount */}
+                  <div className="bg-kazi-orange/10 rounded-2xl p-4 text-center">
+                    <p className="text-xs text-gray-400">Commission Due</p>
+                    <p className="font-black text-kazi-orange text-3xl">
+                      KSh {(selected.commissionAmount || selected.amount || 0).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      10% of KSh {(selected.cashAmount || 0).toLocaleString()} job
+                    </p>
+                  </div>
+
+                  {/* Job info */}
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Job Details</p>
+                    {[
+                      ["Service",   selected.booking?.service?.name  || "—"],
+                      ["Customer",  selected.booking?.customer?.name || "—"],
+                      ["Job Value", `KSh ${(selected.cashAmount || 0).toLocaleString()}`],
+                      ["Submitted", new Date(selected.createdAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex justify-between text-xs">
+                        <span className="text-gray-400">{k}</span>
+                        <span className="font-bold text-right ml-2">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* SMS message */}
+                  {selected.mpesaRef ? (
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">📱 M-Pesa SMS Submitted</p>
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                        <p className="text-green-700 text-sm leading-relaxed break-words">{selected.mpesaRef}</p>
+                      </div>
+                      <div className="bg-blue-50 rounded-xl p-3 mt-2">
+                        <p className="text-blue-600 text-xs font-bold">✅ Check your Equity Bank account:</p>
+                        <p className="text-blue-500 text-xs mt-0.5">
+                          Verify KSh {(selected.commissionAmount || selected.amount || 0).toLocaleString()} was received at Paybill <strong>247247</strong> Account <strong>0795542312</strong>
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleConfirm(c.id)} disabled={actionId === c.id}
-                        className="flex-1 py-2 bg-green-500 text-white font-bold rounded-xl text-xs disabled:opacity-50">
-                        {actionId === c.id ? "..." : "✅ Confirm Payment"}
+                  ) : selected.status === "PENDING" || selected.status === "OVERDUE" ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                      <p className="text-red-600 font-bold text-sm">❌ No payment submitted yet</p>
+                      <p className="text-red-400 text-xs mt-1">
+                        This Fundi has not paid their commission. You can suspend them if overdue.
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {/* Contact */}
+                  <div className="flex gap-2">
+                    <a href={`tel:${selected.provider?.user?.phone}`}
+                      className="flex-1 py-2.5 bg-gray-100 text-gray-600 font-bold rounded-xl text-xs flex items-center justify-center gap-1">
+                      <Phone className="w-3 h-3" /> Call Fundi
+                    </a>
+                    <a href={`https://wa.me/${(selected.provider?.user?.phone || "").replace(/^0/, "254")}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex-1 py-2.5 bg-green-100 text-green-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1">
+                      💬 WhatsApp
+                    </a>
+                  </div>
+
+                  {/* Actions — PENDING_VERIFICATION */}
+                  {selected.status === "PENDING_VERIFICATION" && (
+                    <div className="space-y-2 pt-2">
+                      <p className="font-black text-kazi-dark text-sm text-center">Your Decision:</p>
+                      <button onClick={() => setShowRejectModal(true)} disabled={processing === selected.id}
+                        className="w-full py-3 bg-red-50 border-2 border-red-200 text-red-600 font-bold rounded-2xl text-sm disabled:opacity-50">
+                        ❌ Reject — Not Received
                       </button>
-                      <button onClick={() => handleReject(c.id)} disabled={actionId === c.id}
-                        className="flex-1 py-2 bg-red-100 text-red-600 font-bold rounded-xl text-xs disabled:opacity-50">
-                        ❌ Reject
+                      <button onClick={() => handleWaive(selected.id)} disabled={processing === selected.id}
+                        className="w-full py-3 bg-purple-50 border-2 border-purple-200 text-purple-600 font-bold rounded-2xl text-sm disabled:opacity-50">
+                        🎁 Waive Commission
+                      </button>
+                      <button onClick={() => handleConfirm(selected.id)} disabled={processing === selected.id}
+                        className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-black rounded-2xl text-sm disabled:opacity-50 transition-colors">
+                        {processing === selected.id ? "Processing..." : "✅ Confirm — Payment Received"}
                       </button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  )}
 
-          {/* Filters */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-wrap gap-3 items-center">
-            <div className="flex items-center gap-2 flex-1 min-w-44 bg-gray-50 rounded-xl px-3 py-2">
-              <Search className="w-4 h-4 text-gray-400" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && load(1)}
-                placeholder="Search provider..."
-                className="bg-transparent text-sm flex-1 outline-none" />
-            </div>
-            <div className="relative">
-              <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setTimeout(() => load(1), 0); }}
-                className="appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm font-semibold text-kazi-dark outline-none">
-                <option value="">All Status</option>
-                <option value="PENDING">Pending</option>
-                <option value="OVERDUE">Overdue</option>
-                <option value="PENDING_VERIFICATION">Verifying</option>
-                <option value="PAID">Paid</option>
-                <option value="WAIVED">Waived</option>
-              </select>
-              <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
+                  {/* Actions — PENDING / OVERDUE */}
+                  {(selected.status === "PENDING" || selected.status === "OVERDUE") && (
+                    <div className="space-y-2 pt-2">
+                      <button onClick={() => handleWaive(selected.id)} disabled={processing === selected.id}
+                        className="w-full py-3 bg-purple-50 border border-purple-200 text-purple-600 font-bold rounded-2xl text-sm disabled:opacity-50">
+                        🎁 Waive Commission
+                      </button>
+                      <button onClick={() => handleSuspend(selected.id)} disabled={processing === selected.id}
+                        className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl text-sm disabled:opacity-50 transition-colors">
+                        {processing === selected.id ? "Processing..." : "🚨 Suspend Fundi"}
+                      </button>
+                    </div>
+                  )}
 
-          {/* Commission list */}
-          <div className="space-y-3">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 animate-pulse">
-                  <div className="h-5 w-48 bg-gray-100 rounded mb-2" />
-                  <div className="h-4 w-32 bg-gray-100 rounded" />
+                  {/* Paid state */}
+                  {(selected.status === "PAID" || selected.status === "WAIVED") && (
+                    <div className={`rounded-2xl p-4 text-center ${selected.status === "PAID" ? "bg-green-50" : "bg-purple-50"}`}>
+                      <p className={`font-black ${selected.status === "PAID" ? "text-green-600" : "text-purple-600"}`}>
+                        {selected.status === "PAID" ? "✅ Commission Paid" : "🎁 Commission Waived"}
+                      </p>
+                      {selected.paidAt && (
+                        <p className="text-gray-400 text-xs mt-1">
+                          {new Date(selected.paidAt).toLocaleDateString("en-KE")}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))
-            ) : commissions.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 text-center border border-gray-100 shadow-sm">
-                <CheckCircle className="w-10 h-10 text-green-300 mx-auto mb-3" />
-                <p className="font-black text-gray-500">No commissions found</p>
               </div>
             ) : (
-              commissions.map((c: any) => {
-                const cfg = STATUS_CFG[c.status] || STATUS_CFG.PENDING;
-                const hours = (Date.now() - new Date(c.createdAt).getTime()) / 3600000;
-                const isOverdue = ["PENDING", "OVERDUE"].includes(c.status) && hours >= 8;
-                return (
-                  <div key={c.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${isOverdue ? "border-red-200" : "border-gray-100"}`}>
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div>
-                          <p className="font-black text-kazi-dark text-sm">{c.provider?.businessName}</p>
-                          <p className="text-xs text-gray-400">{c.provider?.user?.phone}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{c.booking?.service?.name || "Service"}</p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-kazi-dark">KSh {c.amount?.toLocaleString()}</span>
-                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${cfg.color}`}>{cfg.label}</span>
-                          {isOverdue && (
-                            <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full bg-red-100 text-red-600">
-                              <Clock className="w-3 h-3" /> {Math.floor(hours)}h overdue
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {c.mpesaRef && (
-                        <div className="mt-3 space-y-2">
-                          <div className="bg-gray-50 rounded-xl p-3">
-                            <p className="text-xs font-bold text-gray-400 mb-1">M-Pesa SMS Message:</p>
-                            <p className="text-sm text-gray-700 leading-relaxed break-words">{c.mpesaRef}</p>
-                          </div>
-                          {c.status === "PENDING_VERIFICATION" && (
-                            <div className="bg-blue-50 rounded-xl p-3">
-                              <p className="text-blue-600 text-xs font-bold">📱 Check Equity Bank:</p>
-                              <p className="text-blue-500 text-xs mt-1">
-                                Verify this payment arrived in your Equity Bank account <strong>0795542312</strong> from Paybill <strong>247247</strong>
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex gap-2 mt-3 flex-wrap">
-                        {c.status === "PENDING_VERIFICATION" && (
-                          <>
-                            <button onClick={() => handleConfirm(c.id)} disabled={actionId === c.id}
-                              className="px-3 py-1.5 bg-green-500 text-white font-bold rounded-lg text-xs disabled:opacity-50">
-                              ✅ Confirm
-                            </button>
-                            <button onClick={() => handleReject(c.id)} disabled={actionId === c.id}
-                              className="px-3 py-1.5 bg-red-100 text-red-600 font-bold rounded-lg text-xs disabled:opacity-50">
-                              ❌ Reject
-                            </button>
-                          </>
-                        )}
-                        {["PENDING", "OVERDUE"].includes(c.status) && (
-                          <>
-                            <button onClick={() => handleWaive(c.id)} disabled={actionId === c.id}
-                              className="px-3 py-1.5 bg-gray-100 text-gray-600 font-bold rounded-lg text-xs disabled:opacity-50">
-                              Waive
-                            </button>
-                            {isOverdue && (
-                              <button onClick={() => handleSuspend(c.id, c.provider?.businessName)} disabled={actionId === c.id}
-                                className="px-3 py-1.5 bg-red-500 text-white font-bold rounded-lg text-xs disabled:opacity-50 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> Suspend
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+              <div className="bg-white rounded-2xl p-10 text-center shadow-sm border border-gray-100 flex flex-col items-center justify-center min-h-64">
+                <p className="text-5xl mb-3">💰</p>
+                <p className="font-bold text-kazi-dark">Select a commission to review</p>
+                <p className="text-gray-400 text-sm mt-1">Click any commission from the list</p>
+              </div>
             )}
           </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <button onClick={() => load(page - 1)} disabled={page === 1 || loading}
-                className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 disabled:opacity-40">
-                Previous
-              </button>
-              <span className="text-sm text-gray-500 font-semibold">Page {page} of {totalPages} · {total} total</span>
-              <button onClick={() => load(page + 1)} disabled={page === totalPages || loading}
-                className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 disabled:opacity-40">
-                Next
-              </button>
-            </div>
-          )}
         </div>
       </main>
+
+      {/* Reject Modal */}
+      {showRejectModal && selected && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="font-black text-kazi-dark text-xl mb-2">❌ Reject Payment</h3>
+            <p className="text-gray-400 text-sm mb-4">Tell the Fundi why their payment was rejected</p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Payment not found in Equity Bank. Please check and resubmit."
+              rows={3}
+              className="w-full p-3 border-2 border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-red-400 mb-4"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => { setShowRejectModal(false); setRejectReason(""); }}
+                className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-2xl">
+                Cancel
+              </button>
+              <button onClick={() => handleReject(selected.id)} disabled={processing === selected.id}
+                className="flex-1 py-3 bg-red-500 text-white font-black rounded-2xl disabled:opacity-60">
+                {processing === selected.id ? "..." : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
