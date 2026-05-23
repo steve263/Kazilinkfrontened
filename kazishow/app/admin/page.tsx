@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Users, ShoppingBag, DollarSign, Clock, Activity, Star,
-  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, Gavel, XCircle, Megaphone, ShieldAlert, CreditCard, BadgeCheck, Settings,
+  CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, Gavel, XCircle, Megaphone, ShieldAlert, CreditCard, BadgeCheck, Settings, Bell, X, Trash2,
 } from "lucide-react";
 import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
@@ -71,6 +71,21 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [token, setToken] = useState("");
   const [liveVisitors, setLiveVisitors] = useState(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  // Close notification panel when clicking outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    if (notifOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [notifOpen]);
 
   useEffect(() => {
     const socket = io(API, { transports: ["websocket"] });
@@ -117,6 +132,92 @@ export default function AdminDashboard() {
   }, [ready, token]);
 
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!token) return;
+    try {
+      const r = await fetch(`${API}/api/notifications?limit=40`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (d.success) {
+        const list = d.data?.notifications || d.data || [];
+        setNotifications(list);
+        setUnreadCount(list.filter((n: any) => !n.isRead).length);
+      }
+    } catch {}
+  }, [token]);
+
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  // Auto-refresh dashboard + notifications every 5 seconds
+  useEffect(() => {
+    if (!ready || !token) return;
+    const interval = setInterval(() => {
+      fetchDashboard();
+      fetchNotifications();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [ready, token, fetchDashboard, fetchNotifications]);
+
+  const handleMarkAllRead = async () => {
+    await fetch(`${API}/api/notifications/read-all`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+  };
+
+  const handleDeleteNotif = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await fetch(`${API}/api/notifications/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+    setNotifications((prev) => {
+      const updated = prev.filter((n) => n.id !== id);
+      setUnreadCount(updated.filter((n) => !n.isRead).length);
+      return updated;
+    });
+  };
+
+  const handleMarkRead = async (id: string) => {
+    await fetch(`${API}/api/notifications/${id}/read`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+  };
+
+  function notifIcon(title: string, type: string) {
+    const t = (title || "").toLowerCase();
+    if (t.includes("commission") && t.includes("paid")) return "✅";
+    if (t.includes("commission") && t.includes("verify")) return "💰";
+    if (t.includes("commission") && t.includes("reject")) return "❌";
+    if (t.includes("payment") || t.includes("released") || t.includes("earned")) return "💸";
+    if (t.includes("suspend") || t.includes("🚨")) return "🚨";
+    if (t.includes("dispute")) return "⚖️";
+    if (t.includes("refund")) return "↩️";
+    if (t.includes("book") && t.includes("cancel")) return "🚫";
+    if (t.includes("book")) return "📋";
+    if (t.includes("approved") || t.includes("activated") || t.includes("✅")) return "✅";
+    if (t.includes("subscription")) return "📦";
+    if (t.includes("review") || t.includes("rating")) return "⭐";
+    if (t.includes("report")) return "🚩";
+    return "🔔";
+  }
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
 
   function logout() {
     localStorage.removeItem("kazishow_token");
@@ -302,6 +403,119 @@ export default function AdminDashboard() {
             <button onClick={fetchDashboard} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-xl transition-colors">
               <RefreshCw className="w-3.5 h-3.5" /><span className="hidden sm:inline">Refresh</span>
             </button>
+
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => { setNotifOpen((o) => !o); if (!notifOpen) fetchNotifications(); }}
+                className="relative p-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                <Bell className="w-5 h-5 text-gray-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-0.5 leading-none">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 top-11 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-kazi-orange" />
+                      <p className="font-black text-kazi-dark text-sm">Notifications</p>
+                      {unreadCount > 0 && (
+                        <span className="text-xs bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button onClick={handleMarkAllRead}
+                          className="text-xs text-kazi-orange font-bold hover:underline whitespace-nowrap">
+                          Mark all read
+                        </button>
+                      )}
+                      <button onClick={() => setNotifOpen(false)}
+                        className="p-1 rounded-lg hover:bg-gray-200 transition-colors">
+                        <X className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Notification list */}
+                  <div className="max-h-[420px] overflow-y-auto divide-y divide-gray-50">
+                    {notifications.length === 0 ? (
+                      <div className="py-10 text-center">
+                        <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                        <p className="text-gray-400 text-sm">No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => !n.isRead && handleMarkRead(n.id)}
+                          className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer ${
+                            !n.isRead ? "bg-orange-50 hover:bg-orange-100/60" : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <span className="text-xl flex-shrink-0 mt-0.5 leading-none">
+                            {notifIcon(n.title, n.type)}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-bold leading-snug ${!n.isRead ? "text-kazi-dark" : "text-gray-600"}`}>
+                              {n.title}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">
+                              {n.body}
+                            </p>
+                            <p className="text-[10px] text-gray-300 mt-1">{timeAgo(n.createdAt)}</p>
+                          </div>
+                          <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                            {!n.isRead && (
+                              <span className="w-2 h-2 rounded-full bg-kazi-orange flex-shrink-0" />
+                            )}
+                            <button
+                              onClick={(e) => handleDeleteNotif(n.id, e)}
+                              className="p-1 rounded-lg hover:bg-red-50 transition-colors group"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-gray-300 group-hover:text-red-400 transition-colors" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  {notifications.length > 0 && (
+                    <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                      <p className="text-xs text-gray-400">{notifications.length} total</p>
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Delete all notifications?")) return;
+                          await Promise.all(
+                            notifications.map((n) =>
+                              fetch(`${API}/api/notifications/${n.id}`, {
+                                method: "DELETE",
+                                headers: { Authorization: `Bearer ${token}` },
+                              }).catch(() => {})
+                            )
+                          );
+                          setNotifications([]);
+                          setUnreadCount(0);
+                        }}
+                        className="text-xs text-red-400 hover:text-red-600 font-bold flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete all
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
