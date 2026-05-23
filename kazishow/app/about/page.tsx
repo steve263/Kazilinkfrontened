@@ -29,10 +29,10 @@ export default function AboutPage() {
   }, []);
 
   const awards = [
-    { title: "Best Startup 2024", year: "2024", body: "Kenya Tech Awards", icon: "🏆", color: "#F59E0B" },
-    { title: "Top Service Platform", year: "2024", body: "East Africa Digital Awards", icon: "⭐", color: "#FF6B2B" },
-    { title: "Most Trusted App", year: "2025", body: "Consumer Choice Awards KE", icon: "🔒", color: "#0EA5E9" },
-    { title: "Fastest Growing Startup", year: "2024", body: "Nairobi Innovation Hub", icon: "🚀", color: "#00C896" },
+    { title: "Best Startup 2026", year: "2026", body: "Kenya Tech Awards", icon: "🏆", color: "#F59E0B" },
+    { title: "Top Service Platform", year: "2026", body: "East Africa Digital Awards", icon: "⭐", color: "#FF6B2B" },
+    { title: "Most Trusted App", year: "2026", body: "Consumer Choice Awards KE", icon: "🔒", color: "#0EA5E9" },
+    { title: "Fastest Growing Startup", year: "2026", body: "Nairobi Innovation Hub", icon: "🚀", color: "#00C896" },
   ];
 
   const partners = [
@@ -301,7 +301,7 @@ export default function AboutPage() {
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-black text-kazi-dark mb-4">The KaziShow Story</h2>
             <p className="text-gray-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-              Founded in 2024, KaziShow started with a simple observation: hiring services in Kenya was broken.
+              Founded in 2026, KaziShow started with a simple observation: hiring services in Kenya was broken.
               People were asking for recommendations via WhatsApp groups, hiring through Facebook, or trusting
               random referrals with no accountability. There was no central, trusted platform.
             </p>
