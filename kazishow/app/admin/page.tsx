@@ -33,6 +33,7 @@ const NAV = [
   { label: "Users",           href: "/admin/users",              icon: Users       },
   { label: "Bookings",        href: "/admin/bookings",           icon: ShoppingBag },
   { label: "Analytics",       href: "/admin/analytics",          icon: Activity    },
+  { label: "Finance",         href: "/admin/finance",            icon: DollarSign  },
   { label: "Trust & Safety",  href: "/admin/trust",              icon: Shield      },
   { label: "Appeals",         href: "/admin/appeals",            icon: Scale       },
   { label: "Disputes",        href: "/admin/disputes",           icon: Gavel       },
