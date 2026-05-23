@@ -494,16 +494,28 @@ export default function AdminCommissionsPage() {
                     </div>
                   )}
 
-                  {/* Paid state */}
+                  {/* Paid / Waived state */}
                   {(selected.status === "PAID" || selected.status === "WAIVED") && (
-                    <div className={`rounded-2xl p-4 text-center ${selected.status === "PAID" ? "bg-green-50" : "bg-purple-50"}`}>
-                      <p className={`font-black ${selected.status === "PAID" ? "text-green-600" : "text-purple-600"}`}>
-                        {selected.status === "PAID" ? "✅ Commission Paid" : "🎁 Commission Waived"}
-                      </p>
-                      {selected.paidAt && (
-                        <p className="text-gray-400 text-xs mt-1">
-                          {new Date(selected.paidAt).toLocaleDateString("en-KE")}
+                    <div className="space-y-3">
+                      <div className={`rounded-2xl p-4 text-center ${selected.status === "PAID" ? "bg-green-50" : "bg-purple-50"}`}>
+                        <p className={`font-black ${selected.status === "PAID" ? "text-green-600" : "text-purple-600"}`}>
+                          {selected.status === "PAID" ? "✅ Commission Paid" : "🎁 Commission Waived"}
                         </p>
+                        {selected.paidAt && (
+                          <p className="text-gray-400 text-xs mt-1">
+                            {new Date(selected.paidAt).toLocaleDateString("en-KE")}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Unsuspend button — shown if account is still suspended despite payment */}
+                      {selected.provider?.user?.isSuspended && (
+                        <button
+                          onClick={() => handleUnsuspend(selected.provider.user.id, selected.id)}
+                          disabled={processing === selected.id}
+                          className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-black rounded-2xl text-sm disabled:opacity-50 transition-colors">
+                          {processing === selected.id ? "Processing..." : "✅ Reinstate Fundi Account"}
+                        </button>
                       )}
                     </div>
                   )}
