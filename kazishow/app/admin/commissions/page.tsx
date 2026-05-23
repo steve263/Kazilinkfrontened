@@ -62,6 +62,15 @@ export default function AdminCommissionsPage() {
   const [selected, setSelected] = useState<any>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [showWaiveModal, setShowWaiveModal] = useState(false);
+  const [waiveReason, setWaiveReason] = useState("");
+
+  const WAIVE_REASONS = [
+    { icon: "⚖️", label: "Job had a dispute or complaint", desc: "The job was disputed — commission not applicable." },
+    { icon: "🌱", label: "New Fundi — grace period", desc: "First-time Fundi, giving them a grace period to settle in." },
+    { icon: "⚙️", label: "System error on commission", desc: "Commission was wrongly created due to a system error." },
+    { icon: "🏆", label: "Rewarding top-performing Fundi", desc: "Exceptional service — waiving as a reward." },
+  ];
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
 
@@ -131,12 +140,19 @@ export default function AdminCommissionsPage() {
     setProcessing(null);
   };
 
-  const handleWaive = async (id: string) => {
-    if (!window.confirm("Waive this commission? Fundi will not need to pay.")) return;
-    setProcessing(id);
-    const data = await apiCall(`/api/admin/commissions/${id}/waive`).catch(() => null);
+  const handleWaive = (id: string) => {
+    setWaiveReason("");
+    setShowWaiveModal(true);
+  };
+
+  const submitWaive = async () => {
+    if (!waiveReason || !selected) return;
+    setProcessing(selected.id);
+    const data = await apiCall(`/api/admin/commissions/${selected.id}/waive`, "PUT", { reason: waiveReason }).catch(() => null);
     if (data?.success) {
-      toast.success("🎁 Commission waived!");
+      toast.success("🎁 Commission waived! Fundi notified.");
+      setShowWaiveModal(false);
+      setWaiveReason("");
       fetchCommissions(token, statusFilter);
       setSelected(null);
     } else {
@@ -503,6 +519,49 @@ export default function AdminCommissionsPage() {
           </div>
         </div>
       </main>
+
+      {/* Waive Modal */}
+      {showWaiveModal && selected && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="font-black text-kazi-dark text-xl mb-1">🎁 Waive Commission</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Select the reason for waiving KSh {(selected.commissionAmount || selected.amount || 0).toLocaleString()} for <strong>{selected.provider?.businessName}</strong>
+            </p>
+
+            <div className="space-y-2 mb-4">
+              {WAIVE_REASONS.map((r) => (
+                <button
+                  key={r.label}
+                  onClick={() => setWaiveReason(r.desc)}
+                  className={`w-full flex items-start gap-3 p-3 rounded-2xl border-2 text-left transition-all ${
+                    waiveReason === r.desc
+                      ? "border-purple-500 bg-purple-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <span className="text-xl flex-shrink-0">{r.icon}</span>
+                  <div>
+                    <p className={`text-sm font-bold ${waiveReason === r.desc ? "text-purple-700" : "text-kazi-dark"}`}>{r.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{r.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => { setShowWaiveModal(false); setWaiveReason(""); }}
+                className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-2xl">
+                Cancel
+              </button>
+              <button onClick={submitWaive} disabled={!waiveReason || processing === selected.id}
+                className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 text-white font-black rounded-2xl disabled:opacity-40 transition-colors">
+                {processing === selected.id ? "Waiving..." : "🎁 Waive"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal */}
       {showRejectModal && selected && (
