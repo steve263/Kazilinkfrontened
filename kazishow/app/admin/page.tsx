@@ -150,13 +150,13 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
-  // Auto-refresh dashboard + notifications every 5 seconds
+  // Auto-refresh dashboard + notifications every 1 minute
   useEffect(() => {
     if (!ready || !token) return;
     const interval = setInterval(() => {
       fetchDashboard();
       fetchNotifications();
-    }, 5000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [ready, token, fetchDashboard, fetchNotifications]);
 
