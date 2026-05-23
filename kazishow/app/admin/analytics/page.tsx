@@ -6,7 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer,
 } from "recharts";
-import { ArrowLeft, RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowLeft, RefreshCw, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -42,7 +42,12 @@ export default function AnalyticsDashboard() {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<any>(null);
-  const [period, setPeriod] = useState(30);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [sortBy, setSortBy] = useState("bookings");
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
@@ -51,7 +56,7 @@ export default function AnalyticsDashboard() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/admin/analytics?period=${period}`, {
+      const res = await fetch(`${API}/api/admin/analytics?startDate=${startDate}&endDate=${endDate}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const text = await res.text();
@@ -64,7 +69,7 @@ export default function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [token, period]);
+  }, [token, startDate, endDate]);
 
   useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
 
@@ -163,14 +168,30 @@ export default function AnalyticsDashboard() {
           <h1 className="text-lg font-black text-kazi-dark">📊 Analytics Dashboard</h1>
           <p className="text-xs text-gray-400">Real-time insights for KaziShow</p>
         </div>
-        <div className="flex gap-2 items-center">
-          {[7, 14, 30, 90].map((d) => (
-            <button key={d} onClick={() => setPeriod(d)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${period === d ? "bg-kazi-orange text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
-              {d}d
-            </button>
-          ))}
-          <button onClick={fetchAnalytics} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-xl transition-colors ml-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl px-3 py-1.5">
+            <Calendar className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+            <input
+              type="date"
+              value={startDate}
+              max={endDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent text-xs font-bold text-gray-700 outline-none cursor-pointer"
+            />
+          </div>
+          <span className="text-xs text-gray-400 font-bold">to</span>
+          <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl px-3 py-1.5">
+            <Calendar className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+            <input
+              type="date"
+              value={endDate}
+              min={startDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent text-xs font-bold text-gray-700 outline-none cursor-pointer"
+            />
+          </div>
+          <button onClick={fetchAnalytics} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-xl transition-colors">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
           </button>
         </div>
@@ -215,7 +236,7 @@ export default function AnalyticsDashboard() {
 
           {/* Daily bookings + revenue chart */}
           <div className="bg-white rounded-2xl p-6">
-            <h2 className="font-black text-kazi-dark text-base mb-5">📈 Daily Bookings &amp; Revenue (last {period} days)</h2>
+            <h2 className="font-black text-kazi-dark text-base mb-5">📈 Daily Bookings &amp; Revenue ({startDate} → {endDate})</h2>
             {(a.dailyBookings || []).length === 0 ? (
               <p className="text-center text-gray-400 py-16 text-sm">No data for this period</p>
             ) : (
