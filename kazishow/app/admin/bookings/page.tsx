@@ -39,6 +39,7 @@ export default function BookingsPage() {
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any | null>(null);
+  const [editingPayment, setEditingPayment] = useState<string | null>(null);
 
   useEffect(() => { if (ready) setToken(getAdminToken()); }, [ready]);
 
@@ -57,6 +58,22 @@ export default function BookingsPage() {
   }, [token, page, search, status, dateFrom, dateTo]);
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
+
+  async function changePaymentStatus(id: string, newPaymentStatus: string) {
+    const r = await fetch(`${API}/api/admin/bookings/${id}/payment-status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ paymentStatus: newPaymentStatus }),
+    });
+    const d = await r.json();
+    if (d.success) {
+      toast.success(`Payment marked as ${newPaymentStatus}`);
+      setEditingPayment(null);
+      fetchBookings();
+    } else {
+      toast.error(d.message);
+    }
+  }
 
   async function changeStatus(id: string, newStatus: string) {
     const r = await fetch(`${API}/api/admin/bookings/${id}/status`, {
@@ -180,19 +197,46 @@ export default function BookingsPage() {
                 {loading ? Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}><td colSpan={8} className="px-4 py-3"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td></tr>
                 )) : bookings.map((b, i) => (
-                  <tr key={b.id} className={`border-b border-gray-50 hover:bg-orange-50/20 cursor-pointer ${i % 2 ? "bg-gray-50/40" : ""}`} onClick={() => setSelected(b)}>
-                    <td className="px-4 py-3 font-medium text-kazi-dark">{b.customer?.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{b.provider?.businessName}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{b.service?.name || "—"}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{new Date(b.scheduledDate || b.createdAt).toLocaleDateString("en-KE")}</td>
-                    <td className="px-4 py-3 font-semibold">KSh {b.totalAmount?.toLocaleString()}</td>
+                  <tr key={b.id} className={`border-b border-gray-50 hover:bg-orange-50/20 ${i % 2 ? "bg-gray-50/40" : ""}`}>
+                    <td className="px-4 py-3 font-medium text-kazi-dark cursor-pointer" onClick={() => setSelected(b)}>{b.customer?.name}</td>
+                    <td className="px-4 py-3 text-gray-600 cursor-pointer" onClick={() => setSelected(b)}>{b.provider?.businessName}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs cursor-pointer" onClick={() => setSelected(b)}>{b.service?.name || "—"}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs cursor-pointer" onClick={() => setSelected(b)}>{new Date(b.scheduledDate || b.createdAt).toLocaleDateString("en-KE")}</td>
+                    <td className="px-4 py-3 font-semibold cursor-pointer" onClick={() => setSelected(b)}>KSh {b.totalAmount?.toLocaleString()}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${PAYMENT_COLOR[b.paymentStatus] || "bg-gray-100"}`}>{b.paymentStatus}</span>
+                      {editingPayment === b.id ? (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            autoFocus
+                            defaultValue={b.paymentStatus}
+                            onChange={(e) => changePaymentStatus(b.id, e.target.value)}
+                            onBlur={() => setEditingPayment(null)}
+                            className="text-xs font-bold border-2 border-kazi-orange rounded-lg px-2 py-1 outline-none bg-white"
+                          >
+                            <option value="UNPAID">UNPAID</option>
+                            <option value="PAID">PAID</option>
+                            <option value="REFUNDED">REFUNDED</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${PAYMENT_COLOR[b.paymentStatus] || "bg-gray-100"}`}>
+                            {b.paymentStatus}
+                          </span>
+                          <button
+                            onClick={() => setEditingPayment(b.id)}
+                            className="text-xs px-1.5 py-0.5 bg-gray-100 hover:bg-kazi-orange hover:text-white text-gray-500 rounded-lg font-bold transition-colors"
+                            title="Edit payment status"
+                          >
+                            ✏️
+                          </button>
+                        </div>
+                      )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 cursor-pointer" onClick={() => setSelected(b)}>
                       <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${STATUS_COLOR[b.status] || "bg-gray-100 text-gray-600"}`}>{b.status}</span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-kazi-orange font-semibold">Details →</td>
+                    <td className="px-4 py-3 text-xs text-kazi-orange font-semibold cursor-pointer" onClick={() => setSelected(b)}>Details →</td>
                   </tr>
                 ))}
               </tbody>
