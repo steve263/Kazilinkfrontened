@@ -194,3 +194,77 @@ body.suspended {
   right: 0;
   border: 2px solid white;
 }
+
+/* ── Admin Dark Mode ─────────────────────────────────────────────────────────
+   Applied via .admin-dark wrapper in app/admin/layout.tsx
+   Overrides common Tailwind utility classes used across admin pages
+   without requiring changes to individual page files.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.admin-dark {
+  --adm-bg:        #0f172a;
+  --adm-surface:   #1e293b;
+  --adm-surface2:  #273549;
+  --adm-surface3:  #334155;
+  --adm-border:    #334155;
+  --adm-text:      #f1f5f9;
+  --adm-muted:     #94a3b8;
+  --adm-faint:     #64748b;
+  color-scheme: dark;
+}
+
+/* Page backgrounds */
+.admin-dark,
+.admin-dark .min-h-screen,
+.admin-dark .bg-kazi-cream { background-color: var(--adm-bg) !important; }
+
+/* Cards / panels */
+.admin-dark .bg-white          { background-color: var(--adm-surface)  !important; }
+.admin-dark .bg-gray-50        { background-color: var(--adm-surface2) !important; }
+.admin-dark .bg-gray-100       { background-color: var(--adm-surface3) !important; }
+.admin-dark .bg-gray-200       { background-color: var(--adm-surface3) !important; }
+
+/* Sticky headers */
+.admin-dark .sticky { background-color: var(--adm-surface) !important; }
+
+/* Borders */
+.admin-dark .border-gray-100,
+.admin-dark .border-gray-200   { border-color: var(--adm-border) !important; }
+.admin-dark .divide-gray-100   { border-color: var(--adm-border) !important; }
+
+/* Text */
+.admin-dark .text-kazi-dark    { color: var(--adm-text)  !important; }
+.admin-dark .text-gray-700     { color: var(--adm-text)  !important; }
+.admin-dark .text-gray-600     { color: var(--adm-muted) !important; }
+.admin-dark .text-gray-500     { color: var(--adm-muted) !important; }
+.admin-dark .text-gray-400     { color: var(--adm-faint) !important; }
+
+/* Inputs & selects */
+.admin-dark input,
+.admin-dark select,
+.admin-dark textarea {
+  background-color: var(--adm-surface2) !important;
+  color: var(--adm-text)   !important;
+  border-color: var(--adm-border) !important;
+}
+.admin-dark input::placeholder,
+.admin-dark textarea::placeholder { color: var(--adm-faint) !important; }
+
+/* Table rows */
+.admin-dark thead tr          { background-color: var(--adm-surface2) !important; }
+.admin-dark tbody tr:hover    { background-color: rgba(255,107,43,0.06) !important; }
+.admin-dark tbody tr.bg-gray-50\/40 { background-color: rgba(30,41,59,0.6) !important; }
+
+/* Table header text */
+.admin-dark th { color: var(--adm-muted) !important; }
+
+/* Shadows → darker version */
+.admin-dark .card-shadow,
+.admin-dark .shadow-sm,
+.admin-dark .shadow-xl {
+  box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
+}
+
+/* Scrollbar in dark mode */
+.admin-dark ::-webkit-scrollbar-track { background: var(--adm-surface2); }
+.admin-dark ::-webkit-scrollbar-thumb { background: #ff6b2b; }
