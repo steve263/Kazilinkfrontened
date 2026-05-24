@@ -328,19 +328,19 @@ function DirectPaymentView({
               6
             </div>
             <div className="flex-1">
-              <p className="font-bold text-kazi-dark text-sm">Paste Full M-Pesa SMS Here</p>
+              <p className="font-black text-kazi-dark text-sm">Paste Your Equity Bank Message Here</p>
               <p className="text-gray-400 text-xs mt-0.5 mb-2">
-                Copy and paste the entire SMS you receive from M-Pesa
+                The message sent to you from Equity Bank after payment
               </p>
               <textarea
                 value={mpesaCode}
                 onChange={(e) => setMpesaCode(e.target.value)}
-                placeholder={`Paste the full M-Pesa SMS here\n\nExample:\nConfirmed. Payment of KES ${commissionAmount} to KAZISHOW Till No. 0795542312 has been received. Ref. XXXXXXXX on 22-05-2026. Thank you.`}
+                placeholder={`Paste your Equity Bank message here\n\nExample:\nConfirmed. Payment of KES ${commissionAmount} to KAZISHOW Till No. 0795542312 has been received. Ref. XXXXXXXX on 22-05-2026. Thank you.`}
                 rows={5}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none"
               />
-              <p className="text-xs text-green-600 font-semibold mt-1">
-                ✅ Paste the entire SMS — not just the code
+              <p className="text-xs text-green-600 font-black mt-1">
+                ✅ Paste your equity message here
               </p>
             </div>
           </div>
