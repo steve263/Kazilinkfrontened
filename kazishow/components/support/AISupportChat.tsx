@@ -6,9 +6,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const QUICK_QUESTIONS = [
   "How do I book a service?",
-  "How do I pay with M-Pesa?",
-  "How do I cancel a booking?",
-  "How do I report a provider?",
+  "How do Fundis pay commission?",
+  "How do I subscribe as a business?",
+  "My account is suspended, what do I do?",
 ];
 
 type Message = { role: "user" | "assistant"; content: string };
