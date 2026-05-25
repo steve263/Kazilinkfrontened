@@ -450,32 +450,111 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── Team ──────────────────────────────────────────────────────────── */}
-      <section className="bg-kazi-cream py-14">
+      {/* ── Why Choose KaziShow ───────────────────────────────────────────── */}
+      <section className="bg-kazi-cream py-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-black text-kazi-dark mb-2">Meet Our Team</h2>
-            <p className="text-gray-500 text-sm">Built by Kenyans, for Kenya — with pride</p>
+          {/* Header */}
+          <div className="text-center mb-12">
+            <span className="inline-block bg-orange-100 text-kazi-orange text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-3">
+              Why KaziShow
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-kazi-dark mb-3">
+              The Smarter Way to Find & Hire Services
+            </h2>
+            <p className="text-gray-500 text-sm max-w-xl mx-auto">
+              We built KaziShow to solve the real problems Kenyans face when looking for trusted local services.
+            </p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+
+          {/* 6-card grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 mb-12">
             {[
-              { name: "Stephen Gicheru", role: "Founder & CEO", avatar: "S", color: "#FF6B2B" },
-              { name: "Mary Ivy Wairimu", role: "Chief Technology Officer", avatar: "M", color: "#0EA5E9" },
-              { name: "Alvin Njaramba", role: "Head of Operations", avatar: "A", color: "#00C896" },
-              { name: "Mary Tessy Muthoni", role: "Executive Director", avatar: "M", color: "#EC4899" },
-              { name: "Andrea Kamau", role: "Head of Marketing", avatar: "A", color: "#F59E0B" },
-            ].map((member) => (
-              <div key={member.name} className="bg-white rounded-2xl p-5 text-center border border-gray-100 hover:border-kazi-orange hover:shadow-md transition-all">
-                <div
-                  className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-black text-xl shadow-lg"
-                  style={{ backgroundColor: member.color }}
-                >
-                  {member.avatar}
-                </div>
-                <h3 className="text-sm font-black text-kazi-dark leading-tight">{member.name}</h3>
-                <p className="text-xs text-gray-400 mt-1 leading-tight">{member.role}</p>
+              { icon: "✅", title: "Verified Providers", desc: "Every Fundi and business is ID-verified before they can receive bookings." },
+              { icon: "⭐", title: "Honest Reviews", desc: "Real ratings from real customers — no fake reviews, no hidden scores." },
+              { icon: "⚡", title: "Book in 30 Seconds", desc: "Search, pick, and book in under a minute — no calls, no back-and-forth." },
+              { icon: "📍", title: "Near You", desc: "Find service providers in your area, available when you need them." },
+              { icon: "💰", title: "Fair Pricing", desc: "Transparent pricing set by providers. Pay directly — no hidden platform fees." },
+              { icon: "🛡️", title: "Safe & Accountable", desc: "Report bad providers instantly. Our team reviews every complaint within 24 hours." },
+            ].map((item) => (
+              <div key={item.title} className="bg-white rounded-2xl p-5 border border-gray-100 hover:border-kazi-orange hover:shadow-md transition-all">
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <h3 className="font-black text-kazi-dark text-sm mb-1">{item.title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
               </div>
             ))}
+          </div>
+
+          {/* Stats bar */}
+          <div className="bg-kazi-dark rounded-2xl py-8 px-6 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center mb-12">
+            {[
+              { value: "500+", label: "Verified Providers" },
+              { value: "2,000+", label: "Happy Customers" },
+              { value: "5,000+", label: "Bookings Completed" },
+              { value: "4.8 ★", label: "Average Rating" },
+            ].map((stat) => (
+              <div key={stat.label}>
+                <p className="text-2xl sm:text-3xl font-black text-kazi-orange">{stat.value}</p>
+                <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* For Providers */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-7 mb-10">
+            <div className="flex flex-col sm:flex-row gap-8">
+              <div className="flex-1">
+                <h3 className="text-lg font-black text-kazi-dark mb-4">Built for Providers Too</h3>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  {[
+                    "Get discovered by thousands of customers near you",
+                    "Manage all your bookings from one app",
+                    "Build your reputation with verified reviews",
+                    "Flexible model — pay per job (Fundis) or monthly subscription (Businesses)",
+                    "Dedicated support team to help you grow",
+                  ].map((point) => (
+                    <li key={point} className="flex items-start gap-2">
+                      <span className="text-kazi-green font-bold mt-0.5">✓</span>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:w-56 shrink-0">
+                {[
+                  { label: "Fundis", icon: "🔧", desc: "Plumbers, electricians & more" },
+                  { label: "Hotels", icon: "🏨", desc: "Accommodation & hospitality" },
+                  { label: "Salons", icon: "💇", desc: "Beauty & grooming services" },
+                  { label: "Restaurants", icon: "🍽️", desc: "Food & dining experiences" },
+                ].map((cat) => (
+                  <div key={cat.label} className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center">
+                    <div className="text-2xl mb-1">{cat.icon}</div>
+                    <p className="text-xs font-black text-kazi-dark">{cat.label}</p>
+                    <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{cat.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Mission statement */}
+          <div className="text-center">
+            <p className="text-base sm:text-lg font-semibold text-kazi-dark max-w-2xl mx-auto mb-6">
+              🇰🇪 KaziShow is on a mission to make quality services accessible to every Kenyan — and to help every skilled provider build a sustainable livelihood.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a
+                href="/discover"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3 bg-kazi-orange text-white font-bold rounded-xl hover:bg-orange-600 transition-colors"
+              >
+                Find a Service Provider
+              </a>
+              <a
+                href="/auth/register"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3 bg-kazi-dark text-white font-bold rounded-xl hover:bg-kazi-dark2 transition-colors"
+              >
+                Register Your Business
+              </a>
+            </div>
           </div>
         </div>
       </section>
