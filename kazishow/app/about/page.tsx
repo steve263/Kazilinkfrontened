@@ -91,17 +91,17 @@ export default function AboutPage() {
       border: "border-orange-100",
     },
     {
-      icon: Lock,
-      title: "Secure M-Pesa Payments",
-      desc: "Pay providers directly via M-Pesa. Confirm the job is done to your satisfaction before it's marked complete.",
+      icon: Star,
+      title: "Transparent Ratings",
+      desc: "Every provider's rating is built from real, completed bookings. You always know who you're hiring before you book.",
       color: "text-kazi-green",
       bg: "bg-green-50",
       border: "border-green-100",
     },
     {
       icon: RefreshCw,
-      title: "Full Refund Guarantee",
-      desc: "If a provider is a no-show or the work is substandard, you get a full refund. No questions asked.",
+      title: "Instant Dispute Support",
+      desc: "Got a problem? Our support team is available 7 days a week to help resolve any issues fast — reach us on WhatsApp in minutes.",
       color: "text-kazi-blue",
       bg: "bg-blue-50",
       border: "border-blue-100",
@@ -219,7 +219,7 @@ export default function AboutPage() {
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-kazi-dark mb-2">Built on Trust</h2>
             <p className="text-gray-500 text-sm max-w-lg mx-auto">
-              Four layers of protection on every single booking
+              Every booking is backed by verification, real reviews, and responsive support
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
