@@ -72,7 +72,7 @@ export default function AISupportChat() {
         ...prev,
         {
           role: "assistant",
-          content: `Error: ${msg}\n\nPlease contact us on WhatsApp:\n+254795542312 (General)\n+254731421635 (Payments)`,
+          content: `Error: ${msg}\n\nPlease contact us on WhatsApp: +254795542312`,
         },
       ]);
     } finally {

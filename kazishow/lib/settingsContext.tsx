@@ -15,10 +15,8 @@ export interface AppSettings {
   cancellationRefundHours: number;
   maxBookingsPerDay: number;
   supportPhone: string;
-  supportPhone2: string;
   supportEmail: string;
   whatsappNumber: string;
-  whatsappNumber2: string;
   appName: string;
   maintenanceMode: boolean;
   newRegistrationsOpen: boolean;
@@ -37,10 +35,8 @@ const DEFAULTS: AppSettings = {
   cancellationRefundHours: 2,
   maxBookingsPerDay: 10,
   supportPhone: "0795542312",
-  supportPhone2: "0731421635",
   supportEmail: "support@kazishow.co.ke",
   whatsappNumber: "0795542312",
-  whatsappNumber2: "0731421635",
   appName: "KaziShow",
   maintenanceMode: false,
   newRegistrationsOpen: true,

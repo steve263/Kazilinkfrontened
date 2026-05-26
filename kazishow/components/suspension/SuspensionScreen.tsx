@@ -149,7 +149,7 @@ export default function SuspensionScreen({ onUnsuspend }: Props) {
                 <Phone className="w-5 h-5" />
                 <div className="text-left">
                   <p className="font-bold">WhatsApp Support</p>
-                  <p className="text-green-400/60 text-xs">0795542312 or 0731421635</p>
+                  <p className="text-green-400/60 text-xs">0795542312</p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5" />

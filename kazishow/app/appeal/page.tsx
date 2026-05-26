@@ -97,7 +97,7 @@ export default function AppealPage() {
             {[
               { icon: "📋", title: "What happens next?", desc: "Our team will review your appeal within 48 hours" },
               { icon: "📱", title: "You will be notified", desc: "Via SMS and push notification when a decision is made" },
-              { icon: "💬", title: "Need urgent help?", desc: "WhatsApp: 0795542312 or 0731421635" },
+              { icon: "💬", title: "Need urgent help?", desc: "WhatsApp: 0795542312" },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-3">
                 <span className="text-xl">{item.icon}</span>

@@ -17,7 +17,7 @@ const WA_ICON_SM = (
 
 export default function WhatsAppFloat() {
   const [open, setOpen] = useState(false);
-  const { whatsappNumber, whatsappNumber2 } = useSettings();
+  const { whatsappNumber } = useSettings();
 
   const toIntl = (n: string) => "254" + n.replace(/^0/, "").replace(/\D/g, "");
 
@@ -29,14 +29,6 @@ export default function WhatsAppFloat() {
       number: toIntl(whatsappNumber || "0795542312"),
       message: "Hi KaziShow! I need help with your platform.",
       bg: "bg-green-500",
-    },
-    {
-      id: "K2",
-      name: "Kazi Agent K2",
-      role: "Payments & Disputes",
-      number: toIntl(whatsappNumber2 || "0731421635"),
-      message: "Hi KaziShow! I have a payment or booking issue.",
-      bg: "bg-emerald-600",
     },
   ];
 
