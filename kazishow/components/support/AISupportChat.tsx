@@ -83,11 +83,14 @@ export default function AISupportChat() {
   const showQuickQuestions = messages.length <= 1;
 
   return (
-    <div className="fixed bottom-24 md:bottom-8 right-20 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-50 flex flex-col items-end gap-3">
       {open && (
         <div
-          className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-80 flex flex-col overflow-hidden animate-fade-in"
-          style={{ maxHeight: "480px" }}
+          className="bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-fade-in"
+          style={{
+            width: "min(340px, calc(100vw - 2rem))",
+            maxHeight: "min(480px, calc(100vh - 10rem))",
+          }}
         >
           {/* Header */}
           <div className="bg-kazi-orange px-4 py-3 flex items-center justify-between shrink-0">
