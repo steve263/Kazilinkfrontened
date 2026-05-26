@@ -15,15 +15,35 @@ import JobCompletionManager from "@/components/notifications/JobCompletionManage
 import CommissionGuard from "@/components/commission/CommissionGuard";
 import SubscriptionBanner from "@/components/subscription/SubscriptionBanner";
 import { SettingsProvider } from "@/lib/settingsContext";
+import PWAInstall from "@/components/PWAInstall";
 
 export const metadata: Metadata = {
-  title: "KaziShow — Discover Local Businesses in Kenya",
+  title: "KaziShow — Kenya's #1 Service Booking Platform",
   description:
-    "Africa's local business discovery and booking platform. Find salons, restaurants, cleaners, repairs and more near you.",
-  keywords: "Kenya, Nairobi, local business, booking, services, KaziShow",
-  openGraph: {
+    "Find verified plumbers, electricians, hotels, salons and more in Nairobi. Book any service in 30 seconds.",
+  keywords: "Kenya, Nairobi, local business, booking, services, KaziShow, plumber, electrician, salon",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
     title: "KaziShow",
-    description: "Discover, book, and support local Kenyan businesses.",
+  },
+  icons: {
+    apple: [
+      { url: "/icons/icon-152x152.png", sizes: "152x152" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192" },
+    ],
+    icon: [
+      { url: "/icons/icon-32x32.png", sizes: "32x32" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192" },
+    ],
+  },
+  openGraph: {
+    title: "KaziShow — Kenya's #1 Service Platform",
+    description: "Find verified service providers in Nairobi instantly",
+    url: "https://kazishow.vercel.app",
+    siteName: "KaziShow",
+    locale: "en_KE",
     type: "website",
   },
 };
@@ -32,6 +52,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
   themeColor: "#FF6B2B",
 };
 
@@ -40,6 +61,14 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#FF6B2B" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="KaziShow" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+      </head>
       <body className="bg-kazi-cream min-h-screen">
         <SettingsProvider>
         <GoogleAuthProvider>
@@ -56,6 +85,7 @@ export default function RootLayout({
           <CommissionGuard />
           <WhatsAppFloat />
           <AISupportChat />
+          <PWAInstall />
         </SuspensionGate>
         </GoogleAuthProvider>
         </SettingsProvider>
