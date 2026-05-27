@@ -569,7 +569,9 @@ export default function AboutPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <a
-                href="mailto:kazishow0@gmail.com"
+                href="https://mail.google.com/mail/?view=cm&to=kazishow0@gmail.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 px-5 py-3 bg-gray-50 border border-gray-200 text-kazi-dark text-sm font-semibold rounded-xl hover:border-kazi-orange hover:text-kazi-orange transition-colors"
               >
                 <Mail className="w-4 h-4" /> kazishow0@gmail.com

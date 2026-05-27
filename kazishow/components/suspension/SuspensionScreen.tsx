@@ -156,7 +156,9 @@ export default function SuspensionScreen({ onUnsuspend }: Props) {
             </a>
 
             <a
-              href="mailto:kazishow0@gmail.com?subject=Account%20Suspension%20Appeal"
+              href="https://mail.google.com/mail/?view=cm&to=kazishow0@gmail.com&su=Account%20Suspension%20Appeal"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-full py-4 bg-white/5 border border-white/10 text-white/60 font-bold rounded-2xl flex items-center justify-between px-5 hover:bg-white/10 transition-all"
             >
               <div className="flex items-center gap-3">

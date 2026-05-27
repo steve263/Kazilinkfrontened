@@ -23,7 +23,7 @@ const channels = [
     label: "Email",
     value: "kazishow0@gmail.com",
     description: "For detailed queries and account issues",
-    href: "mailto:kazishow0@gmail.com",
+    href: "https://mail.google.com/mail/?view=cm&to=kazishow0@gmail.com",
     color: "text-kazi-orange",
     bg: "bg-orange-50",
   },
