@@ -47,7 +47,7 @@ const sections = [
   },
   {
     title: "11. Contact Us",
-    body: `If you have questions about these Terms, contact us at support@kazishow.co.ke or on WhatsApp at +254 795 542 312.`,
+    body: `If you have questions about these Terms, contact us at kazishow0@gmail.com or on WhatsApp at +254 795 542 312.`,
   },
 ];
 

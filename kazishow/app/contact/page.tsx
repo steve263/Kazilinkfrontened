@@ -21,9 +21,9 @@ const channels = [
   {
     icon: Mail,
     label: "Email",
-    value: "support@kazishow.co.ke",
+    value: "kazishow0@gmail.com",
     description: "For detailed queries and account issues",
-    href: "mailto:support@kazishow.co.ke",
+    href: "mailto:kazishow0@gmail.com",
     color: "text-kazi-orange",
     bg: "bg-orange-50",
   },

@@ -27,11 +27,11 @@ const sections = [
   },
   {
     title: "6. Data Retention",
-    body: `We retain your personal data for as long as your account is active or as needed to provide services. If you deactivate your account, we may retain certain data for up to 12 months for legal and fraud-prevention purposes. You may request deletion of your data by contacting support@kazishow.co.ke.`,
+    body: `We retain your personal data for as long as your account is active or as needed to provide services. If you deactivate your account, we may retain certain data for up to 12 months for legal and fraud-prevention purposes. You may request deletion of your data by contacting kazishow0@gmail.com.`,
   },
   {
     title: "7. Security",
-    body: `We implement industry-standard security measures including encrypted passwords, HTTPS, and JWT-based authentication. However, no system is completely secure. You are responsible for keeping your account credentials confidential. Please notify us immediately at support@kazishow.co.ke if you suspect unauthorised access to your account.`,
+    body: `We implement industry-standard security measures including encrypted passwords, HTTPS, and JWT-based authentication. However, no system is completely secure. You are responsible for keeping your account credentials confidential. Please notify us immediately at kazishow0@gmail.com if you suspect unauthorised access to your account.`,
   },
   {
     title: "8. Cookies and Analytics",
@@ -43,7 +43,7 @@ const sections = [
   },
   {
     title: "10. Your Rights",
-    body: `Under Kenyan data protection law (Data Protection Act, 2019), you have the right to: access the personal data we hold about you; request correction of inaccurate data; request deletion of your data; object to processing of your data for marketing purposes; and lodge a complaint with the Office of the Data Protection Commissioner. To exercise any of these rights, contact us at support@kazishow.co.ke.`,
+    body: `Under Kenyan data protection law (Data Protection Act, 2019), you have the right to: access the personal data we hold about you; request correction of inaccurate data; request deletion of your data; object to processing of your data for marketing purposes; and lodge a complaint with the Office of the Data Protection Commissioner. To exercise any of these rights, contact us at kazishow0@gmail.com.`,
   },
   {
     title: "11. Changes to This Policy",
@@ -51,7 +51,7 @@ const sections = [
   },
   {
     title: "12. Contact Us",
-    body: `For any privacy-related questions or requests, contact our Data Protection Officer at support@kazishow.co.ke or on WhatsApp at +254 795 542 312. Our offices are located in Nairobi, Kenya.`,
+    body: `For any privacy-related questions or requests, contact our Data Protection Officer at kazishow0@gmail.com or on WhatsApp at +254 795 542 312. Our offices are located in Nairobi, Kenya.`,
   },
 ];
 

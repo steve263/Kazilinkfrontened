@@ -156,14 +156,14 @@ export default function SuspensionScreen({ onUnsuspend }: Props) {
             </a>
 
             <a
-              href="mailto:support@kazishow.co.ke?subject=Account%20Suspension%20Appeal"
+              href="mailto:kazishow0@gmail.com?subject=Account%20Suspension%20Appeal"
               className="w-full py-4 bg-white/5 border border-white/10 text-white/60 font-bold rounded-2xl flex items-center justify-between px-5 hover:bg-white/10 transition-all"
             >
               <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5" />
                 <div className="text-left">
                   <p className="font-bold">Email Support</p>
-                  <p className="text-white/40 text-xs">support@kazishow.co.ke</p>
+                  <p className="text-white/40 text-xs">kazishow0@gmail.com</p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5" />

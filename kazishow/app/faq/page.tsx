@@ -40,7 +40,7 @@ const faqs = [
       },
       {
         q: "What if a provider doesn't show up?",
-        a: "If a provider fails to show up for a confirmed booking, contact our support team at support@kazishow.co.ke or WhatsApp +254 795 542 312. We will investigate and arrange a refund or alternative provider.",
+        a: "If a provider fails to show up for a confirmed booking, contact our support team at kazishow0@gmail.com or WhatsApp +254 795 542 312. We will investigate and arrange a refund or alternative provider.",
       },
     ],
   },
@@ -82,7 +82,7 @@ const faqs = [
       },
       {
         q: "How do I delete my account?",
-        a: "Go to Settings > Account > Deactivate Account. Your account will be deactivated immediately. To permanently delete your data, email support@kazishow.co.ke and we will process your request within 7 days.",
+        a: "Go to Settings > Account > Deactivate Account. Your account will be deactivated immediately. To permanently delete your data, email kazishow0@gmail.com and we will process your request within 7 days.",
       },
     ],
   },

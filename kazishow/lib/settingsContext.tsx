@@ -35,7 +35,7 @@ const DEFAULTS: AppSettings = {
   cancellationRefundHours: 2,
   maxBookingsPerDay: 10,
   supportPhone: "0795542312",
-  supportEmail: "support@kazishow.co.ke",
+  supportEmail: "kazishow0@gmail.com",
   whatsappNumber: "0795542312",
   appName: "KaziShow",
   maintenanceMode: false,
