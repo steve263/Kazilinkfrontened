@@ -16,17 +16,42 @@ import CommissionGuard from "@/components/commission/CommissionGuard";
 import SubscriptionBanner from "@/components/subscription/SubscriptionBanner";
 import { SettingsProvider } from "@/lib/settingsContext";
 import PWAInstall from "@/components/PWAInstall";
+import JsonLD from "@/components/SEO/JsonLD";
 
 export const metadata: Metadata = {
-  title: "KaziShow — Kenya's #1 Service Booking Platform",
+  metadataBase: new URL("https://kazishow.co.ke"),
+  title: {
+    default: "KaziShow — Find Verified Service Providers in Nairobi",
+    template: "%s | KaziShow Kenya",
+  },
   description:
-    "Find verified plumbers, electricians, hotels, salons and more in Nairobi. Book any service in 30 seconds.",
-  keywords: "Kenya, Nairobi, local business, booking, services, KaziShow, plumber, electrician, salon",
+    "KaziShow connects you with verified plumbers, electricians, carpenters, hotels, salons and more in Nairobi. Book any local service in 30 seconds. FREE to use.",
+  keywords: [
+    "plumber Nairobi", "electrician Nairobi", "carpenter Nairobi",
+    "fundi Nairobi", "services near me Nairobi", "book service Nairobi",
+    "verified service providers Kenya", "local services Nairobi",
+    "home services Nairobi", "hotel booking Nairobi", "salon booking Nairobi",
+    "KaziShow", "Kenya service platform", "fundi Kenya", "plumber Kenya",
+  ],
+  authors: [{ name: "KaziShow", url: "https://kazishow.co.ke" }],
+  creator: "KaziShow Kenya",
+  publisher: "KaziShow Kenya",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "KaziShow",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   icons: {
     apple: [
@@ -39,13 +64,31 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "KaziShow — Kenya's #1 Service Platform",
-    description: "Find verified service providers in Nairobi instantly",
-    url: "https://kazishow.vercel.app",
-    siteName: "KaziShow",
-    locale: "en_KE",
     type: "website",
+    locale: "en_KE",
+    url: "https://kazishow.co.ke",
+    siteName: "KaziShow",
+    title: "KaziShow — Find Verified Service Providers in Nairobi",
+    description:
+      "Find verified plumbers, electricians, hotels, salons and more in Nairobi. Book any service in 30 seconds. FREE to use.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "KaziShow — Kenya's #1 Service Booking Platform",
+      },
+    ],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "KaziShow — Find Verified Service Providers in Nairobi",
+    description: "Find verified plumbers, electricians, hotels, salons and more in Nairobi. Book in 30 seconds.",
+    images: ["/og-image.png"],
+    creator: "@kazishow",
+  },
+  alternates: { canonical: "https://kazishow.co.ke" },
+  verification: { google: "add-your-google-verification-code-here" },
 };
 
 export const viewport: Viewport = {
@@ -68,6 +111,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="KaziShow" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <JsonLD />
       </head>
       <body className="bg-kazi-cream min-h-screen">
         <SettingsProvider>
