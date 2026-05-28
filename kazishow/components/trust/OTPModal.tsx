@@ -15,7 +15,6 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
   const [verifying, setVerifying] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [verified, setVerified] = useState(false);
-  const [devCode, setDevCode] = useState<string | null>(null); // shown in dev mode
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -38,7 +37,6 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
 
   const sendOTP = async () => {
     setSending(true);
-    setDevCode(null);
     try {
       const res = await fetch("/api/otp/send", {
         method: "POST",
@@ -53,10 +51,6 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
       toast.success(`OTP sent to ${phone}`);
       startCountdown();
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
-      // Dev mode: server returns the code so we can display it
-      if (data.devCode) {
-        setDevCode(data.devCode);
-      }
     } catch {
       toast.error("Network error. Check your connection.");
     } finally {
@@ -149,13 +143,6 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
                 {!sending && <span className="text-white font-semibold">{maskedPhone}</span>}
               </p>
 
-              {/* Dev mode helper */}
-              {devCode && (
-                <div className="mb-4 px-3 py-2 bg-kazi-orange/10 border border-kazi-orange/30 rounded-xl">
-                  <p className="text-xs text-kazi-orange font-bold">DEV MODE — Your OTP: <span className="text-white font-mono text-sm">{devCode}</span></p>
-                  <p className="text-xs text-white/40 mt-0.5">This box is hidden in production. Set OTP_DEV_MODE=false in .env.local to send real SMS.</p>
-                </div>
-              )}
 
               <div className="flex gap-2 justify-center mb-6 mt-4" onPaste={handlePaste}>
                 {otp.map((digit, i) => (

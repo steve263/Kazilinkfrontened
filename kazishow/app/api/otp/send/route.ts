@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Shared in-memory OTP store via global to survive Next.js hot-reload
-// In production replace with Redis or a database
 declare global {
   // eslint-disable-next-line no-var
   var __otpStore: Map<string, { code: string; expiresAt: number; attempts: number }> | undefined;
@@ -14,8 +12,10 @@ function generateOTP(): string {
 }
 
 function normalizePhone(phone: string): string {
-  // Convert +254 7XX XXX XXX → +2547XXXXXXXX
-  return phone.replace(/\s+/g, "").replace(/^0/, "+254");
+  let p = phone.replace(/\s+/g, "");
+  if (p.startsWith("0")) return "+254" + p.slice(1);
+  if (p.startsWith("254") && !p.startsWith("+")) return "+" + p;
+  return p;
 }
 
 export async function POST(req: NextRequest) {
@@ -28,65 +28,50 @@ export async function POST(req: NextRequest) {
 
     const normalized = normalizePhone(phone);
 
-    // Basic Kenyan phone validation
     if (!/^\+254[17]\d{8}$/.test(normalized)) {
-      return NextResponse.json({ error: "Enter a valid Kenyan phone number (+254 7XX or +254 1XX)" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Enter a valid Kenyan phone number (+254 7XX or +254 1XX)" },
+        { status: 400 }
+      );
     }
 
     // Rate limit: max 3 OTPs per phone per 10 minutes
     const existing = otpStore.get(normalized);
     if (existing && existing.expiresAt > Date.now() && existing.attempts >= 3) {
-      return NextResponse.json({ error: "Too many OTP requests. Please wait 10 minutes." }, { status: 429 });
+      return NextResponse.json(
+        { error: "Too many OTP requests. Please wait 10 minutes." },
+        { status: 429 }
+      );
     }
 
     const code = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
+    const expiresAt = Date.now() + 10 * 60 * 1000;
     otpStore.set(normalized, { code, expiresAt, attempts: (existing?.attempts ?? 0) + 1 });
 
-    const devMode = process.env.OTP_DEV_MODE === "true";
-
-    if (devMode) {
-      // Demo mode: always use fixed code 123456 so no SMS needed
-      const demoCode = "123456";
-      otpStore.set(normalized, { code: demoCode, expiresAt, attempts: (existing?.attempts ?? 0) + 1 });
-      console.log(`\n📱 [DEMO OTP] Phone: ${normalized} → Code: ${demoCode} (demo mode)\n`);
-      return NextResponse.json({
-        success: true,
-        message: `Demo OTP ready — use code 123456`,
-        devCode: demoCode,
-      });
-    }
-
-    // Production: send via Africa's Talking
+    // Send via Africa's Talking
     const username = process.env.AFRICASTALKING_USERNAME;
     const apiKey = process.env.AFRICASTALKING_API_KEY;
 
-    if (!username || !apiKey || apiKey === "your_api_key_here") {
-      return NextResponse.json({ error: "SMS service not configured. Set AFRICASTALKING_API_KEY in .env.local" }, { status: 503 });
+    if (!username || !apiKey) {
+      console.error("❌ Africa's Talking credentials not set");
+      return NextResponse.json(
+        { error: "SMS service not configured. Contact support." },
+        { status: 503 }
+      );
     }
 
-    // Dynamic import to avoid issues with Edge runtime
     const AfricasTalking = require("africastalking");
     const at = AfricasTalking({ username, apiKey });
-    const sms = at.SMS;
 
-    const message = `Your KaziShow verification code is: ${code}\n\nDo not share this code with anyone. Valid for 10 minutes.`;
+    const message = `Your KaziShow verification code is: ${code}. Valid for 10 minutes. Do not share this code with anyone.`;
 
-    const result = await sms.send({
+    await at.SMS.send({
       to: [normalized],
       message,
-      from: "KaziShow", // Will use default short code in sandbox
+      from: process.env.AT_SENDER_ID || "KaziShow",
     });
 
-    console.log("Africa's Talking SMS result:", JSON.stringify(result));
-
-    const recipient = result?.SMSMessageData?.Recipients?.[0];
-    if (recipient?.status !== "Success" && recipient?.statusCode !== 101) {
-      return NextResponse.json({ error: `SMS failed: ${recipient?.status ?? "Unknown error"}` }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, message: `OTP sent to ${normalized}` });
+    return NextResponse.json({ success: true, message: `OTP sent to your phone` });
 
   } catch (err: unknown) {
     console.error("OTP send error:", err);

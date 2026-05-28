@@ -11,7 +11,10 @@ if (!global.__otpStore) {
 const otpStore = global.__otpStore;
 
 function normalizePhone(phone: string): string {
-  return phone.replace(/\s+/g, "").replace(/^0/, "+254");
+  let p = phone.replace(/\s+/g, "");
+  if (p.startsWith("0")) return "+254" + p.slice(1);
+  if (p.startsWith("254") && !p.startsWith("+")) return "+" + p;
+  return p;
 }
 
 export async function POST(req: NextRequest) {
@@ -23,22 +26,21 @@ export async function POST(req: NextRequest) {
     }
 
     const normalized = normalizePhone(phone);
-
-    // Dev mode bypass — must come BEFORE store lookup so serverless cold instances don't fail
-    const devMode = process.env.OTP_DEV_MODE === "true";
-    if (devMode && code.trim() === "123456") {
-      return NextResponse.json({ success: true, message: "Phone number verified" });
-    }
-
     const record = otpStore.get(normalized);
 
     if (!record) {
-      return NextResponse.json({ error: "No OTP found for this number. Request a new one." }, { status: 400 });
+      return NextResponse.json(
+        { error: "No OTP found for this number. Request a new one." },
+        { status: 400 }
+      );
     }
 
     if (Date.now() > record.expiresAt) {
       otpStore.delete(normalized);
-      return NextResponse.json({ error: "OTP has expired. Request a new one." }, { status: 400 });
+      return NextResponse.json(
+        { error: "OTP has expired. Request a new one." },
+        { status: 400 }
+      );
     }
 
     if (record.code !== code.trim()) {
