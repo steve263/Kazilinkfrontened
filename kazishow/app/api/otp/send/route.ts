@@ -48,12 +48,12 @@ export async function POST(req: NextRequest) {
     const expiresAt = Date.now() + 10 * 60 * 1000;
     otpStore.set(normalized, { code, expiresAt, attempts: (existing?.attempts ?? 0) + 1 });
 
-    // Send via Africa's Talking
-    const username = process.env.AFRICASTALKING_USERNAME;
-    const apiKey = process.env.AFRICASTALKING_API_KEY;
+    // Send via Africa's Talking — accept both naming conventions
+    const username = process.env.AFRICASTALKING_USERNAME || process.env.AT_USERNAME;
+    const apiKey = process.env.AFRICASTALKING_API_KEY || process.env.AT_API_KEY;
 
     if (!username || !apiKey) {
-      console.error("❌ Africa's Talking credentials not set");
+      console.error("❌ Africa's Talking credentials not set (need AFRICASTALKING_USERNAME + AFRICASTALKING_API_KEY or AT_USERNAME + AT_API_KEY)");
       return NextResponse.json(
         { error: "SMS service not configured. Contact support." },
         { status: 503 }
