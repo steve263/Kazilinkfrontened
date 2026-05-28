@@ -88,7 +88,7 @@ export const metadata: Metadata = {
     creator: "@kazishow",
   },
   alternates: { canonical: "https://kazishow.co.ke" },
-  verification: { google: "add-your-google-verification-code-here" },
+  verification: { google: "google5cec31496d640cd8" },
 };
 
 export const viewport: Viewport = {
