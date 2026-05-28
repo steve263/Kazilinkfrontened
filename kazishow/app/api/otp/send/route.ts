@@ -68,7 +68,6 @@ export async function POST(req: NextRequest) {
     await at.SMS.send({
       to: [normalized],
       message,
-      from: process.env.AT_SENDER_ID || "KaziShow",
     });
 
     return NextResponse.json({ success: true, message: `OTP sent to your phone` });
