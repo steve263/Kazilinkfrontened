@@ -17,6 +17,7 @@ import SubscriptionBanner from "@/components/subscription/SubscriptionBanner";
 import { SettingsProvider } from "@/lib/settingsContext";
 import PWAInstall from "@/components/PWAInstall";
 import JsonLD from "@/components/SEO/JsonLD";
+import MaintenanceGate from "@/components/layout/MaintenanceGate";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://kazishow.co.ke"),
@@ -115,6 +116,7 @@ export default function RootLayout({
       </head>
       <body className="bg-kazi-cream min-h-screen">
         <SettingsProvider>
+        <MaintenanceGate>
         <GoogleAuthProvider>
         <SuspensionGate>
           <AuthGuard />
@@ -132,6 +134,7 @@ export default function RootLayout({
           <PWAInstall />
         </SuspensionGate>
         </GoogleAuthProvider>
+        </MaintenanceGate>
         </SettingsProvider>
         <Toaster
           position="top-center"
