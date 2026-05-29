@@ -66,6 +66,19 @@ export default function ProvidersPage() {
     }
   }
 
+  async function toggleBusy(id: string, current: boolean) {
+    const r = await fetch(`${API}/api/admin/providers/${id}/toggle-busy`, {
+      method: "PUT", headers: { Authorization: `Bearer ${token}` },
+    });
+    const d = await r.json();
+    if (d.success) {
+      toast.success(current ? "Provider set to Available" : "Provider set to Busy");
+      setProviders((prev) => prev.map((p) => p.id === id ? { ...p, isBusy: !current } : p));
+    } else {
+      toast.error(d.message || "Failed to update");
+    }
+  }
+
   if (!ready) return <div className="min-h-screen bg-kazi-dark flex items-center justify-center"><div className="w-8 h-8 border-2 border-kazi-orange border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
@@ -128,7 +141,7 @@ export default function ProvidersPage() {
                 <table className="w-full text-sm min-w-[700px]">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
-                      {["Business", "Category", "Rating", "Bookings", "Status", "Verified", "Actions"].map((h) => (
+                      {["Business", "Category", "Rating", "Bookings", "Status", "Verified", "Availability", "Actions"].map((h) => (
                         <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
@@ -154,6 +167,12 @@ export default function ProvidersPage() {
                           <button onClick={() => toggleVerified(p.id, p.isVerified)}
                             className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors ${p.isVerified ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
                             {p.isVerified ? "✓ Verified" : "Unverified"}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button onClick={() => toggleBusy(p.id, p.isBusy)}
+                            className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors ${p.isBusy ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-green-100 text-green-700 hover:bg-green-200"}`}>
+                            {p.isBusy ? "🔴 Busy" : "🟢 Available"}
                           </button>
                         </td>
                         <td className="px-4 py-3">
