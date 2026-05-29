@@ -48,7 +48,7 @@ const SettingsContext = createContext<AppSettings>(DEFAULTS);
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULTS);
 
-  useEffect(() => {
+  const fetchSettings = () => {
     fetch(`${API_URL}/api/settings/public`)
       .then((r) => r.text())
       .then((t) => {
@@ -58,6 +58,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         } catch {}
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    // Fetch on mount
+    fetchSettings();
+
+    // Re-fetch every 60 seconds to pick up admin changes
+    const interval = setInterval(fetchSettings, 60000);
+
+    // Re-fetch when tab becomes visible again
+    const onVisible = () => { if (document.visibilityState === "visible") fetchSettings(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
