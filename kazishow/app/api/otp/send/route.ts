@@ -48,12 +48,11 @@ export async function POST(req: NextRequest) {
     const expiresAt = Date.now() + 10 * 60 * 1000;
     otpStore.set(normalized, { code, expiresAt, attempts: (existing?.attempts ?? 0) + 1 });
 
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+    const username = process.env.AT_USERNAME;
+    const apiKey = process.env.AT_API_KEY;
 
-    if (!accountSid || !authToken || !fromNumber) {
-      console.error("❌ Twilio credentials not set in Vercel env vars");
+    if (!username || !apiKey) {
+      console.error("❌ Africa's Talking credentials not set in Vercel env vars");
       return NextResponse.json(
         { error: "SMS service not configured. Please contact support on WhatsApp: 0795542312" },
         { status: 503 }
@@ -62,35 +61,15 @@ export async function POST(req: NextRequest) {
 
     const message = `Your KaziShow verification code is: ${code}. Valid for 10 minutes. Do not share this code.`;
 
-    const body = new URLSearchParams({
-      To: normalized,
-      From: fromNumber,
-      Body: message,
+    const AfricasTalking = require("africastalking");
+    const at = AfricasTalking({ username, apiKey });
+
+    await at.SMS.send({
+      to: [normalized],
+      message,
     });
 
-    const twilioRes = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: body.toString(),
-      }
-    );
-
-    const twilioData = await twilioRes.json();
-
-    if (!twilioRes.ok) {
-      console.error("❌ Twilio error:", twilioData);
-      return NextResponse.json(
-        { error: "Failed to send OTP. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    console.log("✅ OTP sent to", normalized, "via Twilio");
+    console.log("✅ OTP sent to", normalized);
     return NextResponse.json({ success: true, message: "OTP sent to your phone" });
 
   } catch (err: unknown) {
