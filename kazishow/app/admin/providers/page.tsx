@@ -67,15 +67,25 @@ export default function ProvidersPage() {
   }
 
   async function toggleBusy(id: string, current: boolean) {
-    const r = await fetch(`${API}/api/admin/providers/${id}/toggle-busy`, {
-      method: "PUT", headers: { Authorization: `Bearer ${token}` },
-    });
-    const d = await r.json();
-    if (d.success) {
-      toast.success(current ? "Provider set to Available" : "Provider set to Busy");
-      setProviders((prev) => prev.map((p) => p.id === id ? { ...p, isBusy: !current } : p));
-    } else {
-      toast.error(d.message || "Failed to update");
+    // Optimistic update immediately
+    setProviders((prev) => prev.map((p) => p.id === id ? { ...p, isBusy: !current } : p));
+    try {
+      const r = await fetch(`${API}/api/admin/providers/${id}/toggle-busy`, {
+        method: "PUT", headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (d.success) {
+        toast.success(current ? "✅ Set to Available" : "🔴 Set to Busy");
+        fetchAll(); // Confirm from DB
+      } else {
+        // Revert on failure
+        setProviders((prev) => prev.map((p) => p.id === id ? { ...p, isBusy: current } : p));
+        toast.error(d.message || "Failed to update");
+      }
+    } catch {
+      // Revert on network error
+      setProviders((prev) => prev.map((p) => p.id === id ? { ...p, isBusy: current } : p));
+      toast.error("Network error. Try again.");
     }
   }
 
@@ -149,7 +159,7 @@ export default function ProvidersPage() {
                   <tbody>
                     {loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
-                        <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td></tr>
+                        <tr key={i}><td colSpan={8} className="px-4 py-3"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td></tr>
                       ))
                     ) : providers.map((p, i) => (
                       <tr key={p.id} className={`border-b border-gray-50 hover:bg-orange-50/20 ${i % 2 ? "bg-gray-50/40" : ""}`}>
