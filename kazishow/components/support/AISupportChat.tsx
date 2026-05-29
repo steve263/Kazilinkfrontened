@@ -83,7 +83,7 @@ export default function AISupportChat() {
   const showQuickQuestions = messages.length <= 1;
 
   return (
-    <div className="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-36 md:bottom-24 right-4 z-50 flex flex-col items-end gap-3">
       {open && (
         <div
           className="bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-fade-in"

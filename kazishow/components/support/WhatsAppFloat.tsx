@@ -33,7 +33,7 @@ export default function WhatsAppFloat() {
   ];
 
   return (
-    <div className="fixed bottom-24 md:bottom-8 right-4 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-20 md:bottom-6 right-4 z-50 flex flex-col items-end gap-3">
       {open && (
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-72 overflow-hidden animate-fade-in">
           <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: "#25D366" }}>
