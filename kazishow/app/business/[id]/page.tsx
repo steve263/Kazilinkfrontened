@@ -54,6 +54,7 @@ export default function ProviderProfilePage() {
   const [showReport, setShowReport] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [workLightboxIndex, setWorkLightboxIndex] = useState<number | null>(null);
+  const [portfolioPosts, setPortfolioPosts] = useState<any[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem("kazishow_user");
@@ -145,6 +146,14 @@ export default function ProviderProfilePage() {
 
   useEffect(() => {
     if (!params.id) return;
+    fetch(`${API_URL}/api/providers/${params.id}/posts`)
+      .then((r) => r.json())
+      .then((data) => { if (data.success) setPortfolioPosts(data.data || []); })
+      .catch(() => {});
+  }, [params.id]);
+
+  useEffect(() => {
+    if (!params.id) return;
     fetch(`${API_URL}/api/providers/${params.id}/availability`)
       .then((r) => r.json())
       .then((data) => {
@@ -227,7 +236,12 @@ export default function ProviderProfilePage() {
   const isFundi = provider.category === "FUNDI";
   const badgeBg = isFundi ? "bg-kazi-orange" : "bg-kazi-blue";
   const BadgeIcon = isFundi ? HardHat : Store;
-  const TABS = ["Overview", "Services", "Reviews"];
+  const TABS = [
+    "Overview",
+    "Services",
+    ...(!isFundi && portfolioPosts.length > 0 ? ["Portfolio"] : []),
+    "Reviews",
+  ];
   const services = provider.services || [];
 
   const categoryEmoji = () => {
@@ -673,6 +687,52 @@ export default function ProviderProfilePage() {
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          )}
+
+          {/* ── Portfolio Tab ── */}
+          {activeTab === "Portfolio" && (
+            <div className="space-y-4">
+              {portfolioPosts.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-2xl card-shadow">
+                  <p className="text-gray-400 text-sm">No portfolio posts yet.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {portfolioPosts.map((post: any) => (
+                    <div key={post.id} className="bg-white rounded-2xl overflow-hidden card-shadow">
+                      <div className="w-full h-36 overflow-hidden">
+                        <img
+                          src={post.imageUrl}
+                          alt={post.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <p className="font-black text-kazi-dark text-sm leading-tight">{post.title}</p>
+                        {post.description && (
+                          <p className="text-gray-400 text-xs mt-1 line-clamp-2 leading-relaxed">
+                            {post.description}
+                          </p>
+                        )}
+                        {post.price != null && (
+                          <p className="text-kazi-orange font-black text-sm mt-1.5">
+                            KSh {Number(post.price).toLocaleString()}
+                          </p>
+                        )}
+                        {(!currentUser || currentUser.role === "CUSTOMER") && (
+                          <button
+                            onClick={() => { setSelectedService(undefined); setShowBooking(true); }}
+                            className="w-full mt-2.5 py-2 bg-kazi-orange text-white font-black rounded-xl text-xs active:scale-95 transition-transform hover:bg-orange-600"
+                          >
+                            Book Now
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

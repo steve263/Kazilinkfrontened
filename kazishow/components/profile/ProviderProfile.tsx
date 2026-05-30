@@ -1443,6 +1443,24 @@ export default function ProviderProfile({ user: initialUser }: { user: any }) {
                 💡 Upload in pairs — first photo = BEFORE, second = AFTER
               </p>
             </div>
+
+            {/* ── Portfolio Posts (with price & Book Now) ── */}
+            <div className="mt-2 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-1">
+                <div>
+                  <h3 className="font-bold text-kazi-dark text-sm">📸 Portfolio Posts</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Add photos with title, description & price — customers see a Book Now button
+                  </p>
+                </div>
+                <Link
+                  href="/provider/portfolio"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-kazi-orange text-white text-xs font-bold rounded-xl hover:bg-orange-600 transition-colors"
+                >
+                  Manage
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 
