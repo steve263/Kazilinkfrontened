@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
-  Users, ShoppingBag, DollarSign, Clock, Activity, Star,
+  Users, ShoppingBag, DollarSign, Clock, Activity, Star, Calendar,
   CheckSquare, BarChart2, LogOut, ChevronRight, RefreshCw, Menu, ClipboardCheck, Wallet, Shield, Scale, Gavel, XCircle, Megaphone, ShieldAlert, CreditCard, BadgeCheck, Settings, Bell, X, Trash2,
 } from "lucide-react";
 import { io } from "socket.io-client";
@@ -32,6 +32,7 @@ const NAV = [
   { label: "Providers",       href: "/admin/providers",          icon: CheckSquare },
   { label: "Users",           href: "/admin/users",              icon: Users       },
   { label: "Bookings",        href: "/admin/bookings",           icon: ShoppingBag },
+  { label: "Schedule",        href: "/admin/schedule",           icon: Calendar    },
   { label: "Analytics",       href: "/admin/analytics",          icon: Activity    },
   { label: "Finance",         href: "/admin/finance",            icon: DollarSign  },
   { label: "Trust & Safety",  href: "/admin/trust",              icon: Shield      },
