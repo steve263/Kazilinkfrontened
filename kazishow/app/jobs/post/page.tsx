@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   MapPin, Clock, Users, Zap,
@@ -47,6 +47,15 @@ export default function PostJobPage() {
   const [step, setStep]       = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    const token = localStorage.getItem("kazishow_token");
+    if (!token) {
+      toast.error("Please log in to post a job");
+      router.replace("/auth/login");
+    }
+  }, []);
+
   const [form, setForm] = useState({
     title: "", description: "", category: "",
     location: "", address: "", pay: "",
@@ -69,9 +78,14 @@ export default function PostJobPage() {
   }
 
   async function handleSubmit() {
+    const token = localStorage.getItem("kazishow_token") || "";
+    if (!token) {
+      toast.error("Please log in to post a job");
+      router.push("/auth/login");
+      return;
+    }
     setLoading(true);
     try {
-      const token = localStorage.getItem("kazishow_token") || "";
       const res = await fetch(`${API}/api/jobs/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
