@@ -139,6 +139,7 @@ export default function Navbar() {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/discover", label: "Discover" },
+    { href: "/jobs", label: "💼 Jobs" },
     { href: "/feed", label: "Feed" },
     { href: "/videos", label: "🎬 ShowReel" },
     { href: "/about", label: "About" },
