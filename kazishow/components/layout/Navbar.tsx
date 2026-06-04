@@ -137,13 +137,14 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/discover", label: "Discover" },
-    { href: "/feed", label: "Feed" },
-    { href: "/videos", label: "🎬 ShowReel" },
-    { href: "/about", label: "About" },
-    { href: "/tips", label: "Tips & Guides" },
-    { href: "/deals", label: "🔥 Deals" },
+    { href: "/",        label: "Home" },
+    { href: "/discover",label: "Discover" },
+    { href: "/jobs",    label: "💼 Jobs",        isJobs: true },
+    { href: "/feed",    label: "Feed" },
+    { href: "/videos",  label: "Reels" },
+    { href: "/about",   label: "About" },
+    { href: "/tips",    label: "Tips & Guides" },
+    { href: "/deals",   label: "🔥 Deals" },
   ];
 
   return (
@@ -171,30 +172,33 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  pathname === link.href
-                    ? "bg-kazi-orange text-white"
-                    : "text-gray-600 hover:text-kazi-orange hover:bg-orange-50"
-                }`}
-              >
-                {link.label}
-              </Link>
+            {navLinks.map((link: any) => (
+              link.isJobs ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-4 py-2 rounded-xl text-sm font-black transition-all border-2 ${
+                    pathname.startsWith("/jobs")
+                      ? "bg-kazi-orange text-white border-kazi-orange shadow-sm"
+                      : "bg-orange-50 text-kazi-orange border-kazi-orange hover:bg-kazi-orange hover:text-white"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    pathname === link.href
+                      ? "bg-kazi-orange text-white"
+                      : "text-gray-600 hover:text-kazi-orange hover:bg-orange-50"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
-            {/* Jobs — distinct pill button */}
-            <Link
-              href="/jobs"
-              className={`ml-1 flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black transition-all border-2 ${
-                pathname.startsWith("/jobs")
-                  ? "bg-kazi-orange text-white border-kazi-orange shadow-md shadow-orange-200"
-                  : "bg-orange-50 text-kazi-orange border-kazi-orange hover:bg-kazi-orange hover:text-white"
-              }`}
-            >
-              💼 Jobs
-            </Link>
           </div>
 
           {/* Right actions */}
@@ -335,31 +339,34 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden py-3 pb-4 border-t border-gray-100 space-y-1 animate-slide-up">
-            {/* Jobs — top of mobile menu as orange button */}
-            <Link
-              href="/jobs"
-              onClick={() => setMenuOpen(false)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition-all mx-0 ${
-                pathname.startsWith("/jobs")
-                  ? "bg-kazi-orange text-white"
-                  : "bg-orange-50 text-kazi-orange border-2 border-kazi-orange"
-              }`}
-            >
-              💼 Jobs — Find Work & Hire Workers
-            </Link>
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  pathname === link.href
-                    ? "bg-kazi-orange text-white"
-                    : "text-gray-700 hover:bg-orange-50 hover:text-kazi-orange"
-                }`}
-              >
-                {link.label}
-              </Link>
+            {navLinks.map((link: any) => (
+              link.isJobs ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition-all ${
+                    pathname.startsWith("/jobs")
+                      ? "bg-kazi-orange text-white"
+                      : "bg-orange-50 text-kazi-orange border-2 border-kazi-orange"
+                  }`}
+                >
+                  {link.label} — Find Work &amp; Hire Workers
+                </Link>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    pathname === link.href
+                      ? "bg-kazi-orange text-white"
+                      : "text-gray-700 hover:bg-orange-50 hover:text-kazi-orange"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
             <div className="pt-2 border-t border-gray-100 mt-2">
               {loggedInUser ? (
