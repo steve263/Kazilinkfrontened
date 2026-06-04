@@ -426,6 +426,32 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Jobs & Casual Work Banner */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-8">
+        <Link href="/jobs" className="block group">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-kazi-dark to-slate-700 p-6 hover:shadow-xl transition-all active:scale-[0.99]">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-8xl opacity-10 group-hover:opacity-20 transition-opacity">💼</div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 bg-kazi-orange rounded-full animate-pulse" />
+                <span className="text-kazi-orange text-xs font-black tracking-widest uppercase">New Feature</span>
+              </div>
+              <h2 className="text-white font-black text-xl mb-1">Casual Jobs & Same-Day Work</h2>
+              <p className="text-white/60 text-sm mb-4">
+                Need loaders, cleaners, caterers or security today? Post a job and find workers fast. Workers get paid via M-Pesa.
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-kazi-orange rounded-xl">
+                  <span className="text-white text-xs font-black">Browse Jobs</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="text-white/50 text-xs">Post a Job · Apply for Work · Get Paid via M-Pesa</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </section>
+
       {/* Browse by Category */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-10">
         <div className="flex items-center justify-between mb-5">
