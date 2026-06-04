@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, MessageSquare, User, CalendarCheck, ClipboardList, Wallet, CreditCard } from "lucide-react";
+import { Home, Compass, MessageSquare, User, CalendarCheck, ClipboardList, Wallet, CreditCard, Briefcase } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -70,7 +70,7 @@ export default function BottomNav() {
     : [
         { href: "/", icon: Home, label: "Home" },
         { href: "/discover", icon: Compass, label: "Discover" },
-        { href: "/booking", icon: CalendarCheck, label: "Bookings" },
+        { href: "/jobs", icon: Briefcase, label: "Jobs" },
         { href: "/chat", icon: MessageSquare, label: "Chat" },
         { href: userRole ? "/profile" : "/auth/login", icon: User, label: userRole ? "Profile" : "Login" },
       ];
