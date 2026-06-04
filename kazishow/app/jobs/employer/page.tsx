@@ -162,12 +162,23 @@ export default function EmployerJobsPage() {
                   </div>
                 </div>
 
-                <div className="px-4 pb-4">
+                <div className="px-4 pb-4 space-y-2">
+                  <button
+                    onClick={() => router.push(`/jobs/employer/applicants/${job.id}`)}
+                    className="w-full py-3 bg-kazi-orange text-white font-black rounded-2xl text-sm flex items-center justify-center gap-2"
+                  >
+                    👥 View Applicants
+                    {(job._count?.applications || 0) > 0 && (
+                      <span className="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full">
+                        {job._count.applications}
+                      </span>
+                    )}
+                  </button>
                   <button
                     onClick={() => loadApplications(job.id)}
                     className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors"
                   >
-                    {expandedJob === job.id ? "Hide" : "View"} Applications ({job._count?.applications || 0})
+                    {expandedJob === job.id ? "Hide" : "Quick View"} ({job._count?.applications || 0})
                   </button>
                 </div>
 
