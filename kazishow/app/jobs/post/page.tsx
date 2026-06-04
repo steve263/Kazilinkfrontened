@@ -1,54 +1,88 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import {
+  MapPin, Clock, Users, Zap,
+  Briefcase, ChevronRight, ChevronLeft,
+  Check, DollarSign, Calendar, FileText,
+  Sparkles,
+} from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const CATEGORIES = [
-  "Loading and Moving", "Cleaning", "Catering and Cooking", "Security",
-  "Events and Hospitality", "Construction", "Driving", "Gardening",
-  "Childcare", "Office Work", "Sales and Promotions", "Other",
+  { value: "Loading and Moving",     emoji: "📦" },
+  { value: "Cleaning",               emoji: "🧹" },
+  { value: "Catering and Cooking",   emoji: "🍽️" },
+  { value: "Security",               emoji: "🔒" },
+  { value: "Events and Hospitality", emoji: "🎉" },
+  { value: "Construction",           emoji: "🏗️" },
+  { value: "Driving",                emoji: "🚗" },
+  { value: "Gardening",              emoji: "🌿" },
+  { value: "Childcare",              emoji: "👶" },
+  { value: "Office Work",            emoji: "💼" },
+  { value: "Sales and Promotions",   emoji: "📢" },
+  { value: "Other",                  emoji: "⚡" },
 ];
 
-const PAY_TYPES = ["per day", "per hour", "per week", "fixed price"];
+const PAY_TYPES = [
+  { value: "per day",  label: "Per Day",  emoji: "📅" },
+  { value: "per hour", label: "Per Hour", emoji: "⏱️" },
+  { value: "per job",  label: "Per Job",  emoji: "✅" },
+  { value: "per week", label: "Per Week", emoji: "📆" },
+];
+
+const DURATIONS = [
+  "Few hours", "1 day", "2 to 3 days",
+  "1 week", "2 weeks", "1 month", "Ongoing",
+];
+
+const WORKERS_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50];
+
+const STEP_LABELS = ["Job Details", "Pay & Schedule", "Review & Post"];
 
 export default function PostJobPage() {
   const router = useRouter();
+  const [step, setStep]       = useState(1);
   const [loading, setLoading] = useState(false);
+
   const [form, setForm] = useState({
-    title: "", description: "", category: "", location: "", address: "",
-    pay: "", payType: "per day", workersNeeded: "1",
-    startDate: "", duration: "1 day", skills: "", requirements: "", isUrgent: false,
+    title: "", description: "", category: "",
+    location: "", address: "", pay: "",
+    payType: "per day", workersNeeded: "1",
+    startDate: "", duration: "1 day",
+    requirements: "", isUrgent: false,
   });
 
-  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
-  const totalPay  = parseFloat(form.pay || "0") * parseInt(form.workersNeeded || "1");
+  const totalPay   = parseFloat(form.pay || "0") * parseInt(form.workersNeeded || "1");
   const commission = Math.round(totalPay * 0.1);
+  const workersPay = totalPay - commission;
+  const selectedCat = CATEGORIES.find((c) => c.value === form.category);
+
+  function canNext() {
+    if (step === 1) return !!(form.title && form.category && form.description);
+    if (step === 2) return !!(form.location && form.pay && form.startDate);
+    return true;
+  }
 
   async function handleSubmit() {
-    if (!form.title || !form.category || !form.description || !form.location || !form.pay || !form.startDate) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-    const token = localStorage.getItem("kazishow_token") || "";
-    if (!token) { router.push("/auth/login"); return; }
-
     setLoading(true);
     try {
+      const token = localStorage.getItem("kazishow_token") || "";
       const res = await fetch(`${API}/api/jobs/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, payType: form.payType || "per day" }),
       });
       const data = await res.json();
       if (data.success) {
         toast.success("Job posted! 🎉");
         router.push(`/jobs/${data.data.id}`);
       } else {
-        toast.error(data.message || "Failed to post job");
+        toast.error(data.message || "Failed to post");
       }
     } catch {
       toast.error("Network error — please try again");
@@ -57,170 +91,398 @@ export default function PostJobPage() {
   }
 
   return (
-    <div className="min-h-screen bg-kazi-cream pb-24">
+    <div className="min-h-screen bg-kazi-cream">
       <Toaster position="top-center" />
 
-      <div className="bg-kazi-dark px-4 pt-12 pb-6">
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-white/60 mb-4 text-sm hover:text-white">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-        <h1 className="text-white font-black text-2xl">📢 Post a Job</h1>
-        <p className="text-white/50 text-sm mt-1">Find workers fast — KaziShow takes 10% commission on payment</p>
+      {/* ── Hero Header ── */}
+      <div className="bg-kazi-dark relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-kazi-orange/10 rounded-full -translate-y-32 translate-x-32" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-kazi-orange/5 rounded-full translate-y-20 -translate-x-10" />
+        </div>
+
+        <div className="relative px-4 pt-12 pb-6">
+          <button
+            onClick={() => step > 1 ? setStep(step - 1) : router.back()}
+            className="flex items-center gap-1 text-white/60 text-sm mb-4 hover:text-white transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {step > 1 ? "Back" : "Cancel"}
+          </button>
+
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-12 h-12 bg-kazi-orange rounded-2xl flex items-center justify-center shadow-lg shadow-orange-900/30">
+              <Briefcase className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-white font-black text-2xl">Post a Job</h1>
+              <p className="text-white/50 text-sm">Find the right workers fast</p>
+            </div>
+          </div>
+
+          {/* Step progress */}
+          <div className="flex items-center">
+            {[1, 2, 3].map((s, i) => (
+              <div key={s} className="flex items-center flex-1 last:flex-none">
+                <div className="flex flex-col items-center gap-1">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm transition-all ${
+                    step > s ? "bg-green-500 text-white" :
+                    step === s ? "bg-kazi-orange text-white shadow-lg shadow-orange-900/40" :
+                    "bg-white/10 text-white/30"
+                  }`}>
+                    {step > s ? <Check className="w-4 h-4" /> : s}
+                  </div>
+                  <p className={`text-[10px] font-bold whitespace-nowrap ${step >= s ? "text-white" : "text-white/30"}`}>
+                    {STEP_LABELS[i]}
+                  </p>
+                </div>
+                {s < 3 && (
+                  <div className={`flex-1 h-0.5 mx-2 mb-4 transition-all ${step > s ? "bg-green-500" : "bg-white/10"}`} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="px-4 py-5 max-w-lg mx-auto space-y-4">
+      <div className="px-4 py-5 max-w-lg mx-auto pb-32">
 
-        {/* Job details card */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-          <h3 className="font-black text-kazi-dark text-base">Job Details</h3>
+        {/* ── STEP 1 — JOB DETAILS ── */}
+        {step === 1 && (
+          <div className="space-y-4">
 
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Title *</label>
-            <input value={form.title} onChange={(e) => set("title", e.target.value)}
-              placeholder="e.g. Need 5 loaders today — Mombasa Road"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange transition-colors" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Category *</label>
-            <select value={form.category} onChange={(e) => set("category", e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange bg-white transition-colors">
-              <option value="">Select category…</option>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Description *</label>
-            <textarea value={form.description} onChange={(e) => set("description", e.target.value)}
-              placeholder="Describe the job. What workers will do, what to bring, dress code, tools needed, etc."
-              rows={4} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none transition-colors" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Location / Area *</label>
-            <input value={form.location} onChange={(e) => set("location", e.target.value)}
-              placeholder="e.g. Westlands, Nairobi"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange transition-colors" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Exact Address (optional)</label>
-            <input value={form.address} onChange={(e) => set("address", e.target.value)}
-              placeholder="e.g. ABC Warehouse, Gate 3, off Mombasa Road"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange transition-colors" />
-          </div>
-        </div>
-
-        {/* Pay and schedule */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-          <h3 className="font-black text-kazi-dark text-base">Pay & Schedule</h3>
-
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Pay (KSh) *</label>
-              <input value={form.pay} onChange={(e) => set("pay", e.target.value)}
-                placeholder="e.g. 1500" type="number" min="0"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange transition-colors" />
+            {/* Title */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                <FileText className="w-3.5 h-3.5 text-kazi-orange" /> Job Title *
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => set("title", e.target.value)}
+                placeholder="e.g. Need 5 Loaders Today"
+                className="w-full text-xl font-black text-kazi-dark placeholder-gray-200 border-0 outline-none bg-transparent"
+              />
+              <div className="mt-3 h-0.5 bg-gray-100 rounded" />
+              <p className="text-xs text-gray-400 mt-2">Be specific — good titles get 3× more applications</p>
             </div>
-            <div className="flex-1">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Pay Type</label>
-              <select value={form.payType} onChange={(e) => set("payType", e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange bg-white transition-colors">
-                {PAY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-          </div>
 
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Workers Needed</label>
-              <input value={form.workersNeeded} onChange={(e) => set("workersNeeded", e.target.value)}
-                type="number" min="1" max="100"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange transition-colors" />
-            </div>
-            <div className="flex-1">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Duration</label>
-              <select value={form.duration} onChange={(e) => set("duration", e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange bg-white transition-colors">
-                {["Few hours", "Half day", "1 day", "2 days", "3 days", "1 week", "2 weeks", "1 month", "Ongoing"].map((d) => (
-                  <option key={d} value={d}>{d}</option>
+            {/* Category grid */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-4">
+                <Sparkles className="w-3.5 h-3.5 text-kazi-orange" /> Category *
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.value}
+                    onClick={() => set("category", cat.value)}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all active:scale-95 ${
+                      form.category === cat.value
+                        ? "border-kazi-orange bg-orange-50"
+                        : "border-gray-100 hover:border-gray-200"
+                    }`}
+                  >
+                    <span className="text-2xl">{cat.emoji}</span>
+                    <span className={`text-xs font-bold text-center leading-tight ${
+                      form.category === cat.value ? "text-kazi-orange" : "text-gray-600"
+                    }`}>
+                      {cat.value.split(" ")[0]}
+                    </span>
+                  </button>
                 ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Start Date *</label>
-            <input value={form.startDate} onChange={(e) => set("startDate", e.target.value)}
-              type="datetime-local"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange transition-colors" />
-          </div>
-
-          {/* Commission breakdown */}
-          {form.pay && (
-            <div className="bg-orange-50 rounded-2xl p-4 space-y-1.5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Payment breakdown</p>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">You pay workers</span>
-                <span className="font-black text-kazi-dark">KSh {totalPay.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">KaziShow commission (10%)</span>
-                <span className="font-bold text-gray-500">KSh {commission.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm border-t border-orange-200 pt-1.5 mt-1.5">
-                <span className="font-bold text-gray-700">Workers receive</span>
-                <span className="font-black text-green-600">KSh {(totalPay - commission).toLocaleString()}</span>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Optional details */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-          <h3 className="font-black text-kazi-dark text-base">Optional Details</h3>
+            {/* Description */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                <FileText className="w-3.5 h-3.5 text-kazi-orange" /> Description *
+              </label>
+              <textarea
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                placeholder={"Describe the work clearly...\n\nWhat workers will do\nWhat to bring or wear\nAny special requirements"}
+                rows={5}
+                className="w-full text-sm text-gray-700 placeholder-gray-300 border-0 outline-none bg-transparent resize-none leading-relaxed"
+              />
+            </div>
 
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Skills Required</label>
-            <input value={form.skills} onChange={(e) => set("skills", e.target.value)}
-              placeholder="e.g. Driving licence, forklift experience, cooking skills"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange transition-colors" />
+            {/* Requirements */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                <Check className="w-3.5 h-3.5 text-kazi-orange" /> Requirements
+              </label>
+              <textarea
+                value={form.requirements}
+                onChange={(e) => set("requirements", e.target.value)}
+                placeholder={"One per line:\nMust have valid Kenyan ID\nMust be physically fit\nMust be punctual"}
+                rows={4}
+                className="w-full text-sm text-gray-700 placeholder-gray-300 border-0 outline-none bg-transparent resize-none leading-relaxed"
+              />
+            </div>
+
+            {/* Urgent toggle */}
+            <button
+              onClick={() => set("isUrgent", !form.isUrgent)}
+              className={`w-full rounded-3xl p-5 flex items-center justify-between transition-all active:scale-[0.99] ${
+                form.isUrgent ? "bg-red-500 shadow-lg shadow-red-200" : "bg-white shadow-sm"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${form.isUrgent ? "bg-white/20" : "bg-red-50"}`}>
+                  <Zap className={`w-5 h-5 ${form.isUrgent ? "text-white" : "text-red-500"}`} />
+                </div>
+                <div className="text-left">
+                  <p className={`font-black text-base ${form.isUrgent ? "text-white" : "text-kazi-dark"}`}>
+                    Mark as Urgent
+                  </p>
+                  <p className={`text-xs ${form.isUrgent ? "text-white/70" : "text-gray-400"}`}>
+                    Gets 3× more applications faster
+                  </p>
+                </div>
+              </div>
+              <div className={`w-14 h-7 rounded-full transition-all relative ${form.isUrgent ? "bg-white/30" : "bg-gray-200"}`}>
+                <div className={`absolute top-0.5 w-6 h-6 rounded-full shadow-md transition-all ${form.isUrgent ? "bg-white translate-x-7" : "bg-white translate-x-0.5"}`} />
+              </div>
+            </button>
           </div>
+        )}
 
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Requirements (one per line)</label>
-            <textarea value={form.requirements} onChange={(e) => set("requirements", e.target.value)}
-              placeholder={"Must be physically fit\nMust have own safety boots\nMust be punctual"}
-              rows={3} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-kazi-orange resize-none transition-colors" />
+        {/* ── STEP 2 — PAY & SCHEDULE ── */}
+        {step === 2 && (
+          <div className="space-y-4">
+
+            {/* Location */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                <MapPin className="w-3.5 h-3.5 text-kazi-orange" /> Location *
+              </label>
+              <input
+                value={form.location}
+                onChange={(e) => set("location", e.target.value)}
+                placeholder="Area / Estate in Nairobi"
+                className="w-full text-lg font-bold text-kazi-dark placeholder-gray-200 border-0 outline-none bg-transparent mb-3"
+              />
+              <div className="h-0.5 bg-gray-100 rounded mb-3" />
+              <input
+                value={form.address}
+                onChange={(e) => set("address", e.target.value)}
+                placeholder="Exact address or landmark (optional)"
+                className="w-full text-sm text-gray-500 placeholder-gray-300 border-0 outline-none bg-transparent"
+              />
+            </div>
+
+            {/* Pay */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-4">
+                <DollarSign className="w-3.5 h-3.5 text-kazi-orange" /> Pay Per Worker *
+              </label>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-gray-200 font-black text-3xl">KSh</span>
+                <input
+                  value={form.pay}
+                  onChange={(e) => set("pay", e.target.value)}
+                  placeholder="0"
+                  type="number"
+                  min="0"
+                  className="flex-1 text-4xl font-black text-kazi-dark placeholder-gray-200 border-0 outline-none bg-transparent"
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {PAY_TYPES.map((pt) => (
+                  <button
+                    key={pt.value}
+                    onClick={() => set("payType", pt.value)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border-2 transition-all ${
+                      form.payType === pt.value
+                        ? "bg-kazi-orange border-kazi-orange text-white shadow-sm"
+                        : "bg-gray-50 border-gray-100 text-gray-600 hover:border-gray-200"
+                    }`}
+                  >
+                    <span>{pt.emoji}</span> {pt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Workers needed */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-4">
+                <Users className="w-3.5 h-3.5 text-kazi-orange" /> Workers Needed
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {WORKERS_OPTIONS.map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => set("workersNeeded", n.toString())}
+                    className={`w-12 h-12 rounded-2xl font-black text-sm transition-all active:scale-95 ${
+                      form.workersNeeded === n.toString()
+                        ? "bg-kazi-orange text-white shadow-md shadow-orange-200"
+                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date + Duration */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                <Calendar className="w-3.5 h-3.5 text-kazi-orange" /> Start Date & Time *
+              </label>
+              <input
+                value={form.startDate}
+                onChange={(e) => set("startDate", e.target.value)}
+                type="datetime-local"
+                className="w-full text-base font-bold text-kazi-dark border-2 border-gray-100 rounded-2xl px-4 py-3 focus:outline-none focus:border-kazi-orange mb-5 transition-colors"
+              />
+
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                <Clock className="w-3.5 h-3.5 text-kazi-orange" /> Duration
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {DURATIONS.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => set("duration", d)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold border-2 transition-all ${
+                      form.duration === d
+                        ? "bg-kazi-orange border-kazi-orange text-white"
+                        : "bg-gray-50 border-gray-100 text-gray-600 hover:border-gray-200"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* Urgent toggle */}
+        {/* ── STEP 3 — REVIEW & POST ── */}
+        {step === 3 && (
+          <div className="space-y-4">
+
+            {/* Live job preview */}
+            <div className="bg-white rounded-3xl overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-r from-kazi-orange to-orange-600 p-5 relative overflow-hidden">
+                <div className="absolute top-2 right-4 w-20 h-20 rounded-full border-2 border-white/20 pointer-events-none" />
+                <div className="absolute top-6 right-10 w-10 h-10 rounded-full border border-white/15 pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl border border-white/30">
+                      {selectedCat?.emoji || "💼"}
+                    </div>
+                    {form.isUrgent && (
+                      <div className="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full flex items-center gap-1 shadow">
+                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> URGENT
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-white font-black text-xl leading-tight">{form.title || "Your Job Title"}</p>
+                  <p className="text-white/70 text-sm mt-0.5">{form.category || "Category"}</p>
+                </div>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Location",       val: `📍 ${form.location || "—"}` },
+                    { label: "Workers",         val: `👥 ${form.workersNeeded} needed` },
+                    { label: "Duration",        val: `⏱️ ${form.duration}` },
+                    { label: "Pay per worker",  val: `KSh ${parseFloat(form.pay || "0").toLocaleString()}`, highlight: true },
+                  ].map(({ label, val, highlight }) => (
+                    <div key={label} className={`rounded-2xl p-3 ${highlight ? "bg-orange-50 border border-orange-100" : "bg-gray-50"}`}>
+                      <p className="text-xs text-gray-400 mb-1">{label}</p>
+                      <p className={`font-bold text-sm ${highlight ? "text-kazi-orange font-black" : "text-kazi-dark"}`}>{val}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {form.description && (
+                  <div>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Description</p>
+                    <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">{form.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cost breakdown */}
+            <div className="bg-kazi-dark rounded-3xl p-5">
+              <p className="text-white font-black text-lg mb-4 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-kazi-orange" /> Cost Summary
+              </p>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 text-sm">
+                    {form.workersNeeded} worker{parseInt(form.workersNeeded) > 1 ? "s" : ""} × KSh {parseFloat(form.pay || "0").toLocaleString()}
+                  </span>
+                  <span className="text-white font-bold">KSh {totalPay.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 text-sm">KaziShow platform fee (10%)</span>
+                  <span className="text-kazi-orange font-bold">KSh {commission.toLocaleString()}</span>
+                </div>
+                <div className="h-px bg-white/10" />
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-black">Workers receive</span>
+                  <span className="text-green-400 font-black text-lg">KSh {workersPay.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tips */}
+            <div className="bg-blue-50 border border-blue-100 rounded-3xl p-4">
+              <p className="text-blue-700 font-black text-sm mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" /> Tips for more applications
+              </p>
+              {[
+                "Be specific about the work",
+                "Mention if food or transport is provided",
+                "State the exact location",
+                "Mark as urgent for fastest response",
+              ].map((tip) => (
+                <p key={tip} className="text-blue-600 text-xs mb-1.5">✓ {tip}</p>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Fixed bottom button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 max-w-lg mx-auto">
+        {step < 3 ? (
           <button
-            onClick={() => set("isUrgent", !form.isUrgent)}
-            className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-colors ${
-              form.isUrgent ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-200 hover:border-red-200"
-            }`}
+            onClick={() => {
+              if (!canNext()) { toast.error("Please fill all required fields"); return; }
+              setStep(step + 1);
+            }}
+            className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl text-lg flex items-center justify-center gap-2 shadow-lg shadow-orange-200 active:scale-[0.98] transition-transform"
           >
-            <div className="text-left">
-              <p className="font-black text-kazi-dark text-sm">🔴 Mark as URGENT</p>
-              <p className="text-xs text-gray-400 mt-0.5">Urgent jobs appear at the top and attract workers faster</p>
-            </div>
-            <div className={`w-12 h-6 rounded-full transition-colors flex items-center px-0.5 ${form.isUrgent ? "bg-red-500" : "bg-gray-300"}`}>
-              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isUrgent ? "translate-x-6" : "translate-x-0"}`} />
-            </div>
+            Continue <ChevronRight className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Submit */}
-        <button onClick={handleSubmit} disabled={loading}
-          className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl text-base disabled:opacity-60 active:scale-[0.98] transition-all shadow-lg shadow-orange-200">
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Posting…
-            </span>
-          ) : "📢 Post Job Now"}
-        </button>
+        ) : (
+          <div className="space-y-2">
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl text-lg disabled:opacity-60 shadow-lg shadow-orange-200 active:scale-[0.98] transition-all"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Posting your job…
+                </span>
+              ) : "🚀 Post Job Now"}
+            </button>
+            <p className="text-center text-xs text-gray-400">
+              Workers near {form.location || "Nairobi"} will be notified instantly
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
