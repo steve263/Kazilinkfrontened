@@ -21,8 +21,30 @@ export default function WorkerRegisterPage() {
   function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPhoto(file);
-    setPhotoPreview(URL.createObjectURL(file));
+
+    // Compress image to max 800px and <1MB before upload
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 800;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round((height / width) * MAX); width = MAX; }
+        else { width = Math.round((width / height) * MAX); height = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const compressed = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+        setPhoto(compressed);
+        setPhotoPreview(canvas.toDataURL("image/jpeg", 0.85));
+        URL.revokeObjectURL(url);
+      }, "image/jpeg", 0.85);
+    };
+    img.src = url;
   }
 
   async function handleSubmit() {
