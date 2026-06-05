@@ -5,7 +5,7 @@ import {
   MapPin, Clock, Users, Zap,
   Briefcase, ChevronRight, ChevronLeft,
   Check, DollarSign, Calendar, FileText,
-  Sparkles,
+  Sparkles, Phone,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -62,18 +62,17 @@ export default function PostJobPage() {
     payType: "per day", workersNeeded: "1",
     startDate: "", duration: "1 day",
     requirements: "", isUrgent: false,
+    employerPhone: "",
+    applicationFee: "100",
   });
 
   const set = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
-  const totalPay   = parseFloat(form.pay || "0") * parseInt(form.workersNeeded || "1");
-  const commission = Math.round(totalPay * 0.1);
-  const workersPay = totalPay - commission;
   const selectedCat = CATEGORIES.find((c) => c.value === form.category);
 
   function canNext() {
     if (step === 1) return !!(form.title && form.category && form.description);
-    if (step === 2) return !!(form.location && form.pay && form.startDate);
+    if (step === 2) return !!(form.location && form.pay && form.startDate && form.employerPhone);
     return true;
   }
 
@@ -289,20 +288,19 @@ export default function PostJobPage() {
             {/* Pay */}
             <div className="bg-white rounded-3xl p-5 shadow-sm">
               <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-4">
-                <DollarSign className="w-3.5 h-3.5 text-kazi-orange" /> Pay Per Worker *
+                <DollarSign className="w-3.5 h-3.5 text-kazi-orange" /> Pay Per Person *
               </label>
               <div className="flex items-center gap-3 mb-5">
-                <span className="text-gray-200 font-black text-3xl">KSh</span>
+                <span className="text-gray-300 font-black text-3xl">KSh</span>
                 <input
                   value={form.pay}
                   onChange={(e) => set("pay", e.target.value)}
                   placeholder="0"
                   type="number"
-                  min="0"
                   className="flex-1 text-4xl font-black text-kazi-dark placeholder-gray-200 border-0 outline-none bg-transparent"
                 />
               </div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap mb-4">
                 {PAY_TYPES.map((pt) => (
                   <button
                     key={pt.value}
@@ -317,6 +315,15 @@ export default function PostJobPage() {
                   </button>
                 ))}
               </div>
+              {form.pay && (
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-3 flex items-center gap-2">
+                  <span className="text-green-500 text-lg">✅</span>
+                  <div>
+                    <p className="text-green-700 font-black text-sm">Workers receive full KSh {parseFloat(form.pay).toLocaleString()}</p>
+                    <p className="text-green-600 text-xs">No commission cut from your side</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Workers needed */}
@@ -368,6 +375,44 @@ export default function PostJobPage() {
                     }`}
                   >
                     {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Employer phone */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                <Phone className="w-3.5 h-3.5 text-kazi-orange" /> Your Phone Number *
+              </label>
+              <p className="text-xs text-gray-400 mb-3">Workers will use this to call you directly with questions</p>
+              <input
+                value={form.employerPhone}
+                onChange={(e) => set("employerPhone", e.target.value)}
+                placeholder="e.g. 0712345678"
+                type="tel"
+                className="w-full text-xl font-bold text-kazi-dark placeholder-gray-200 border-0 outline-none bg-transparent"
+              />
+            </div>
+
+            {/* Application fee */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                <DollarSign className="w-3.5 h-3.5 text-kazi-orange" /> Application Fee (KaziShow charges workers)
+              </label>
+              <p className="text-xs text-gray-400 mb-3">Workers pay this small fee to apply. This is how KaziShow earns. You pay nothing.</p>
+              <div className="flex gap-2 flex-wrap">
+                {["50", "100", "150", "200"].map((fee) => (
+                  <button
+                    key={fee}
+                    onClick={() => set("applicationFee", fee)}
+                    className={`px-4 py-2 rounded-full text-sm font-bold border-2 transition-all ${
+                      form.applicationFee === fee
+                        ? "bg-kazi-orange border-kazi-orange text-white"
+                        : "bg-gray-50 border-gray-100 text-gray-600"
+                    }`}
+                  >
+                    KSh {fee}
                   </button>
                 ))}
               </div>
@@ -424,26 +469,34 @@ export default function PostJobPage() {
               </div>
             </div>
 
-            {/* Cost breakdown */}
+            {/* Job summary */}
             <div className="bg-kazi-dark rounded-3xl p-5">
-              <p className="text-white font-black text-lg mb-4 flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-kazi-orange" /> Cost Summary
-              </p>
+              <p className="text-white font-black text-lg mb-4">📋 Job Summary</p>
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-white/60 text-sm">
-                    {form.workersNeeded} worker{parseInt(form.workersNeeded) > 1 ? "s" : ""} × KSh {parseFloat(form.pay || "0").toLocaleString()}
+                <div className="flex justify-between">
+                  <span className="text-white/60 text-sm">Pay per person</span>
+                  <span className="text-green-400 font-black text-lg">
+                    KSh {parseFloat(form.pay || "0").toLocaleString()} ✅
                   </span>
-                  <span className="text-white font-bold">KSh {totalPay.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/60 text-sm">KaziShow platform fee (10%)</span>
-                  <span className="text-kazi-orange font-bold">KSh {commission.toLocaleString()}</span>
+                <div className="flex justify-between">
+                  <span className="text-white/60 text-sm">Workers needed</span>
+                  <span className="text-white font-bold">{form.workersNeeded} people</span>
                 </div>
                 <div className="h-px bg-white/10" />
-                <div className="flex justify-between items-center">
-                  <span className="text-white font-black">Workers receive</span>
-                  <span className="text-green-400 font-black text-lg">KSh {workersPay.toLocaleString()}</span>
+                <div className="flex justify-between">
+                  <span className="text-white/60 text-sm">Your phone (for questions)</span>
+                  <span className="text-kazi-orange font-bold">{form.employerPhone || "Not added"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/60 text-sm">Application fee workers pay</span>
+                  <span className="text-kazi-orange font-bold">KSh {form.applicationFee}</span>
+                </div>
+                <div className="h-px bg-white/10" />
+                <div className="bg-green-500/20 rounded-2xl p-3">
+                  <p className="text-green-400 font-black text-sm">
+                    ✅ You pay NOTHING to KaziShow. Workers pay the application fee.
+                  </p>
                 </div>
               </div>
             </div>

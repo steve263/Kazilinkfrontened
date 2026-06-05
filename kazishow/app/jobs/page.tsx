@@ -234,17 +234,17 @@ export default function JobsPage() {
 // ── JOB CARD ──────────────────────────────────────────────────────────────────
 function JobCard({ job, router }: { job: any; router: any }) {
   const spotsLeft   = job.workersNeeded - job.workersHired;
+  const isFull      = spotsLeft <= 0;
   const companyName = job.employer?.employerProfile?.companyName || "Private";
   const gradient    = CATEGORY_GRADIENT[job.category] || "from-kazi-orange to-orange-600";
 
   return (
     <div
       onClick={() => router.push(`/jobs/${job.id}`)}
-      className="bg-white rounded-3xl overflow-hidden shadow-sm cursor-pointer hover:shadow-lg transition-all active:scale-[0.99]"
+      className={`bg-white rounded-3xl overflow-hidden shadow-sm cursor-pointer hover:shadow-lg transition-all active:scale-[0.99] ${isFull ? "opacity-75" : ""}`}
     >
       {/* Gradient header */}
       <div className={`bg-gradient-to-r ${gradient} p-5 relative overflow-hidden`}>
-        {/* Decorative circles */}
         <div className="absolute top-2 right-6 w-24 h-24 rounded-full border-4 border-white/20 pointer-events-none" />
         <div className="absolute top-8 right-14 w-12 h-12 rounded-full border-2 border-white/15 pointer-events-none" />
 
@@ -283,16 +283,60 @@ function JobCard({ job, router }: { job: any; router: any }) {
         <h3 className="font-black text-kazi-dark text-lg leading-tight mb-2">{job.title}</h3>
         <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-3">{job.description}</p>
 
+        {/* Location + date chips */}
         <div className="flex flex-wrap gap-2 mb-3">
           {[
             { icon: MapPin, label: job.location },
             { icon: Clock,  label: new Date(job.startDate).toLocaleDateString("en-KE", { weekday: "short", month: "short", day: "numeric" }) },
-            { icon: Users,  label: `${spotsLeft} spot${spotsLeft !== 1 ? "s" : ""} left` },
           ].map(({ icon: Icon, label }) => (
             <span key={label} className="flex items-center gap-1 bg-gray-50 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-full border border-gray-100">
               <Icon className="w-3 h-3 text-kazi-orange" /> {label}
             </span>
           ))}
+        </div>
+
+        {/* Spots counter */}
+        <div className={`rounded-2xl p-3 mb-3 flex items-center justify-between ${
+          isFull
+            ? "bg-red-50 border border-red-200"
+            : spotsLeft <= 2
+            ? "bg-amber-50 border border-amber-200"
+            : "bg-green-50 border border-green-200"
+        }`}>
+          <div className="flex items-center gap-2">
+            {isFull ? (
+              <>
+                <span className="text-lg">🚫</span>
+                <div>
+                  <p className="font-black text-red-600 text-sm">No Vacancy</p>
+                  <p className="text-red-400 text-xs">All positions filled</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="text-lg">{spotsLeft <= 2 ? "⚡" : "✅"}</span>
+                <div>
+                  <p className={`font-black text-sm ${spotsLeft <= 2 ? "text-amber-700" : "text-green-700"}`}>
+                    {spotsLeft} spot{spotsLeft !== 1 ? "s" : ""} remaining
+                  </p>
+                  <p className={`text-xs ${spotsLeft <= 2 ? "text-amber-500" : "text-green-500"}`}>
+                    {spotsLeft <= 2 ? "Filling up fast — apply now!" : "Grab your chance!"}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          {!isFull && (
+            <div className="w-20">
+              <div className="h-2 bg-white rounded-full overflow-hidden">
+                <div
+                  className={`h-2 rounded-full transition-all ${spotsLeft <= 2 ? "bg-amber-500" : "bg-green-500"}`}
+                  style={{ width: `${(job.workersHired / job.workersNeeded) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5 text-right">{job.workersHired}/{job.workersNeeded}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-3 border-t border-gray-50">
@@ -301,9 +345,13 @@ function JobCard({ job, router }: { job: any; router: any }) {
             <span>·</span>
             <span>{job._count?.applications || 0} applied</span>
           </div>
-          <div className={`bg-gradient-to-r ${gradient} text-white text-xs font-black px-4 py-2 rounded-xl flex items-center gap-1`}>
-            Apply Now <ChevronRight className="w-3.5 h-3.5" />
-          </div>
+          {isFull ? (
+            <span className="bg-red-100 text-red-500 text-xs font-black px-4 py-2 rounded-xl">No Vacancy</span>
+          ) : (
+            <div className={`bg-gradient-to-r ${gradient} text-white text-xs font-black px-4 py-2 rounded-xl flex items-center gap-1`}>
+              Apply Now <ChevronRight className="w-3.5 h-3.5" />
+            </div>
+          )}
         </div>
       </div>
     </div>
