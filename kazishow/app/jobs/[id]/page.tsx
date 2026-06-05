@@ -375,10 +375,10 @@ export default function JobDetailPage() {
                   ))}
                 </div>
 
-                {/* Paste SMS */}
+                {/* Paste Equity message */}
                 <div className="mb-5">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">
-                    Paste M-Pesa SMS Here *
+                  <label className="text-base font-black text-kazi-dark uppercase tracking-widest mb-2 block">
+                    PASTE YOUR EQUITY MESSAGE HERE
                   </label>
                   <textarea
                     value={mpesaRef}

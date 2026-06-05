@@ -59,7 +59,7 @@ export default function AdminJobApplicationsPage() {
       } else {
         setFetchError(data.message || "Failed to load applications");
       }
-    } catch (err: any) {
+    } catch {
       setFetchError("Network error — check your connection");
     } finally {
       setLoading(false);
@@ -75,7 +75,7 @@ export default function AdminJobApplicationsPage() {
     return () => clearInterval(interval);
   }, [token, fetchApps]);
 
-  async function handleApprove(id: string) {
+  async function handleVerify(id: string) {
     setActing(id);
     try {
       const res = await fetch(`${API}/api/admin/job-applications/${id}/approve`, {
@@ -84,10 +84,10 @@ export default function AdminJobApplicationsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success("✅ Approved! Worker has been notified via SMS.");
+        toast.success("✅ Payment verified! Employer notified to review applicant.");
         fetchApps(token);
       } else {
-        toast.error(data.message || "Failed to approve");
+        toast.error(data.message || "Failed");
       }
     } catch {
       toast.error("Network error");
@@ -106,10 +106,10 @@ export default function AdminJobApplicationsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success("Application rejected. Worker notified.");
+        toast.success("Payment rejected. Worker notified to resubmit.");
         fetchApps(token);
       } else {
-        toast.error(data.message || "Failed to reject");
+        toast.error(data.message || "Failed");
       }
     } catch {
       toast.error("Network error");
@@ -127,10 +127,10 @@ export default function AdminJobApplicationsPage() {
   const pendingCount = apps.filter((a) => a.paymentStatus === "PENDING_VERIFICATION").length;
 
   const filtered = (() => {
-    if (filter === "ALL")     return apps;
-    if (filter === "PENDING") return apps.filter((a) => a.paymentStatus === "PENDING_VERIFICATION");
-    if (filter === "HIRED")   return apps.filter((a) => a.status === "HIRED");
-    if (filter === "DECLINED")return apps.filter((a) => a.status === "DECLINED");
+    if (filter === "PENDING")  return apps.filter((a) => a.paymentStatus === "PENDING_VERIFICATION");
+    if (filter === "VERIFIED") return apps.filter((a) => a.paymentStatus === "PAYMENT_VERIFIED");
+    if (filter === "HIRED")    return apps.filter((a) => a.status === "HIRED");
+    if (filter === "DECLINED") return apps.filter((a) => a.status === "DECLINED" || a.paymentStatus === "REJECTED");
     return apps;
   })();
 
@@ -186,7 +186,6 @@ export default function AdminJobApplicationsPage() {
         <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Main */}
       <main className="flex-1 min-w-0 lg:ml-64 overflow-auto">
 
         {/* Top bar */}
@@ -199,7 +198,7 @@ export default function AdminJobApplicationsPage() {
               <h1 className="font-black text-kazi-dark text-lg">💼 Job Applications</h1>
               <p className="text-gray-400 text-xs">
                 {pendingCount > 0
-                  ? `${pendingCount} pending — verify M-Pesa SMS then approve or reject`
+                  ? `${pendingCount} payment${pendingCount !== 1 ? "s" : ""} waiting to be verified`
                   : "Auto-refreshes every 30 seconds"}
               </p>
             </div>
@@ -214,40 +213,39 @@ export default function AdminJobApplicationsPage() {
 
         <div className="p-5 space-y-5 max-w-3xl mx-auto">
 
-          {/* How it works */}
+          {/* Admin role — PAYMENT ONLY */}
           <div className="bg-kazi-dark rounded-2xl p-4">
-            <p className="text-white font-black text-sm mb-2">📋 How Applications Work</p>
-            <div className="space-y-1.5">
+            <p className="text-kazi-orange font-black text-sm mb-3">💰 YOUR JOB: VERIFY PAYMENT ONLY</p>
+            <div className="space-y-2">
               {[
-                "Worker applies → fills name, phone, bio → pays M-Pesa application fee",
-                "Worker pastes the M-Pesa SMS as proof",
-                "You see it here → check the SMS proof below",
-                "Click Approve → worker is hired, SMS sent, spot counter decrements",
-                "Click Reject → worker is notified to reapply",
-              ].map((step, i) => (
-                <p key={i} className="text-white/70 text-xs flex items-start gap-2">
-                  <span className="w-4 h-4 bg-kazi-orange rounded-full flex items-center justify-center text-white font-black text-[10px] flex-shrink-0 mt-0.5">{i + 1}</span>
-                  {step}
-                </p>
+                { icon: "1️⃣", text: "Worker applies and pays the application fee via Equity/M-Pesa" },
+                { icon: "2️⃣", text: "Worker pastes their Equity payment message as proof" },
+                { icon: "3️⃣", text: "YOU check the message → click \"Payment Received\" if correct" },
+                { icon: "4️⃣", text: "Worker's application is sent to the employer automatically" },
+                { icon: "5️⃣", text: "The EMPLOYER decides to hire or reject — that is NOT your job" },
+              ].map(({ icon, text }) => (
+                <div key={text} className="flex items-start gap-3">
+                  <span className="text-lg leading-none">{icon}</span>
+                  <p className="text-white/80 text-sm leading-relaxed">{text}</p>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Error state */}
+          {/* Error */}
           {fetchError && (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center justify-between">
               <p className="text-red-600 text-sm font-bold">⚠️ {fetchError}</p>
-              <button onClick={() => fetchApps(token)} className="text-red-500 text-xs font-bold underline">
-                Retry
-              </button>
+              <button onClick={() => fetchApps(token)} className="text-red-500 text-xs font-bold underline">Retry</button>
             </div>
           )}
 
           {/* Filter tabs */}
           <div className="flex gap-2 bg-white rounded-2xl p-2 shadow-sm overflow-x-auto">
             {[
-              { key: "PENDING",  label: "🔍 Pending Review", count: pendingCount },
-              { key: "HIRED",    label: "✅ Approved",        count: apps.filter((a) => a.status === "HIRED").length },
+              { key: "PENDING",  label: "💰 Verify Payment", count: pendingCount },
+              { key: "VERIFIED", label: "✅ Verified",        count: apps.filter((a) => a.paymentStatus === "PAYMENT_VERIFIED" && a.status !== "HIRED" && a.status !== "DECLINED").length },
+              { key: "HIRED",    label: "🎉 Hired",           count: apps.filter((a) => a.status === "HIRED").length },
               { key: "DECLINED", label: "❌ Rejected",        count: null },
               { key: "ALL",      label: "📋 All",             count: apps.length },
             ].map((tab) => (
@@ -278,30 +276,27 @@ export default function AdminJobApplicationsPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
-              <div className="text-5xl mb-3">📋</div>
+              <div className="text-5xl mb-3">{filter === "PENDING" ? "💰" : "📋"}</div>
               <p className="text-gray-600 font-black text-lg">
-                {filter === "PENDING" ? "No pending applications" : "No applications here"}
+                {filter === "PENDING" ? "No payments waiting" : "Nothing here"}
               </p>
               <p className="text-gray-400 text-sm mt-2">
                 {filter === "PENDING"
-                  ? "New applications will appear here when workers apply and pay"
-                  : "Switch to a different tab to see more"}
+                  ? "When workers apply and pay, their proof will appear here"
+                  : "Switch to a different tab"}
               </p>
-              <button
-                onClick={() => fetchApps(token)}
-                className="mt-4 px-6 py-2.5 bg-kazi-orange text-white font-black rounded-2xl text-sm"
-              >
-                🔄 Check for new applications
+              <button onClick={() => fetchApps(token)} className="mt-4 px-6 py-2.5 bg-kazi-orange text-white font-black rounded-2xl text-sm">
+                🔄 Refresh Now
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               {filtered.map((app) => (
-                <ApplicationCard
+                <AppCard
                   key={app.id}
                   app={app}
                   acting={acting}
-                  onApprove={handleApprove}
+                  onVerify={handleVerify}
                   onReject={handleReject}
                 />
               ))}
@@ -313,148 +308,157 @@ export default function AdminJobApplicationsPage() {
   );
 }
 
-function ApplicationCard({
-  app, acting, onApprove, onReject,
+function AppCard({
+  app, acting, onVerify, onReject,
 }: {
   app: any;
   acting: string | null;
-  onApprove: (id: string) => void;
+  onVerify: (id: string) => void;
   onReject: (id: string) => void;
 }) {
   const isPending  = app.paymentStatus === "PENDING_VERIFICATION";
-  const isApproved = app.status === "HIRED";
-  const isRejected = app.status === "DECLINED";
+  const isVerified = app.paymentStatus === "PAYMENT_VERIFIED";
+  const isHired    = app.status === "HIRED";
+  const isRejected = app.status === "DECLINED" || app.paymentStatus === "REJECTED";
 
-  const headerBg = isApproved ? "bg-green-600" : isRejected ? "bg-red-500" : "bg-kazi-dark";
-  const statusText = isApproved ? "✅ APPROVED — Worker hired"
-    : isRejected ? "❌ REJECTED"
-    : "🔍 PENDING — Waiting for your review";
+  const stripBg = isHired    ? "bg-green-600"
+    : isRejected             ? "bg-red-500"
+    : isVerified             ? "bg-blue-600"
+    : "bg-amber-500";
+
+  const stripLabel = isHired    ? "🎉 HIRED BY EMPLOYER"
+    : isRejected               ? "❌ PAYMENT REJECTED"
+    : isVerified               ? "✅ PAYMENT VERIFIED — Sent to employer"
+    : "💰 WAITING — Payment not yet verified";
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
 
-      {/* Header strip */}
-      <div className={`${headerBg} px-4 py-3 flex items-center justify-between`}>
-        <span className="text-white font-black text-sm">{statusText}</span>
-        <span className="text-white/60 text-xs">
+      {/* Status strip */}
+      <div className={`${stripBg} px-4 py-3 flex items-center justify-between`}>
+        <span className="text-white font-black text-sm">{stripLabel}</span>
+        <span className="text-white/70 text-xs">
           {new Date(app.createdAt).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
         </span>
       </div>
 
       <div className="p-4 space-y-3">
 
-        {/* Applicant info */}
+        {/* Applicant */}
         <div className="flex items-start gap-3">
           <div className="w-14 h-14 bg-kazi-orange/10 rounded-2xl flex items-center justify-center font-black text-kazi-orange text-2xl flex-shrink-0">
             {(app.applicantName || "?").charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
             <p className="font-black text-kazi-dark text-lg leading-tight">{app.applicantName || "—"}</p>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-1.5 mt-1">
               <Phone className="w-3.5 h-3.5 text-kazi-orange" />
-              <a href={`tel:${app.applicantPhone}`} className="text-kazi-orange font-bold text-sm">
-                {app.applicantPhone || "—"}
-              </a>
+              <a href={`tel:${app.applicantPhone}`} className="text-kazi-orange font-bold text-sm">{app.applicantPhone || "—"}</a>
             </div>
           </div>
-          {/* Fee badge */}
-          <div className="bg-kazi-orange/10 border border-kazi-orange/20 rounded-2xl px-3 py-2 text-center flex-shrink-0">
+          {/* Fee */}
+          <div className="bg-green-50 border border-green-200 rounded-2xl px-3 py-2 text-center">
             <p className="text-xs text-gray-400">Fee paid</p>
-            <p className="font-black text-kazi-orange text-lg leading-none">KSh {app.applicationFee || 100}</p>
+            <p className="font-black text-green-700 text-xl leading-none">KSh {app.applicationFee || 100}</p>
           </div>
         </div>
 
-        {/* About applicant */}
+        {/* Bio */}
         {app.applicantBio && (
-          <div className="bg-blue-50 rounded-xl p-3">
-            <p className="text-xs font-black text-blue-600 uppercase mb-1">About Applicant</p>
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs font-black text-gray-400 uppercase mb-1">About Applicant</p>
             <p className="text-gray-700 text-sm leading-relaxed">{app.applicantBio}</p>
           </div>
         )}
 
-        {/* Job info */}
+        {/* Job */}
         <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center justify-between">
           <div>
             <p className="font-black text-kazi-dark text-sm">{app.job?.title || "—"}</p>
-            <p className="text-gray-400 text-xs mt-0.5">📍 {app.job?.location}</p>
+            <p className="text-gray-400 text-xs">📍 {app.job?.location}</p>
             {app.job?.employerPhone && (
               <p className="text-xs text-gray-500 mt-0.5">
                 Employer: <a href={`tel:${app.job.employerPhone}`} className="text-kazi-orange font-bold">{app.job.employerPhone}</a>
               </p>
             )}
           </div>
-          <p className="font-black text-kazi-orange text-lg">KSh {app.job?.pay?.toLocaleString()}</p>
+          <p className="font-black text-kazi-orange">KSh {app.job?.pay?.toLocaleString()}</p>
         </div>
 
-        {/* M-Pesa SMS PROOF — most important section */}
-        <div className={`rounded-xl p-3 border-2 ${isPending ? "bg-green-50 border-green-300" : "bg-gray-50 border-gray-200"}`}>
-          <div className="flex items-center justify-between mb-1">
-            <p className={`text-xs font-black uppercase ${isPending ? "text-green-700" : "text-gray-500"}`}>
-              📱 M-Pesa Payment SMS
+        {/* ── EQUITY PAYMENT PROOF ── */}
+        <div className={`rounded-xl p-4 border-2 ${isPending ? "bg-amber-50 border-amber-300" : "bg-gray-50 border-gray-200"}`}>
+          <div className="flex items-center justify-between mb-2">
+            <p className={`text-xs font-black uppercase tracking-wider ${isPending ? "text-amber-700" : "text-gray-500"}`}>
+              📱 Equity Payment Message
             </p>
             {isPending && (
-              <span className="text-xs bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">
-                Verify this
+              <span className="bg-amber-200 text-amber-800 text-xs font-black px-2 py-0.5 rounded-full">
+                Check this ↓
               </span>
             )}
           </div>
           {app.mpesaRef ? (
-            <p className={`text-sm leading-relaxed break-all font-mono ${isPending ? "text-green-800" : "text-gray-600"}`}>
+            <p className={`text-sm leading-relaxed break-all ${isPending ? "text-amber-900 font-medium" : "text-gray-600"}`}>
               {app.mpesaRef}
             </p>
           ) : (
-            <p className="text-gray-400 text-sm italic">No SMS provided</p>
+            <p className="text-gray-400 text-sm italic">No payment message provided</p>
           )}
         </div>
 
-        {/* Action buttons — only for pending */}
+        {/* ── ACTION BUTTONS (pending only) ── */}
         {isPending && (
           <div className="space-y-2 pt-1">
-            <p className="text-xs text-center text-gray-500 font-bold">
-              Check the M-Pesa SMS above matches KSh {app.applicationFee || 100} payment to Paybill 247247
-            </p>
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+              <p className="text-blue-700 font-black text-xs text-center">
+                Check the Equity message above shows KSh {app.applicationFee || 100} paid to Paybill 247247
+              </p>
+            </div>
             <div className="flex gap-3">
               <button
                 onClick={() => onReject(app.id)}
                 disabled={acting === app.id}
                 className="flex-1 py-3.5 bg-red-50 text-red-600 font-black rounded-2xl text-sm border-2 border-red-100 hover:bg-red-100 transition-colors disabled:opacity-50"
               >
-                ❌ Reject Application
+                ❌ Payment Not Found
               </button>
               <button
-                onClick={() => onApprove(app.id)}
+                onClick={() => onVerify(app.id)}
                 disabled={acting === app.id}
                 className="flex-1 py-3.5 bg-green-500 text-white font-black rounded-2xl text-sm hover:bg-green-600 transition-colors disabled:opacity-50"
               >
                 {acting === app.id ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Processing...
+                    Verifying...
                   </span>
-                ) : "✅ Approve & Hire"}
+                ) : "✅ Payment Received"}
               </button>
             </div>
           </div>
         )}
 
-        {/* Status messages for completed */}
-        {isApproved && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-3 flex items-center gap-3">
-            <span className="text-2xl">🎉</span>
-            <div>
-              <p className="text-green-700 font-black text-sm">Approved and hired!</p>
-              <p className="text-green-500 text-xs">Worker was notified via SMS</p>
-            </div>
+        {/* Verified — waiting for employer */}
+        {isVerified && !isHired && !isRejected && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 text-center">
+            <p className="text-blue-700 font-black text-sm">✅ Payment verified</p>
+            <p className="text-blue-500 text-xs mt-1">
+              Employer has been notified — they will hire or reject this worker
+            </p>
           </div>
         )}
 
-        {isRejected && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-3 flex items-center gap-3">
-            <span className="text-2xl">❌</span>
-            <div>
-              <p className="text-red-600 font-black text-sm">Application rejected</p>
-              <p className="text-red-400 text-xs">Worker was notified via SMS</p>
-            </div>
+        {isHired && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-3 text-center">
+            <p className="text-green-700 font-black text-sm">🎉 Hired by the employer!</p>
+            <p className="text-green-500 text-xs mt-1">The employer selected this worker</p>
+          </div>
+        )}
+
+        {isRejected && !isHired && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-3 text-center">
+            <p className="text-red-600 font-black text-sm">❌ Payment rejected</p>
+            <p className="text-red-400 text-xs mt-1">Worker was notified to resubmit correct proof</p>
           </div>
         )}
       </div>
