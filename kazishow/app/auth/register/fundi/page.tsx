@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, ArrowRight, User, Smartphone, MapPin, Navigation,
+  ArrowLeft, ArrowRight, User, Smartphone, Mail, MapPin, Navigation,
   Upload, Camera, CheckCircle, Loader2, HardHat, BookOpen,
   Briefcase, Plus, X, Star, ShieldCheck, FileText, ScanFace,
   AlertTriangle, ImageIcon, Lock, Eye, EyeOff, Clock, Package,
@@ -230,7 +230,7 @@ export default function FundiRegisterPage() {
   // ── Step validation ──────────────────────────────────────────────────────────
 
   const canProceed = () => {
-    if (step === 0) return !!(form.name && form.phone && form.category && form.yearsExperience && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
+    if (step === 0) return !!(form.name && form.phone && form.email && form.email.includes("@") && form.category && form.yearsExperience && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
     if (step === 1) return form.description.length >= 30 && form.skills.length >= 1;
     if (step === 2) return form.services.length >= 1;
     if (step === 3) return !!(form.idPhotoUrl && form.idBackPhotoUrl && form.education);
@@ -256,7 +256,7 @@ export default function FundiRegisterPage() {
     setShowOTP(false);
     setPhoneVerified(true);
     setStep(1);
-    toast.success("Phone verified! Continue your registration.");
+    toast.success("Email verified! Continue your registration.");
   };
 
   // ── Submit ───────────────────────────────────────────────────────────────────
@@ -888,13 +888,13 @@ export default function FundiRegisterPage() {
         <div className="max-w-sm mx-auto">
           {step === 0 && !phoneVerified && (
             <p className="text-xs text-white/40 text-center mb-2 flex items-center justify-center gap-1">
-              <Smartphone className="w-3.5 h-3.5" /> Phone verification required to continue
+              <Mail className="w-3.5 h-3.5" /> Email verification required to continue
             </p>
           )}
           {step === 0 && phoneVerified && (
             <div className="flex items-center justify-center gap-1 mb-2">
               <CheckCircle className="w-3.5 h-3.5 text-kazi-green" fill="#00C896" />
-              <span className="text-xs text-kazi-green font-semibold">Phone verified ✓</span>
+              <span className="text-xs text-kazi-green font-semibold">Email verified ✓</span>
             </div>
           )}
           <button
@@ -907,7 +907,7 @@ export default function FundiRegisterPage() {
             ) : step === STEPS.length - 1 ? (
               <><ShieldCheck className="w-5 h-5" /> Submit for Verification</>
             ) : step === 0 && !phoneVerified ? (
-              <><Smartphone className="w-5 h-5" /> Verify Phone &amp; Continue</>
+              <><Mail className="w-5 h-5" /> Verify Email &amp; Continue</>
             ) : (
               <>Continue <ArrowRight className="w-5 h-5" /></>
             )}
@@ -920,7 +920,7 @@ export default function FundiRegisterPage() {
       </div>
 
       {showOTP && (
-        <OTPModal phone={form.phone} onVerified={handleOTPVerified} onClose={() => setShowOTP(false)} />
+        <OTPModal email={form.email} name={form.name} onVerified={handleOTPVerified} onClose={() => setShowOTP(false)} />
       )}
     </div>
   );

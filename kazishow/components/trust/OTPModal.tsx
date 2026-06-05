@@ -1,15 +1,16 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { X, Smartphone, CheckCircle, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { X, Mail, CheckCircle, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface OTPModalProps {
-  phone: string;
+  email: string;
+  name?: string;
   onVerified: () => void;
   onClose: () => void;
 }
 
-export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) {
+export default function OTPModal({ email, name, onVerified, onClose }: OTPModalProps) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -41,14 +42,14 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
       const res = await fetch("/api/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ email, name }),
       });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Failed to send OTP");
         return;
       }
-      toast.success(`OTP sent to ${phone}`);
+      toast.success(`Code sent to ${email}`);
       startCountdown();
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } catch {
@@ -93,18 +94,17 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
       const res = await fetch("/api/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code: value }),
+        body: JSON.stringify({ email, code: value }),
       });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Incorrect code");
-        // Clear digits on wrong code
         setOtp(["", "", "", "", "", ""]);
         setTimeout(() => inputRefs.current[0]?.focus(), 50);
         return;
       }
       setVerified(true);
-      toast.success("Phone number verified!");
+      toast.success("Email verified!");
       setTimeout(() => onVerified(), 1200);
     } catch {
       toast.error("Network error. Try again.");
@@ -113,7 +113,7 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
     }
   };
 
-  const maskedPhone = phone.replace(/(\+254\s*\d{3})\s*\d{3}\s*\d{3}/, "$1 *** ***");
+  const maskedEmail = email.replace(/(.{2}).*(@.*)/, "$1***$2");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
@@ -129,20 +129,19 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
               <div className="w-16 h-16 bg-kazi-green/20 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-9 h-9 text-kazi-green" fill="#00C896" />
               </div>
-              <h3 className="text-xl font-black text-white mb-2">Phone Verified!</h3>
-              <p className="text-white/50 text-sm text-center">Your number has been confirmed. You&apos;re all set.</p>
+              <h3 className="text-xl font-black text-white mb-2">Email Verified!</h3>
+              <p className="text-white/50 text-sm text-center">Your email has been confirmed. You&apos;re all set.</p>
             </div>
           ) : (
             <>
               <div className="w-14 h-14 bg-kazi-orange/20 rounded-2xl flex items-center justify-center mb-5">
-                <Smartphone className="w-7 h-7 text-kazi-orange" />
+                <Mail className="w-7 h-7 text-kazi-orange" />
               </div>
-              <h3 className="text-xl font-black text-white mb-1">Verify your phone</h3>
+              <h3 className="text-xl font-black text-white mb-1">Verify your email</h3>
               <p className="text-white/50 text-sm mb-1 leading-relaxed">
                 {sending ? "Sending code…" : "We sent a 6-digit code to"}{" "}
-                {!sending && <span className="text-white font-semibold">{maskedPhone}</span>}
+                {!sending && <span className="text-white font-semibold">{maskedEmail}</span>}
               </p>
-
 
               <div className="flex gap-2 justify-center mb-6 mt-4" onPaste={handlePaste}>
                 {otp.map((digit, i) => (
@@ -171,7 +170,7 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
                 {verifying ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Verifying…</>
                 ) : (
-                  <><ShieldCheck className="w-5 h-5" /> Verify OTP</>
+                  <><ShieldCheck className="w-5 h-5" /> Verify Code</>
                 )}
               </button>
 
@@ -182,7 +181,7 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
                   </p>
                 ) : countdown > 0 ? (
                   <p className="text-sm text-white/40">
-                    Resend code in <span className="text-white/70 font-semibold">{countdown}s</span>
+                    Resend in <span className="text-white/70 font-semibold">{countdown}s</span>
                   </p>
                 ) : (
                   <button
@@ -190,13 +189,13 @@ export default function OTPModal({ phone, onVerified, onClose }: OTPModalProps) 
                     className="flex items-center gap-1.5 text-sm text-kazi-orange font-semibold hover:text-orange-400 transition-colors mx-auto"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    Resend OTP
+                    Resend code
                   </button>
                 )}
               </div>
 
               <p className="text-xs text-white/25 text-center mt-4">
-                Didn&apos;t get the code? Check your SMS inbox or wait for the resend timer.
+                Didn&apos;t get the code? Check your spam folder or wait for the resend timer.
               </p>
             </>
           )}

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowLeft, User, Smartphone, MapPin, Navigation,
+  ArrowLeft, User, Smartphone, Mail, MapPin, Navigation,
   CheckCircle, Loader2, Zap, ShieldCheck, Lock, Eye, EyeOff, Gift,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -25,7 +25,7 @@ export default function CustomerRegisterPage() {
     const storedRef = localStorage.getItem("referral_code");
     setRefCode(urlRef || storedRef || null);
   }, [searchParams]);
-  const [form, setForm] = useState({ name: "", phone: "+254 ", location: "", profilePhoto: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({ name: "", phone: "+254 ", email: "", location: "", profilePhoto: "", password: "", confirmPassword: "" });
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -60,6 +60,10 @@ export default function CustomerRegisterPage() {
 
   const handleDetailsNext = () => {
     if (!form.name || !form.phone) return;
+    if (!form.email || !form.email.includes("@")) {
+      toast.error("Enter a valid email address");
+      return;
+    }
     if (!form.password || form.password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
@@ -86,6 +90,7 @@ const handleSubmit = async () => {
         body: JSON.stringify({
           name: form.name,
           phone: form.phone.replace(/\s/g, ""),
+          email: form.email.trim().toLowerCase(),
           password: form.password,
           role: "CUSTOMER",
           location: form.location || "Nairobi",
@@ -126,7 +131,7 @@ const handleSubmit = async () => {
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6 space-y-2 text-left">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-kazi-green" />
-              <span className="text-xs text-white/70">Phone number verified ✓</span>
+              <span className="text-xs text-white/70">Email verified ✓</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-kazi-green" fill="#00C896" />
@@ -189,7 +194,7 @@ const handleSubmit = async () => {
           </h1>
           <p className="text-white/50 text-sm">
             {step === "details" ? "Quick and easy — takes under a minute" :
-             step === "verify" ? "We'll send a one-time code to your number" :
+             step === "verify" ? "We'll send a one-time code to your email" :
              "Help us show services near you"}
           </p>
         </div>
@@ -252,7 +257,25 @@ const handleSubmit = async () => {
                   className="w-full pl-11 pr-4 py-3.5 bg-white/[0.08] border border-white/15 rounded-2xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:ring-2 focus:ring-kazi-orange focus:border-transparent transition-all"
                 />
               </div>
-              <p className="text-xs text-white/30 mt-1.5 ml-1">We'll send a verification code to this number</p>
+              <p className="text-xs text-white/30 mt-1.5 ml-1">Used for login — keep this safe</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-white/70 mb-1.5">
+                Email Address <span className="text-kazi-orange">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                <input
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  className="w-full pl-11 pr-4 py-3.5 bg-white/[0.08] border border-white/15 rounded-2xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:ring-2 focus:ring-kazi-orange focus:border-transparent transition-all"
+                />
+              </div>
+              <p className="text-xs text-white/30 mt-1.5 ml-1">We&apos;ll send a verification code to this email</p>
             </div>
 
             <div>
@@ -317,11 +340,11 @@ const handleSubmit = async () => {
 
             <button
               onClick={handleDetailsNext}
-              disabled={!form.name || !form.phone || !form.password || form.password.length < 6 || form.password !== form.confirmPassword || !termsAccepted}
+              disabled={!form.name || !form.phone || !form.email || !form.email.includes("@") || !form.password || form.password.length < 6 || form.password !== form.confirmPassword || !termsAccepted}
               className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm mt-2"
             >
               <ShieldCheck className="w-5 h-5" />
-              Continue &amp; Verify Phone
+              Continue &amp; Verify Email
             </button>
           </div>
         )}
@@ -332,7 +355,7 @@ const handleSubmit = async () => {
             {phoneVerified && (
               <div className="flex items-center gap-2 p-3 bg-kazi-green/10 border border-kazi-green/30 rounded-2xl">
                 <CheckCircle className="w-4 h-4 text-kazi-green" fill="#00C896" />
-                <span className="text-xs text-kazi-green font-semibold">Phone number verified ✓</span>
+                <span className="text-xs text-kazi-green font-semibold">Email verified ✓</span>
               </div>
             )}
 
@@ -390,7 +413,8 @@ const handleSubmit = async () => {
 
       {showOTP && (
         <OTPModal
-          phone={form.phone}
+          email={form.email}
+          name={form.name}
           onVerified={handleOTPVerified}
           onClose={() => setShowOTP(false)}
         />
