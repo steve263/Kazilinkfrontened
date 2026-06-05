@@ -166,7 +166,7 @@ export default function JobsPage() {
             onClick={() => router.push(activeTab === "workers" ? "/jobs/my-applications" : "/jobs/employer")}
             className="flex-1 py-3 bg-white text-kazi-dark font-black rounded-2xl text-sm shadow-sm hover:shadow-md transition-shadow active:scale-[0.98]"
           >
-            My Dashboard →
+            {activeTab === "workers" ? "My Applications →" : "📋 My Dashboard →"}
           </button>
         </div>
 
