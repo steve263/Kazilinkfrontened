@@ -256,12 +256,6 @@ function ApplicantCard({
           </div>
         )}
 
-        {/* Fee */}
-        <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100">
-          <span className="text-gray-500 text-sm">Application fee paid</span>
-          <span className="font-black text-kazi-orange">KSh {app.applicationFee || 100}</span>
-        </div>
-
         {/* Contact */}
         <div className="flex gap-2">
           <button

@@ -456,12 +456,6 @@ function ApplicantCard({
           <p className="text-gray-700 text-sm leading-relaxed">{app.applicantBio || "No description provided"}</p>
         </div>
 
-        {/* Fee paid */}
-        <div className="flex items-center justify-between bg-white rounded-xl px-3 py-2.5 mb-3 border border-gray-100">
-          <span className="text-gray-500 text-sm">Application fee paid</span>
-          <span className="font-black text-kazi-orange text-base">KSh {app.applicationFee || 100}</span>
-        </div>
-
         {/* Contact buttons */}
         <div className="flex gap-2 mb-3">
           <button
