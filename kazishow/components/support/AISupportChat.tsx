@@ -7,7 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const QUICK_QUESTIONS = [
   "How do I book a service?",
   "How do Fundis pay commission?",
-  "How do I subscribe as a business?",
+  "How do I apply for a job?",
   "My account is suspended, what do I do?",
 ];
 
