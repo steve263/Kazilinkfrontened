@@ -20,11 +20,29 @@ export default function EmployerDashboardPage() {
     const t = localStorage.getItem("kazishow_token") || "";
     if (!t) { router.push("/auth/login"); return; }
     setToken(t);
-    fetchDashboard(t);
+    checkAccessAndLoad(t);
   }, []);
 
-  async function fetchDashboard(t: string) {
+  async function checkAccessAndLoad(t: string) {
     setLoading(true);
+    try {
+      // Check if this user has an employer profile
+      const profileRes = await fetch(`${API}/api/jobs/employer/profile`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      const profileData = await profileRes.json();
+      if (!profileData.success || !profileData.data) {
+        // Not an employer — redirect to jobs page
+        router.replace("/jobs");
+        return;
+      }
+      fetchDashboard(t);
+    } catch {
+      router.replace("/jobs");
+    }
+  }
+
+  async function fetchDashboard(t: string) {
     try {
       const res = await fetch(`${API}/api/jobs/employer/dashboard`, {
         headers: { Authorization: `Bearer ${t}` },
