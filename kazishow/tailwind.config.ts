@@ -25,6 +25,7 @@ const config: Config = {
         "slide-up": "slideUp 0.4s ease-out",
         "slide-in": "slideIn 0.3s ease-out",
         pulse2: "pulse2 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        marquee: "marquee 8s linear infinite",
       },
       keyframes: {
         fadeIn: {
@@ -38,6 +39,10 @@ const config: Config = {
         slideIn: {
           "0%": { transform: "translateX(-20px)", opacity: "0" },
           "100%": { transform: "translateX(0)", opacity: "1" },
+        },
+        marquee: {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(-100%)" },
         },
         pulse2: {
           "0%, 100%": { opacity: "1" },

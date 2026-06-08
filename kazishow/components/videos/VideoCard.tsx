@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, Flag, Trash2, Download, Zap } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreVertical, Star, Calendar, Flag, Trash2, Download, Zap, Music2 } from "lucide-react";
 import toast from "react-hot-toast";
 import VideoPlayer from "./VideoPlayer";
 import CommentsSheet from "./CommentsSheet";
@@ -16,6 +16,8 @@ interface VideoData {
   thumbnailUrl?: string | null;
   hashtags: string[];
   rating?: number | null;
+  audioUrl?: string | null;
+  audioName?: string | null;
   likes: number;
   likedByMe: boolean;
   createdAt: string;
@@ -174,6 +176,7 @@ export default function VideoCard({
           src={video.videoUrl}
           thumbnail={video.thumbnailUrl}
           className="absolute inset-0 w-full h-full"
+          audioUrl={video.audioUrl}
         />
 
         {/* Gradient overlays: dark top + dark bottom for readability */}
@@ -306,6 +309,20 @@ export default function VideoCard({
             <span className="text-xs font-bold drop-shadow">Save</span>
           </button>
         </div>
+
+        {/* ── Audio indicator — spinning disc + scrolling name (TikTok style) ── */}
+        {video.audioName && (
+          <div className="absolute bottom-24 left-4 flex items-center gap-2 max-w-[200px]">
+            <div className="w-9 h-9 rounded-full bg-gray-800 border-2 border-white/40 flex items-center justify-center flex-shrink-0 animate-spin [animation-duration:3s]">
+              <Music2 className="w-4 h-4 text-white" />
+            </div>
+            <div className="overflow-hidden flex-1">
+              <p className="text-white text-[11px] font-bold whitespace-nowrap animate-[marquee_6s_linear_infinite] drop-shadow">
+                🎵 {video.audioName}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Bottom overlay: caption + hashtags + CTA ── */}
         <div className="absolute bottom-0 left-0 right-14 px-4 pb-24">
