@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Heart, MessageCircle, Share2, MoreHorizontal,
-  HardHat, Store, CheckCircle, UserPlus, UserCheck, Tag, Download,
+  HardHat, Store, CheckCircle, UserPlus, UserCheck, Tag, Download, X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -56,6 +56,7 @@ export default function PostCard({ post, token, onOpenComments }: Props) {
   const [liked, setLiked] = useState(post.isLiked);
   const [likeCount, setLikeCount] = useState(post.likesCount);
   const [followed, setFollowed] = useState(post.provider?.isFollowed ?? false);
+  const [lightbox, setLightbox] = useState(false);
 
   if (!post.provider) return null;
   const [likeLoading, setLikeLoading] = useState(false);
@@ -193,7 +194,12 @@ export default function PostCard({ post, token, onOpenComments }: Props) {
       {post.image && (
         <div className="relative mx-4 rounded-xl overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.image} alt={post.caption} className="w-full max-h-80 object-cover rounded-xl" />
+          <img
+            src={post.image}
+            alt={post.caption}
+            onClick={() => setLightbox(true)}
+            className="w-full max-h-80 object-cover rounded-xl cursor-pointer hover:brightness-95 transition-all active:scale-[0.99]"
+          />
           <button
             onClick={handleDownload}
             title="Download image"
@@ -201,6 +207,28 @@ export default function PostCard({ post, token, onOpenComments }: Props) {
           >
             <Download className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightbox && post.image && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            onClick={() => setLightbox(false)}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={post.image}
+            alt={post.caption}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+          />
         </div>
       )}
 
