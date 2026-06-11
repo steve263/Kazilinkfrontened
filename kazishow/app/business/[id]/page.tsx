@@ -54,6 +54,7 @@ export default function ProviderProfilePage() {
   const [showReport, setShowReport] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [workLightboxIndex, setWorkLightboxIndex] = useState<number | null>(null);
+  const [postLightbox, setPostLightbox] = useState<{ url: string; title: string } | null>(null);
   const [portfolioPosts, setPortfolioPosts] = useState<any[]>([]);
 
   useEffect(() => {
@@ -702,7 +703,10 @@ export default function ProviderProfilePage() {
                 <div className="grid grid-cols-2 gap-3">
                   {portfolioPosts.map((post: any) => (
                     <div key={post.id} className="bg-white rounded-2xl overflow-hidden card-shadow">
-                      <div className="w-full h-36 overflow-hidden">
+                      <div
+                        className="w-full h-36 overflow-hidden cursor-pointer"
+                        onClick={() => post.imageUrl && setPostLightbox({ url: post.imageUrl, title: post.title })}
+                      >
                         <img
                           src={post.imageUrl}
                           alt={post.title}
@@ -935,6 +939,30 @@ export default function ProviderProfilePage() {
       )}
 
       <BottomNav />
+
+      {/* Portfolio post image lightbox */}
+      {postLightbox && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setPostLightbox(null)}
+        >
+          <button
+            onClick={() => setPostLightbox(null)}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <img
+            src={postLightbox.url}
+            alt={postLightbox.title}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+          />
+          <p className="absolute bottom-6 left-0 right-0 text-center text-white font-bold text-sm drop-shadow">
+            {postLightbox.title}
+          </p>
+        </div>
+      )}
 
       {/* Portfolio photo lightbox */}
       {lightboxIndex !== null && provider?.portfolioPhotos && (
