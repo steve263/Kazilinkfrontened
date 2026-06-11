@@ -1,7 +1,6 @@
 "use client";
-import { useState } from "react";
-import { X, ImageIcon, Tag, Megaphone, Briefcase } from "lucide-react";
-import ImageUpload from "@/components/shared/ImageUpload";
+import { useState, useRef } from "react";
+import { X, ImageIcon, Tag, Megaphone, Briefcase, Upload, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -27,6 +26,40 @@ export default function CreatePostModal({ token, onClose, onCreated }: Props) {
   const [promoUntil, setPromoUntil] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImageFile(file: File) {
+    if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Only JPG, PNG, WebP allowed"); return;
+    }
+    if (file.size > 5 * 1024 * 1024) { setError("Image must be under 5MB"); return; }
+    setError("");
+    setUploadingImage(true);
+    setImage(URL.createObjectURL(file)); // show preview immediately
+    try {
+      const t = localStorage.getItem("kazishow_token");
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch(`${API}/api/upload/image?folder=posts`, {
+        method: "POST",
+        headers: t ? { Authorization: `Bearer ${t}` } : {},
+        body: form,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setImage(data.data.url);
+      } else {
+        setError(data.message || "Upload failed");
+        setImage("");
+      }
+    } catch {
+      setError("Upload failed. Check your connection.");
+      setImage("");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
 
   async function handleSubmit() {
     if (!caption.trim()) { setError("Caption is required"); return; }
@@ -105,26 +138,52 @@ export default function CreatePostModal({ token, onClose, onCreated }: Props) {
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1">
               <ImageIcon className="w-3 h-3" /> Photo (optional)
             </p>
+
             {image ? (
               <div className="relative rounded-2xl overflow-hidden">
-                <img src={image} alt="Post" className="w-full max-h-48 object-cover rounded-2xl" />
-                <button
-                  type="button"
-                  onClick={() => setImage("")}
-                  className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={image} alt="Post preview" className="w-full max-h-64 object-cover rounded-2xl" />
+                {uploadingImage && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
+                    <Loader2 className="w-8 h-8 text-white animate-spin" />
+                    <span className="text-white text-sm font-semibold ml-2">Uploading…</span>
+                  </div>
+                )}
+                {!uploadingImage && (
+                  <button
+                    type="button"
+                    onClick={() => setImage("")}
+                    className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                )}
               </div>
             ) : (
-              <ImageUpload
-                folder="posts"
-                theme="light"
-                shape="square"
-                onUpload={(url) => setImage(url)}
-                hint="JPG, PNG, WebP · Max 5 MB"
-              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 hover:border-kazi-orange hover:bg-orange-50 transition-all"
+              >
+                <Upload className="w-5 h-5 text-gray-400" />
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-600">Add a photo</p>
+                  <p className="text-xs text-gray-400">JPG, PNG, WebP · Max 5 MB</p>
+                </div>
+              </button>
             )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImageFile(f);
+                e.target.value = "";
+              }}
+            />
           </div>
 
           {/* Promotion fields */}
@@ -182,10 +241,10 @@ export default function CreatePostModal({ token, onClose, onCreated }: Props) {
 
           <button
             onClick={handleSubmit}
-            disabled={loading || !caption.trim()}
+            disabled={loading || uploadingImage || !caption.trim()}
             className="w-full py-3.5 bg-kazi-orange text-white font-black rounded-2xl text-sm disabled:opacity-50 active:scale-95 transition-all shadow-lg shadow-orange-200"
           >
-            {loading ? "Posting…" : "Post Now"}
+            {loading ? "Posting…" : uploadingImage ? "Uploading image…" : "Post Now"}
           </button>
         </div>
       </div>

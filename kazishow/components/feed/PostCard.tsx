@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Heart, MessageCircle, Share2, MoreHorizontal,
@@ -192,8 +191,9 @@ export default function PostCard({ post, token, onOpenComments }: Props) {
 
       {/* Image */}
       {post.image && (
-        <div className="relative aspect-[4/3] overflow-hidden mx-4 rounded-xl">
-          <Image src={post.image} alt={post.caption} fill className="object-cover" />
+        <div className="relative mx-4 rounded-xl overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={post.image} alt={post.caption} className="w-full max-h-80 object-cover rounded-xl" />
           <button
             onClick={handleDownload}
             title="Download image"
