@@ -727,7 +727,16 @@ export default function ProviderProfilePage() {
                         )}
                         {(!currentUser || currentUser.role === "CUSTOMER") && (
                           <button
-                            onClick={() => { setSelectedService(undefined); setShowBooking(true); }}
+                            onClick={() => {
+                              setSelectedService({
+                                id: post.id,
+                                name: post.title,
+                                price: post.price,
+                                description: post.description,
+                                duration: post.duration || 30,
+                              });
+                              setShowBooking(true);
+                            }}
                             className="w-full mt-2.5 py-2 bg-kazi-orange text-white font-black rounded-xl text-xs active:scale-95 transition-transform hover:bg-orange-600"
                           >
                             Book Now
