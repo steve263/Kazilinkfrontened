@@ -264,8 +264,8 @@ export default function FeedPage() {
                     Try Again
                   </button>
                 )}
-                {/* Prompt providers to post */}
-                {token && user?.role === "PROVIDER" && activeTab === "forYou" && (
+                {/* Prompt logged-in users to post */}
+                {token && activeTab === "forYou" && (
                   <button
                     onClick={() => setShowCreate(true)}
                     className="mt-5 inline-flex items-center gap-2 px-6 py-3 bg-kazi-orange text-white font-black rounded-2xl shadow-lg shadow-orange-200 active:scale-95 transition-all"
@@ -290,8 +290,8 @@ export default function FeedPage() {
         )}
       </div>
 
-      {/* FAB — create post (providers only) */}
-      {token && user?.role === "PROVIDER" && (
+      {/* FAB — create post (any logged-in user; backend enforces provider check) */}
+      {token && (
         <button
           onClick={() => setShowCreate(true)}
           className="fixed bottom-24 right-4 w-14 h-14 bg-kazi-orange text-white rounded-full shadow-xl shadow-orange-300 flex items-center justify-center z-30 active:scale-90 transition-all"
