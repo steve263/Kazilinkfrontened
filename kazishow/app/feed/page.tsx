@@ -281,15 +281,16 @@ export default function FeedPage() {
         )}
       </div>
 
-      {/* FAB — create post (providers only) */}
-      {token && user?.role === "PROVIDER" && (
-        <button
-          onClick={() => setShowCreate(true)}
-          className="fixed bottom-24 right-4 w-14 h-14 bg-kazi-orange text-white rounded-full shadow-xl shadow-orange-300 flex items-center justify-center z-30 active:scale-90 transition-all"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
-      )}
+      {/* FAB — create post (all logged-in users) */}
+      <button
+        onClick={() => {
+          if (!token) { window.location.href = "/auth/login"; return; }
+          setShowCreate(true);
+        }}
+        className="fixed bottom-24 right-4 w-14 h-14 bg-kazi-orange text-white rounded-full shadow-xl shadow-orange-300 flex items-center justify-center z-30 active:scale-90 transition-all"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       {/* Modals */}
       {showCreate && token && (
