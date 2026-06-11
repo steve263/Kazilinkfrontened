@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import {
-  TrendingUp, Flame, Plus, Tag, MapPin, Search, X, RefreshCw,
+  TrendingUp, Flame, Plus, MapPin, Search, X, RefreshCw,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -13,10 +13,9 @@ import BroadcastBanner from "@/components/notifications/BroadcastBanner";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const TABS = [
-  { key: "forYou", label: "For You", icon: TrendingUp },
-  { key: "promotions", label: "Promotions", icon: Tag },
+  { key: "forYou",    label: "For You",   icon: TrendingUp },
   { key: "following", label: "Following", icon: Flame },
-  { key: "nearMe", label: "Near Me", icon: MapPin },
+  { key: "nearMe",    label: "Near Me",   icon: MapPin },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -60,7 +59,6 @@ export default function FeedPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (activeTab === "promotions") params.set("type", "PROMOTION");
       if (activeTab === "following") params.set("followed", "true");
       if (hashtag) params.set("hashtag", hashtag);
 
@@ -172,15 +170,6 @@ export default function FeedPage() {
         </div>
 
         {/* Tab-specific banners */}
-        {activeTab === "promotions" && (
-          <div className="flex items-center gap-2 mb-4 p-3 bg-green-50 rounded-2xl border border-green-100">
-            <Tag className="w-5 h-5 text-green-600" />
-            <div>
-              <p className="text-sm font-bold text-kazi-dark">Active Promotions</p>
-              <p className="text-xs text-gray-500">Discounts & special offers from local providers</p>
-            </div>
-          </div>
-        )}
         {activeTab === "following" && (
           <div className="flex items-center gap-2 mb-4 p-3 bg-orange-50 rounded-2xl border border-orange-100">
             <Flame className="w-5 h-5 text-kazi-orange" fill="#FF6B2B" />
