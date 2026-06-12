@@ -84,6 +84,7 @@ export default function FundiRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
   const [certUploading, setCertUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const certInputRef = useRef<HTMLInputElement>(null);
@@ -230,7 +231,7 @@ export default function FundiRegisterPage() {
   // ── Step validation ──────────────────────────────────────────────────────────
 
   const canProceed = () => {
-    if (step === 0) return !!(form.name && form.phone && form.email && form.email.includes("@") && form.category && form.yearsExperience && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
+    if (step === 0) return !!(form.name && form.phone && form.email && form.email.includes("@") && form.category && (form.category !== "Other" || customCategory.trim().length >= 2) && form.yearsExperience && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
     if (step === 1) return form.description.length >= 30 && form.skills.length >= 1;
     if (step === 2) return form.services.length >= 1;
     if (step === 3) return !!(form.idPhotoUrl && form.idBackPhotoUrl && form.education);
@@ -276,8 +277,11 @@ export default function FundiRegisterPage() {
           role: "PROVIDER",
           location: form.location || "Nairobi",
           category: "FUNDI",
+          subCategory: form.category === "Other" && customCategory.trim() ? customCategory.trim() : form.category,
           businessName: form.name,
-          description: form.description,
+          description: form.category === "Other" && customCategory.trim()
+            ? `Specialty: ${customCategory.trim()}\n\n${form.description}`
+            : form.description,
           workingHoursStart: form.workingHoursStart,
           workingHoursEnd: form.workingHoursEnd,
           skills: form.skills,
@@ -457,10 +461,28 @@ export default function FundiRegisterPage() {
             </Field>
 
             <Field label="Service Category" required hint="What is your main skill?">
-              <select value={form.category} onChange={(e) => set("category", e.target.value)} className={selectCls}>
+              <select
+                value={form.category}
+                onChange={(e) => { set("category", e.target.value); if (e.target.value !== "Other") setCustomCategory(""); }}
+                className={selectCls}
+              >
                 <option value="">Select a category…</option>
                 {FUNDI_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
+              {form.category === "Other" && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="e.g. Barber, Tattoo Artist, AC Technician…"
+                    className="w-full px-4 py-3.5 bg-white/[0.08] border border-kazi-orange/50 rounded-2xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:ring-2 focus:ring-kazi-orange transition-all"
+                    maxLength={60}
+                    autoFocus
+                  />
+                  <p className="text-xs text-white/30 mt-1 ml-0.5">{customCategory.length}/60 characters</p>
+                </div>
+              )}
             </Field>
 
             <Field label="Years of Experience" required>
@@ -861,7 +883,7 @@ export default function FundiRegisterPage() {
               <h4 className="text-sm font-bold text-white mb-3">Registration Summary</h4>
               {[
                 { label: "Name",         value: form.name || "—" },
-                { label: "Category",     value: form.category || "—" },
+                { label: "Category",     value: form.category === "Other" && customCategory.trim() ? `Other — ${customCategory.trim()}` : form.category || "—" },
                 { label: "Experience",   value: form.yearsExperience || "—" },
                 { label: "Skills",       value: form.skills.length > 0 ? `${form.skills.length} added` : "—" },
                 { label: "Services",     value: form.services.length > 0 ? `${form.services.length} service${form.services.length !== 1 ? "s" : ""}` : "—" },
