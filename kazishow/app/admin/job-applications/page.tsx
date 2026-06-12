@@ -5,7 +5,7 @@ import {
   BarChart2, ClipboardCheck, CheckSquare, Users, ShoppingBag,
   Activity, DollarSign, Shield, Scale, Gavel, XCircle, Megaphone,
   ShieldAlert, CreditCard, BadgeCheck, Settings, LogOut, Menu, Briefcase, Wallet,
-  RefreshCw, Phone,
+  RefreshCw, Phone, Trash2, UserX,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAdminGuard, getAdminToken } from "@/middleware/adminGuard";
@@ -88,6 +88,51 @@ export default function AdminJobApplicationsPage() {
         fetchApps(token);
       } else {
         toast.error(data.message || "Failed");
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function handleDeleteJob(jobId: string, jobTitle: string) {
+    if (!confirm(`Delete job "${jobTitle}"? This will also remove all applications and notify the employer.`)) return;
+    setActing(jobId);
+    try {
+      const res = await fetch(`${API}/api/admin/jobs/${jobId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`🗑️ Job deleted. Employer notified.`);
+        fetchApps(token);
+      } else {
+        toast.error(data.message || "Failed to delete job");
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function handleSuspendEmployer(userId: string, userName: string) {
+    if (!confirm(`Suspend employer "${userName}"? Their account will be deactivated.`)) return;
+    setActing(userId);
+    try {
+      const res = await fetch(`${API}/api/admin/users/${userId}/suspend`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const suspended = !data.data.isActive;
+        toast.success(suspended ? `🚫 ${userName} suspended.` : `✅ ${userName} unsuspended.`);
+        fetchApps(token);
+      } else {
+        toast.error(data.message || "Failed to suspend employer");
       }
     } catch {
       toast.error("Network error");
@@ -298,6 +343,8 @@ export default function AdminJobApplicationsPage() {
                   acting={acting}
                   onVerify={handleVerify}
                   onReject={handleReject}
+                  onDeleteJob={handleDeleteJob}
+                  onSuspendEmployer={handleSuspendEmployer}
                 />
               ))}
             </div>
@@ -309,12 +356,14 @@ export default function AdminJobApplicationsPage() {
 }
 
 function AppCard({
-  app, acting, onVerify, onReject,
+  app, acting, onVerify, onReject, onDeleteJob, onSuspendEmployer,
 }: {
   app: any;
   acting: string | null;
   onVerify: (id: string) => void;
   onReject: (id: string) => void;
+  onDeleteJob: (jobId: string, jobTitle: string) => void;
+  onSuspendEmployer: (userId: string, userName: string) => void;
 }) {
   const isPending  = app.paymentStatus === "PENDING_VERIFICATION";
   const isVerified = app.paymentStatus === "PAYMENT_VERIFIED";
@@ -459,6 +508,33 @@ function AppCard({
           <div className="bg-red-50 border border-red-200 rounded-2xl p-3 text-center">
             <p className="text-red-600 font-black text-sm">❌ Payment rejected</p>
             <p className="text-red-400 text-xs mt-1">Worker was notified to resubmit correct proof</p>
+          </div>
+        )}
+
+        {/* ── ADMIN MODERATION ACTIONS ── */}
+        {app.job?.id && (
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs font-black text-gray-400 uppercase tracking-wide mb-2">⚠️ Moderation</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onDeleteJob(app.job.id, app.job.title)}
+                disabled={acting === app.job.id}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-red-50 text-red-600 font-bold rounded-xl text-xs border border-red-200 hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Job
+              </button>
+              {app.job?.employer?.id && (
+                <button
+                  onClick={() => onSuspendEmployer(app.job.employer.id, app.job.employer.name || "Employer")}
+                  disabled={acting === app.job.employer.id}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-orange-50 text-orange-700 font-bold rounded-xl text-xs border border-orange-200 hover:bg-orange-100 transition-colors disabled:opacity-50"
+                >
+                  <UserX className="w-3.5 h-3.5" />
+                  Suspend Employer
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
