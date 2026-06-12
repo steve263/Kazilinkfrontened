@@ -191,21 +191,26 @@ export default function UsersPage() {
 
         <div className="bg-white rounded-2xl card-shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[650px]">
+            <table className="w-full text-sm min-w-[800px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {["Name", "Phone", "Role", "Location", "Bookings", "Joined", "Status", "Actions"].map((h) => (
+                  {["Name", "Phone", "Email", "Role", "Location", "Bookings", "Joined", "Status", "Actions"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loading ? Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}><td colSpan={8} className="px-4 py-3"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td></tr>
+                  <tr key={i}><td colSpan={9} className="px-4 py-3"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td></tr>
                 )) : users.map((u, i) => (
                   <tr key={u.id} className={`border-b border-gray-50 hover:bg-orange-50/20 ${i % 2 ? "bg-gray-50/40" : ""}`}>
                     <td className="px-4 py-3 font-bold text-kazi-dark">{u.name}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{u.phone}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {u.email
+                        ? <a href={`mailto:${u.email}`} className="text-blue-500 hover:underline">{u.email}</a>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${ROLE_COLOR[u.role] || "bg-gray-100"}`}>{u.role}</span>
                     </td>
