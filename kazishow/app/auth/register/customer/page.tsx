@@ -9,6 +9,7 @@ import {
 import toast from "react-hot-toast";
 import OTPModal from "@/components/trust/OTPModal";
 import ImageUpload from "@/components/shared/ImageUpload";
+import PasswordStrength, { isStrongPassword } from "@/components/shared/PasswordStrength";
 
 type Step = "details" | "verify" | "location";
 
@@ -64,8 +65,8 @@ export default function CustomerRegisterPage() {
       toast.error("Enter a valid email address");
       return;
     }
-    if (!form.password || form.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (!isStrongPassword(form.password)) {
+      toast.error("Password is too weak — add uppercase, number and special character");
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -288,7 +289,7 @@ const handleSubmit = async () => {
                   value={form.password}
                   onChange={(e) => set("password", e.target.value)}
                   type={showPassword ? "text" : "password"}
-                  placeholder="Minimum 6 characters"
+                  placeholder="Create a strong password"
                   className="w-full pl-11 pr-11 py-3.5 bg-white/[0.08] border border-white/15 rounded-2xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:ring-2 focus:ring-kazi-orange focus:border-transparent transition-all"
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -296,6 +297,7 @@ const handleSubmit = async () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <PasswordStrength password={form.password} />
             </div>
 
             <div>
@@ -340,7 +342,7 @@ const handleSubmit = async () => {
 
             <button
               onClick={handleDetailsNext}
-              disabled={!form.name || !form.phone || !form.email || !form.email.includes("@") || !form.password || form.password.length < 6 || form.password !== form.confirmPassword || !termsAccepted}
+              disabled={!form.name || !form.phone || !form.email || !form.email.includes("@") || !isStrongPassword(form.password) || form.password !== form.confirmPassword || !termsAccepted}
               className="w-full py-4 bg-kazi-orange text-white font-black rounded-2xl hover:bg-orange-600 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm mt-2"
             >
               <ShieldCheck className="w-5 h-5" />

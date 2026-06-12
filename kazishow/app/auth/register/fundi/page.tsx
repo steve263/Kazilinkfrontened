@@ -14,6 +14,7 @@ import { FUNDI_CATEGORIES, EDUCATION_LEVELS } from "@/lib/data";
 import OTPModal from "@/components/trust/OTPModal";
 import ImageUpload from "@/components/shared/ImageUpload";
 import MultiImageUpload from "@/components/shared/MultiImageUpload";
+import PasswordStrength, { isStrongPassword } from "@/components/shared/PasswordStrength";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -231,7 +232,7 @@ export default function FundiRegisterPage() {
   // ── Step validation ──────────────────────────────────────────────────────────
 
   const canProceed = () => {
-    if (step === 0) return !!(form.name && form.phone && form.email && form.email.includes("@") && form.category && (form.category !== "Other" || customCategory.trim().length >= 2) && form.yearsExperience && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
+    if (step === 0) return !!(form.name && form.phone && form.email && form.email.includes("@") && form.category && (form.category !== "Other" || customCategory.trim().length >= 2) && form.yearsExperience && isStrongPassword(form.password) && form.password === form.confirmPassword && termsAccepted);
     if (step === 1) return form.description.length >= 30 && form.skills.length >= 1;
     if (step === 2) return form.services.length >= 1;
     if (step === 3) return !!(form.idPhotoUrl && form.idBackPhotoUrl && form.education);
@@ -429,17 +430,18 @@ export default function FundiRegisterPage() {
               </InputIcon>
             </Field>
 
-            <Field label="Password" required hint="Minimum 6 characters">
+            <Field label="Password" required hint="Must be strong — use uppercase, lowercase, numbers and a symbol">
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 pointer-events-none" />
                 <input value={form.password} onChange={(e) => set("password", e.target.value)}
-                  type={showPassword ? "text" : "password"} placeholder="Create a password"
+                  type={showPassword ? "text" : "password"} placeholder="Create a strong password"
                   className={`${inputCls} pr-11`} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <PasswordStrength password={form.password} />
             </Field>
 
             <Field label="Confirm Password" required>

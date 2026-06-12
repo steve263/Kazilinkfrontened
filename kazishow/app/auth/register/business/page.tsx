@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { BUSINESS_CATEGORIES } from "@/lib/data";
 import ImageUpload from "@/components/shared/ImageUpload";
 import MultiImageUpload from "@/components/shared/MultiImageUpload";
+import PasswordStrength, { isStrongPassword } from "@/components/shared/PasswordStrength";
 
 const CATEGORY_ENUM: Record<string, string> = {
   "Salon & Barbershop":       "SHOP",
@@ -106,7 +107,7 @@ export default function BusinessRegisterPage() {
   };
 
   const canProceed = () => {
-    if (step === 0) return !!(form.businessName && form.phone && form.category && (form.category !== "Other" || customCategory.trim().length >= 2) && form.description.length >= 20 && form.password.length >= 6 && form.password === form.confirmPassword && termsAccepted);
+    if (step === 0) return !!(form.businessName && form.phone && form.category && (form.category !== "Other" || customCategory.trim().length >= 2) && form.description.length >= 20 && isStrongPassword(form.password) && form.password === form.confirmPassword && termsAccepted);
     if (step === 1) return form.services.length >= 1 && form.openTime && form.closeTime;
     if (step === 2) return form.businessPhotos.length >= 1;
     if (step === 3) return form.location.length > 0;
@@ -288,14 +289,14 @@ const handleSubmit = async () => {
               </InputIcon>
             </Field>
 
-            <Field label="Password" required hint="Minimum 6 characters">
+            <Field label="Password" required hint="Must be strong — use uppercase, lowercase, numbers and a symbol">
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 pointer-events-none" />
                 <input
                   value={form.password}
                   onChange={(e) => set("password", e.target.value)}
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
+                  placeholder="Create a strong password"
                   className="w-full pl-11 pr-11 py-3.5 bg-white/[0.08] border border-white/15 rounded-2xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:ring-2 focus:ring-kazi-blue focus:border-transparent transition-all"
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -303,6 +304,7 @@ const handleSubmit = async () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <PasswordStrength password={form.password} />
             </Field>
 
             <Field label="Confirm Password" required>
